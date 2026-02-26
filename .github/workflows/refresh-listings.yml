@@ -1,6 +1,7 @@
 name: Refresh Listings
 
-# Runs daily at 6 AM UTC to scrape fresh listings, commit the updated
+# Runs daily at 6 AM UTC to scrape fresh listings from 4 platforms
+# (MaxSold, BidSpotter, HiBid, EstateSales.NET), commit the updated
 # scraped-listings.json, and deploy to Vercel production.
 on:
   schedule:
@@ -25,8 +26,8 @@ jobs:
       - name: Install scraper dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli
 
-      - name: Run hydrate (MaxSold + BidSpotter country-wide, 17 pages)
-        run: python backend/scrapers/hydrate.py --targets ms,bs --max-pages 17
+      - name: Run hydrate (MaxSold + BidSpotter + HiBid + EstateSales.NET)
+        run: python backend/scrapers/hydrate.py --targets ms,bs,hi,es --max-pages 17
 
       - name: Commit updated listings if changed
         run: |

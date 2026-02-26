@@ -10,17 +10,23 @@ Quick-start (from the project root):
   python backend/scrapers/hydrate.py
 
 Options:
-  --state WA          State abbreviation (default: WA)
-  --city Seattle      Optionally filter to a single city
-  --max-pages 3       Pages per scraper (default: 3; raise for more results)
-  --out PATH          Output JSON path (default: apps/web/src/data/scraped-listings.json)
-  --targets la,es,hi,ms   Comma-separated scrapers to run (default: all)
-                           la=liveauctioneers, es=estatesales_net, hi=hibid, ms=maxsold
+  --state WA              State abbreviation used by MaxSold (default: WA)
+  --city Seattle          Optionally filter to a single city (MaxSold/EstateSales)
+  --max-pages 17          Pages per scraper (default: 17)
+                            - BidSpotter: 17 × 60 = ~1020 listings
+                            - HiBid: 17 × 100 = ~1700 auctions (GraphQL)
+                            - EstateSales.NET: 17 × 3  = ~51 listings (JSON-LD)
+  --out PATH              Output JSON path (default: apps/web/src/data/scraped-listings.json)
+  --targets ms,bs,hi,es   Comma-separated scrapers (default: ms,bs,hi,es)
+                            ms=maxsold      – HTML scraper, WA only
+                            bs=bidspotter   – JSON API, all US
+                            hi=hibid        – GraphQL API, all US
+                            es=estatesales  – JSON-LD, all US (~3/page)
+                            la=liveauctioneers – blocked (403), skip for now
 
 Notes:
-  - HiBid may be blocked by Cloudflare — it will be skipped gracefully.
-  - LiveAuctioneers has aggressive anti-bot — lower --max-pages if you get blocked.
-  - Run this periodically (e.g., daily via Task Scheduler / cron) to keep data fresh.
+  - LiveAuctioneers returns 403; omit "la" from --targets.
+  - Run this periodically (e.g., daily via GitHub Actions) to keep data fresh.
 """
 
 import argparse
@@ -182,8 +188,8 @@ async def hydrate(args):
     # Map short names → (class, extra kwargs)
     target_map = {
         "la": (LiveAuctioneersScraper,  {"state": args.state}),
-        "es": (EstateSalesNetScraper,   {"state": args.state, "city": args.city}),
-        "hi": (HibidScraper,            {"state": args.state}),
+        "es": (EstateSalesNetScraper,   {"state": "",         "city": args.city}),  # national (3 per page × max_pages)
+        "hi": (HibidScraper,            {"state": "",         "country": "USA"}),   # all US via GraphQL
         "ms": (MaxSoldScraper,          {"state": args.state}),
         "bs": (BidSpotterScraper,       {"state": None}),   # country-wide (all US)
     }
@@ -224,11 +230,11 @@ def main():
     parser = argparse.ArgumentParser(
         description="Run Estate Scout scrapers and write real listing data to JSON."
     )
-    parser.add_argument("--state",     default="WA",       help="State to scrape (default: WA)")
+    parser.add_argument("--state",     default="WA",       help="State to scrape for state-filtered scrapers (default: WA)")
     parser.add_argument("--city",      default="",         help="City to filter (optional)")
     parser.add_argument("--max-pages", type=int, default=17, help="Pages per scraper (default: 17; 17×60=1020 BidSpotter listings)")
-    parser.add_argument("--targets",   default="ms,bs",
-                        help="Comma-separated scrapers: la,es,hi,ms,bs (default: ms,bs)")
+    parser.add_argument("--targets",   default="ms,bs,hi,es",
+                        help="Comma-separated scrapers: la,es,hi,ms,bs (default: ms,bs,hi,es)")
     parser.add_argument("--out",       default=str(DEFAULT_OUT),
                         help=f"Output JSON path (default: {DEFAULT_OUT})")
     args = parser.parse_args()
