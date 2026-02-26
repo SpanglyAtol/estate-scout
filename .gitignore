@@ -1,0 +1,57 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+
+# Expo / React Native
+.expo/
+android/
+ios/
+*.jks
+*.keystore
+
+# TypeScript
+*.tsbuildinfo
+packages/shared-types/dist/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Scraped data staging
+backend/scrapers/staging/*.jsonl
+
+# Windows reserved device name created by some tools
+apps/web/nul
+
+# Claude Code internal files
+apps/web/.claude/
