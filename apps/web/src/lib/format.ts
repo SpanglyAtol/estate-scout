@@ -1,3 +1,39 @@
+import type { Listing } from "@/types";
+
+export type AuctionStatus =
+  | "upcoming"
+  | "live"
+  | "ending_soon"
+  | "ended"
+  | "completed"
+  | "unknown";
+
+/**
+ * Derive a live auction status from a listing's dates and stored field.
+ * Uses the stored `auction_status` value from scrape time as a hint,
+ * but always re-checks against the current clock so status stays accurate.
+ */
+export function getAuctionStatus(listing: Listing): AuctionStatus {
+  if (listing.is_completed) return "completed";
+  const now = Date.now();
+  const starts = listing.sale_starts_at
+    ? new Date(listing.sale_starts_at).getTime()
+    : null;
+  const ends = listing.sale_ends_at
+    ? new Date(listing.sale_ends_at).getTime()
+    : null;
+  if (starts !== null && starts > now) return "upcoming";
+  if (ends !== null && ends < now) return "ended";
+  if (ends !== null && ends - now < 24 * 3_600_000) return "ending_soon";
+  if (starts !== null && starts <= now) return "live";
+  // Fall back to stored value if dates are absent
+  const stored = listing.auction_status;
+  if (stored === "live" || stored === "upcoming" || stored === "ended" || stored === "completed") {
+    return stored as AuctionStatus;
+  }
+  return "unknown";
+}
+
 /** Format a price in USD. Returns "No bids" if null. */
 export function formatPrice(price: number | null, currency = "USD"): string {
   if (price === null) return "No bids";

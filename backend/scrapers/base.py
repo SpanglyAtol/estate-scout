@@ -30,6 +30,7 @@ class ScrapedListing:
     buyers_premium_pct: float | None = None
     final_price: float | None = None
     is_completed: bool = False
+    auction_status: str | None = None  # 'upcoming' | 'live' | 'ended' | 'completed'
     currency: str = "USD"
 
     # Fulfillment

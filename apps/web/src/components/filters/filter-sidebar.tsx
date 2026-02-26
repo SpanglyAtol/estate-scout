@@ -69,6 +69,7 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
     filters.min_price,
     filters.max_price,
     filters.platform_ids?.length,
+    filters.status,
     filters.radius_miles && filters.radius_miles !== 50 ? filters.radius_miles : null,
   ].filter(Boolean).length;
 
@@ -94,6 +95,32 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
           </button>
         )}
       </div>
+
+      {/* Status */}
+      <Section title="Status">
+        <div className="space-y-1.5">
+          {[
+            { label: "All listings", value: undefined },
+            { label: "Upcoming", value: "upcoming" },
+            { label: "Live now", value: "live" },
+            { label: "Ending soon", value: "ending_soon" },
+            { label: "Ended", value: "ended" },
+          ].map((opt) => (
+            <label key={opt.label} className="flex items-center gap-2.5 cursor-pointer group">
+              <input
+                type="radio"
+                name="status"
+                checked={(filters.status ?? undefined) === opt.value}
+                onChange={() => update({ status: opt.value })}
+                className="accent-blue-600"
+              />
+              <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+                {opt.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </Section>
 
       {/* Category */}
       <Section title="Category">

@@ -8,14 +8,22 @@ via private API calls.  However, the server-side renders up to 3 JSON-LD
 ``SaleEvent`` blocks per page in the <head>.  Each block contains all the
 fields we need (name, url, startDate, endDate, image, location).
 
-We page through /WA?page=N (or just /?page=N for national) and collect
-every SaleEvent JSON-LD block we find.  Typical yield is 3 per page.
+National mode (state=""):
+  Iterates through the 10 highest-volume US states, fetching
+  ceil(max_pages / 10) pages each, so total page count stays near
+  max_pages.  The national homepage (/  ) has no JSON-LD blocks and
+  exits immediately, so state-based URLs are required.
 
-With the default 10 pages that gives ~30 listings per run.  Increase
---max-pages if you want more (each page is a lightweight HTML request).
+State mode (e.g. state="WA"):
+  Pages through /WA?page=N up to max_pages.
+
+Typical yield: ~3 JSON-LD blocks per page.
+
+With 17 max_pages across 10 states (2 pages/state) → ~60 listings.
 """
 
 import json
+import math
 import re
 from datetime import datetime
 from typing import AsyncIterator
@@ -24,6 +32,9 @@ from bs4 import BeautifulSoup
 from dateutil import parser as dtp
 
 from scrapers.base import BaseScraper, ScrapedListing
+
+# States ordered by typical estate-sale volume
+POPULAR_STATES = ["CA", "TX", "FL", "NY", "PA", "OH", "IL", "GA", "NC", "MI"]
 
 
 class EstateSalesNetScraper(BaseScraper):
@@ -50,65 +61,68 @@ class EstateSalesNetScraper(BaseScraper):
 
         Args:
             state: 2-letter state abbreviation (e.g. "WA").
-                   If empty, scrapes the national homepage.
-            city:  (optional) not used directly – include in state path if
-                   EstateSales.NET supports it for your target market.
+                   If empty, scrapes POPULAR_STATES to avoid the national
+                   homepage which has no JSON-LD blocks.
+            city:  Unused directly; reserved for future city-level filtering.
             **kwargs: max_pages (default 10).
         """
         max_pages = kwargs.get("max_pages", 10)
         seen_ids: set[str] = set()
 
-        for page in range(1, max_pages + 1):
-            # Build URL: /WA?page=1  or  /?page=1 (national)
-            if state:
-                url = f"{self.base_url}/{state.upper()}"
-            else:
-                url = self.base_url
+        if state:
+            states_to_scrape = [(state.upper(), max_pages)]
+        else:
+            # Distribute pages across popular states
+            pages_each = max(1, math.ceil(max_pages / len(POPULAR_STATES)))
+            states_to_scrape = [(s, pages_each) for s in POPULAR_STATES]
 
-            params = {"page": page}
+        for target_state, pages in states_to_scrape:
+            for page in range(1, pages + 1):
+                url = f"{self.base_url}/{target_state}"
+                params = {"page": page}
 
-            try:
-                response = await self._fetch(url, params=params)
-                soup = BeautifulSoup(response.text, "lxml")
+                try:
+                    response = await self._fetch(url, params=params)
+                    soup = BeautifulSoup(response.text, "lxml")
 
-                # Extract all JSON-LD SaleEvent blocks
-                json_lds = soup.find_all("script", type="application/ld+json")
-                found_on_page = 0
+                    # Extract all JSON-LD SaleEvent blocks
+                    json_lds = soup.find_all("script", type="application/ld+json")
+                    found_on_page = 0
 
-                for jld in json_lds:
-                    if not jld.string:
-                        continue
-                    try:
-                        data = json.loads(jld.string)
-                    except json.JSONDecodeError:
-                        continue
-
-                    # Handle both single objects and arrays
-                    items = data if isinstance(data, list) else [data]
-                    for item in items:
-                        if item.get("@type") != "SaleEvent":
+                    for jld in json_lds:
+                        if not jld.string:
+                            continue
+                        try:
+                            data = json.loads(jld.string)
+                        except json.JSONDecodeError:
                             continue
 
-                        listing = self._normalize(item)
-                        if listing and listing.external_id not in seen_ids:
-                            seen_ids.add(listing.external_id)
-                            found_on_page += 1
-                            yield listing
+                        # Handle both single objects and arrays
+                        items = data if isinstance(data, list) else [data]
+                        for item in items:
+                            if item.get("@type") != "SaleEvent":
+                                continue
 
-                self.logger.info(
-                    f"EstateSales.NET {state or 'national'} page {page}: "
-                    f"{found_on_page} new listings"
-                )
+                            listing = self._normalize(item)
+                            if listing and listing.external_id not in seen_ids:
+                                seen_ids.add(listing.external_id)
+                                found_on_page += 1
+                                yield listing
 
-                # Stop early if no listings were found on this page
-                if found_on_page == 0:
+                    self.logger.info(
+                        f"EstateSales.NET {target_state} page {page}: "
+                        f"{found_on_page} new listings"
+                    )
+
+                    # Stop early for this state if no listings found on page
+                    if found_on_page == 0:
+                        break
+
+                except Exception as exc:
+                    self.logger.error(
+                        f"EstateSales.NET {target_state} error at page {page}: {exc}"
+                    )
                     break
-
-            except Exception as exc:
-                self.logger.error(
-                    f"EstateSales.NET error at page {page}: {exc}"
-                )
-                break
 
     def _normalize(self, data: dict) -> ScrapedListing | None:
         """Convert a JSON-LD SaleEvent dict to a ScrapedListing."""
@@ -117,8 +131,8 @@ class EstateSalesNetScraper(BaseScraper):
             if not url:
                 return None
 
-            # Sale ID is the last numeric segment of the URL
-            # URL format: /STATE/City/Zip/SALEID
+            # Sale ID is the last numeric segment of the URL.
+            # URL format: /STATE/City-Name/Zip/SALEID  or  /STATE/City/SALEID
             id_match = re.search(r"/(\d+)(?:/[^/]*)?$", url)
             if not id_match:
                 return None
@@ -136,12 +150,33 @@ class EstateSalesNetScraper(BaseScraper):
             start_date = self._parse_dt(data.get("startDate"))
             end_date = self._parse_dt(data.get("endDate"))
 
-            # Location
+            # Location — try JSON-LD first
             location = data.get("location", {})
             address = location.get("address", {}) if isinstance(location, dict) else {}
             city = (address.get("addressLocality") or "").strip() or None
             state = (address.get("addressRegion") or "").strip() or None
             zip_code = (address.get("postalCode") or "").strip() or None
+
+            # Fallback: parse city/state/zip from the URL path
+            # Pattern: /STATE/City-Name/ZIPCODE/SALEID
+            # Example: /NY/North-Babylon/11703/4816437
+            if not (city and state and zip_code):
+                full_url = url if url.startswith("http") else self.base_url + url
+                loc_match = re.search(
+                    r"/([A-Z]{2})/([^/]+)/(\d{5})/", full_url
+                )
+                if loc_match:
+                    state = state or loc_match.group(1)
+                    city = city or loc_match.group(2).replace("-", " ").title()
+                    zip_code = zip_code or loc_match.group(3)
+                else:
+                    # Shorter pattern: /STATE/City/SALEID (no zip in path)
+                    short_match = re.search(
+                        r"/([A-Z]{2})/([A-Za-z][^/]+)/\d+$", full_url
+                    )
+                    if short_match:
+                        state = state or short_match.group(1)
+                        city = city or short_match.group(2).replace("-", " ").title()
 
             # Description
             description = (data.get("description") or "").strip() or None

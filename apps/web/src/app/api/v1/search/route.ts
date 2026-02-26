@@ -51,6 +51,28 @@ export async function GET(req: NextRequest) {
     results = results.filter((l) => platformIds.includes(l.platform.id));
   }
 
+  const statusFilter = searchParams.get("status") ?? "";
+  if (statusFilter) {
+    const now = Date.now();
+    results = results.filter((l) => {
+      if (l.is_completed) return statusFilter === "completed";
+      const starts = l.sale_starts_at ? new Date(l.sale_starts_at).getTime() : null;
+      const ends   = l.sale_ends_at   ? new Date(l.sale_ends_at).getTime()   : null;
+      switch (statusFilter) {
+        case "upcoming":
+          return starts !== null && starts > now;
+        case "ended":
+          return ends !== null && ends < now;
+        case "ending_soon":
+          return ends !== null && ends > now && ends - now < 86_400_000;
+        case "live":
+          return (starts === null || starts <= now) && (ends === null || ends >= now);
+        default:
+          return true;
+      }
+    });
+  }
+
   const start = (page - 1) * pageSize;
   return NextResponse.json(results.slice(start, start + pageSize));
 }

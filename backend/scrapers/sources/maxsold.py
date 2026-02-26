@@ -63,27 +63,10 @@ class MaxSoldScraper(BaseScraper):
 
                 pp = page_data.get("props", {}).get("pageProps", {})
 
-                # Build a map from saleEntityId to sale metadata for date/location
-                sales_by_id = {}
-                for sale in pp.get("sales", {}).get("data", []):
-                    eid = sale.get("saleEntityId", "")
-                    if eid:
-                        sales_by_id[eid] = sale
-
-                # Yield individual lots
-                lots = pp.get("listings", {}).get("listings", [])
-                for lot in lots:
-                    lot_id = str(lot.get("amLotId", ""))
-                    if not lot_id or lot_id in seen_ids:
-                        continue
-                    seen_ids.add(lot_id)
-
-                    sale = sales_by_id.get(lot.get("saleEntityId", ""), {})
-                    listing = self._lot_to_listing(lot, sale)
-                    if listing:
-                        yield listing
-
-                # Also yield sale-level listings for any auction not yet covered
+                # Yield one listing per unique auction (sale-level only).
+                # Lot-level listings are skipped because all lots within an
+                # auction share the same external URL, which creates duplicate
+                # cards that all link to the same page.
                 for sale in pp.get("sales", {}).get("data", []):
                     sale_id = str(sale.get("amAuctionId", ""))
                     key = f"sale_{sale_id}"

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, MapPin, Clock, Truck, Tag } from "lucide-react";
+import { ExternalLink, MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
 import { getListing } from "@/lib/api-client";
-import { formatPrice, timeUntil, formatDate } from "@/lib/format";
+import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { AmazonAssociates } from "@/components/ads/amazon-associates";
 import { ListingImages } from "@/components/listings/listing-images";
 
@@ -24,7 +24,45 @@ export default async function ListingPage({ params }: PageProps) {
     notFound();
   }
 
+  const status = getAuctionStatus(listing);
   const countdown = timeUntil(listing.sale_ends_at);
+  const platform = listing.platform.display_name;
+
+  // CTA configuration based on status
+  const ctaConfig = {
+    upcoming: {
+      label: `Preview on ${platform} →`,
+      className:
+        "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-700 bg-white py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+    },
+    live: {
+      label: `Bid on ${platform}`,
+      className:
+        "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
+    },
+    ending_soon: {
+      label: `Bid Now — Ending Soon!`,
+      className:
+        "flex items-center justify-center gap-2 w-full bg-red-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-red-700 transition-colors animate-pulse",
+    },
+    ended: {
+      label: `View Results on ${platform} →`,
+      className:
+        "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+    },
+    completed: {
+      label: `View Results on ${platform} →`,
+      className:
+        "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+    },
+    unknown: {
+      label: `View on ${platform} →`,
+      className:
+        "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
+    },
+  };
+
+  const cta = ctaConfig[status] ?? ctaConfig.unknown;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -40,7 +78,7 @@ export default async function ListingPage({ params }: PageProps) {
         <div className="space-y-4">
           {/* Platform badge */}
           <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-            {listing.platform.display_name}
+            {platform}
           </span>
 
           <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
@@ -61,14 +99,28 @@ export default async function ListingPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* CTA - always goes to source platform */}
+          {/* Status banner */}
+          {(status === "ended" || status === "completed") && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm font-medium">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              This auction has ended
+            </div>
+          )}
+          {status === "upcoming" && listing.sale_starts_at && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 text-sm font-medium">
+              <Calendar className="w-4 h-4 flex-shrink-0" />
+              Auction starts {formatDate(listing.sale_starts_at)}
+            </div>
+          )}
+
+          {/* CTA — always goes to source platform */}
           <a
             href={listing.external_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors"
+            className={cta.className}
           >
-            Bid on {listing.platform.display_name}
+            {cta.label}
             <ExternalLink className="w-5 h-5" />
           </a>
 
@@ -80,11 +132,12 @@ export default async function ListingPage({ params }: PageProps) {
                 {listing.city}, {listing.state}
               </div>
             )}
-            {countdown && (
+            {countdown && status !== "ended" && status !== "completed" && (
               <div className="flex items-center gap-2 text-gray-600">
                 <Clock className="w-4 h-4 text-gray-400" />
-                {countdown} remaining
-                {listing.sale_ends_at && ` · Ends ${formatDate(listing.sale_ends_at)}`}
+                {status === "upcoming" ? "Starts" : countdown + " remaining"}
+                {listing.sale_ends_at && status !== "upcoming" &&
+                  ` · Ends ${formatDate(listing.sale_ends_at)}`}
               </div>
             )}
             {listing.pickup_only && (
@@ -113,7 +166,7 @@ export default async function ListingPage({ params }: PageProps) {
                   rel="noopener noreferrer"
                   className="text-blue-600 not-prose text-sm"
                 >
-                  Read full description on {listing.platform.display_name} →
+                  Read full description on {platform} →
                 </a>
               )}
             </div>

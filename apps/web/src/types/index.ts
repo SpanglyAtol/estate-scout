@@ -22,6 +22,7 @@ export interface Listing {
   current_price: number | null;
   final_price: number | null;
   is_completed: boolean;
+  auction_status?: 'upcoming' | 'live' | 'ended' | 'completed' | 'unknown';
   buyers_premium_pct: number | null;
   total_cost_estimate: number | null;
   pickup_only: boolean;
@@ -51,6 +52,7 @@ export interface SearchFilters {
   ending_hours?: number;
   category?: string;
   platform_ids?: number[];
+  status?: string;
   page?: number;
   page_size?: number;
 }

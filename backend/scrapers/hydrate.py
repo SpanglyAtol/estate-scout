@@ -111,6 +111,27 @@ PLATFORM_META = {
 _listing_id_counter = 1
 
 
+def _compute_status(scraped: ScrapedListing) -> str:
+    """Derive auction_status from dates and is_completed flag."""
+    from datetime import timezone
+    if scraped.is_completed:
+        return "completed"
+    now = datetime.now(timezone.utc)
+
+    def _utc(dt):
+        if dt is None:
+            return None
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+    starts = _utc(scraped.sale_starts_at)
+    ends = _utc(scraped.sale_ends_at)
+    if starts and starts > now:
+        return "upcoming"
+    if ends and ends < now:
+        return "ended"
+    return "live"
+
+
 def _to_mock_listing(scraped: ScrapedListing) -> dict:
     """Convert a ScrapedListing to the MockListing dict shape used by Next.js."""
     global _listing_id_counter
@@ -150,6 +171,7 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "is_completed": scraped.is_completed,
         "buyers_premium_pct": premium_pct,
         "total_cost_estimate": total_estimate,
+        "auction_status": _compute_status(scraped),
         "pickup_only": scraped.pickup_only,
         "ships_nationally": scraped.ships_nationally,
         "city": scraped.city,

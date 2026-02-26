@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Clock, Truck } from "lucide-react";
 import type { Listing } from "@/types";
-import { formatPrice, timeUntil, formatDistance } from "@/lib/format";
+import { formatPrice, timeUntil, formatDistance, getAuctionStatus } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 interface ListingCardProps {
@@ -26,12 +26,13 @@ export function ListingCard({ listing, className }: ListingCardProps) {
   const [imgError, setImgError] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // Only compute time-based values after mounting to avoid SSR/client mismatch
+  // Compute status after mounting to avoid SSR/client mismatch on time-based values
+  const status = mounted ? getAuctionStatus(listing) : (listing.auction_status ?? "unknown");
   const countdown = mounted ? timeUntil(listing.sale_ends_at) : null;
-  const isEndingSoon =
-    mounted &&
-    listing.sale_ends_at &&
-    new Date(listing.sale_ends_at).getTime() - Date.now() < 24 * 3_600_000;
+
+  const isEnded = status === "ended" || status === "completed";
+  const isEndingSoon = status === "ending_soon";
+  const isUpcoming = status === "upcoming";
 
   const platformColor =
     PLATFORM_COLORS[listing.platform.name] ?? "bg-gray-100 text-gray-800";
@@ -43,6 +44,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
         "group bg-white rounded-xl overflow-hidden border border-gray-200",
         "hover:shadow-lg hover:border-blue-300 transition-all duration-200",
         listing.is_sponsored && "ring-1 ring-amber-400",
+        isEnded && "opacity-60",
         className
       )}
     >
@@ -54,7 +56,10 @@ export function ListingCard({ listing, className }: ListingCardProps) {
             alt={listing.title}
             fill
             unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className={cn(
+              "object-cover group-hover:scale-105 transition-transform duration-300",
+              isEnded && "grayscale"
+            )}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             onError={() => setImgError(true)}
           />
@@ -71,11 +76,30 @@ export function ListingCard({ listing, className }: ListingCardProps) {
           </div>
         )}
 
-        {/* Ending soon badge */}
-        {isEndingSoon && countdown && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
-            {countdown}
-          </div>
+        {/* Status badge (top-right corner) */}
+        {mounted && (
+          <>
+            {isEndingSoon && countdown && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                {countdown}
+              </div>
+            )}
+            {isUpcoming && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                Upcoming
+              </div>
+            )}
+            {(status === "ended") && (
+              <div className="absolute top-2 right-2 bg-gray-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                Ended
+              </div>
+            )}
+            {status === "completed" && (
+              <div className="absolute top-2 right-2 bg-gray-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                Completed
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -131,10 +155,18 @@ export function ListingCard({ listing, className }: ListingCardProps) {
           </span>
         )}
 
-        {/* Countdown (not ending soon) */}
-        {countdown && !isEndingSoon && (
+        {/* Countdown for live auctions (not ending soon) */}
+        {countdown && !isEndingSoon && !isUpcoming && !isEnded && (
           <span className="text-xs text-gray-400 flex items-center gap-0.5">
             <Clock className="w-3 h-3" /> {countdown} left
+          </span>
+        )}
+
+        {/* Upcoming start date */}
+        {isUpcoming && listing.sale_starts_at && (
+          <span className="text-xs text-blue-600 flex items-center gap-0.5">
+            <Clock className="w-3 h-3" />
+            Starts {new Date(listing.sale_starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         )}
       </div>
