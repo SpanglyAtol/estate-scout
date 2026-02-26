@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChatInterface } from "@/components/valuation/chat-interface";
 import { CompGrid } from "@/components/valuation/comp-grid";
@@ -9,7 +9,7 @@ import type { ChatMessage, ValuationResult } from "@/types";
 
 let messageCounter = 0;
 
-export default function ValuationPage() {
+function ValuationPageContent() {
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,5 +118,13 @@ export default function ValuationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ValuationPage() {
+  return (
+    <Suspense>
+      <ValuationPageContent />
+    </Suspense>
   );
 }
