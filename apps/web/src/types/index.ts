@@ -53,6 +53,7 @@ export interface SearchFilters {
   category?: string;
   platform_ids?: number[];
   status?: string;
+  sort?: "ending_soon" | "price_asc" | "price_desc" | "newest";
   page?: number;
   page_size?: number;
 }

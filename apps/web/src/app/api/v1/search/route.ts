@@ -73,6 +73,33 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // ── Sort ───────────────────────────────────────────────────────────────────
+  const sort = searchParams.get("sort") ?? "";
+  switch (sort) {
+    case "price_asc":
+      results.sort((a, b) => (a.current_price ?? Infinity) - (b.current_price ?? Infinity));
+      break;
+    case "price_desc":
+      results.sort((a, b) => (b.current_price ?? -1) - (a.current_price ?? -1));
+      break;
+    case "ending_soon":
+      results.sort((a, b) => {
+        const aEnd = a.sale_ends_at ? new Date(a.sale_ends_at).getTime() : Infinity;
+        const bEnd = b.sale_ends_at ? new Date(b.sale_ends_at).getTime() : Infinity;
+        return aEnd - bEnd;
+      });
+      break;
+    case "newest":
+      results.sort((a, b) => {
+        const aStart = a.sale_starts_at ? new Date(a.sale_starts_at).getTime() : 0;
+        const bStart = b.sale_starts_at ? new Date(b.sale_starts_at).getTime() : 0;
+        return bStart - aStart;
+      });
+      break;
+    // default: preserve scraped order (BidSpotter / HiBid already ordered by
+    // relevance / end date on their platforms)
+  }
+
   const start = (page - 1) * pageSize;
   return NextResponse.json(results.slice(start, start + pageSize));
 }

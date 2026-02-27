@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, ArrowUpDown } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { FilterSidebar } from "@/components/filters/filter-sidebar";
 import { searchListings } from "@/lib/api-client";
@@ -11,33 +11,92 @@ import type { SearchFilters } from "@/types";
 
 const PAGE_SIZE = 24;
 
-// Inner component that can safely use useSearchParams (wrapped in Suspense below)
-function SearchPageInner() {
-  const searchParams = useSearchParams();
-  const initialStatus = searchParams.get("status") ?? undefined;
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: "",             label: "Default order"     },
+  { value: "ending_soon",  label: "Ending soonest"    },
+  { value: "price_asc",    label: "Price: Low → High" },
+  { value: "price_desc",   label: "Price: High → Low" },
+  { value: "newest",       label: "Newest first"      },
+];
 
-  const [filters, setFilters] = useState<SearchFilters>({
-    page: 1,
-    page_size: PAGE_SIZE,
-    radius_miles: 50,
-    status: initialStatus,
-  });
-  const [query, setQuery] = useState("");
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function paramsToFilters(p: URLSearchParams): SearchFilters {
+  const platformIds = p.getAll("platform_ids").map(Number).filter(Boolean);
+  return {
+    page:          1,
+    page_size:     PAGE_SIZE,
+    radius_miles:  Number(p.get("radius_miles") ?? "50") || 50,
+    q:             p.get("q")         ?? undefined,
+    status:        p.get("status")    ?? undefined,
+    category:      p.get("category")  ?? undefined,
+    sort:          (p.get("sort") as SearchFilters["sort"]) ?? undefined,
+    min_price:     p.get("min_price") ? Number(p.get("min_price"))    : undefined,
+    max_price:     p.get("max_price") ? Number(p.get("max_price"))    : undefined,
+    ending_hours:  p.get("ending_hours") ? Number(p.get("ending_hours")) : undefined,
+    pickup_only:   p.get("pickup_only") === "true" ? true : undefined,
+    platform_ids:  platformIds.length ? platformIds : undefined,
+  };
+}
+
+function filtersToParams(f: SearchFilters): URLSearchParams {
+  const p = new URLSearchParams();
+  if (f.q)             p.set("q",            f.q);
+  if (f.status)        p.set("status",        f.status);
+  if (f.category)      p.set("category",      f.category);
+  if (f.sort)          p.set("sort",          f.sort);
+  if (f.min_price)     p.set("min_price",     String(f.min_price));
+  if (f.max_price)     p.set("max_price",     String(f.max_price));
+  if (f.ending_hours)  p.set("ending_hours",  String(f.ending_hours));
+  if (f.pickup_only)   p.set("pickup_only",   "true");
+  if (f.radius_miles && f.radius_miles !== 50)
+                       p.set("radius_miles",  String(f.radius_miles));
+  if (f.platform_ids?.length)
+    f.platform_ids.forEach((id) => p.append("platform_ids", String(id)));
+  return p;
+}
+
+// ── inner component (requires useSearchParams — wrapped in Suspense below) ────
+
+function SearchPageInner() {
+  const router     = useRouter();
+  const pathname   = usePathname();
+  const rawParams  = useSearchParams();
+
+  const [filters, setFilters] = useState<SearchFilters>(() =>
+    paramsToFilters(rawParams)
+  );
+  const [query, setQuery] = useState(rawParams.get("q") ?? "");
+
+  // Sync filters → URL (replace so back-button still works naturally)
+  useEffect(() => {
+    const params  = filtersToParams(filters);
+    const search  = params.toString();
+    router.replace(`${pathname}${search ? "?" + search : ""}`, { scroll: false });
+  }, [filters, pathname, router]);
 
   const { data: listings = [], isLoading, isFetching } = useQuery({
     queryKey: ["search", filters],
-    queryFn: () => searchListings(filters),
-    enabled: true,
+    queryFn:  () => searchListings(filters),
   });
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    setFilters((f) => ({ ...f, q: query, page: 1, page_size: PAGE_SIZE }));
+    setFilters((f) => ({ ...f, q: query || undefined, page: 1, page_size: PAGE_SIZE }));
   }
 
-  // When the sidebar changes filters, reset page_size so we start fresh
+  // When sidebar filters change, reset paging but keep page_size if it was bumped
   function handleFiltersChange(newFilters: SearchFilters) {
     setFilters({ ...newFilters, page: 1, page_size: PAGE_SIZE });
+  }
+
+  function handleSort(value: string) {
+    setFilters((f) => ({
+      ...f,
+      sort: (value as SearchFilters["sort"]) || undefined,
+      page: 1,
+      page_size: PAGE_SIZE,
+    }));
   }
 
   function loadMore() {
@@ -45,14 +104,13 @@ function SearchPageInner() {
   }
 
   const currentPageSize = filters.page_size ?? PAGE_SIZE;
-  // If we got a full page, there are likely more results
-  const hasMore = listings.length >= currentPageSize;
-  // Show spinner on the button while re-fetching for load-more (not initial load)
-  const isLoadingMore = isFetching && listings.length > 0;
+  const hasMore         = listings.length >= currentPageSize;
+  const isLoadingMore   = isFetching && listings.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Search bar */}
+
+      {/* ── Search bar ── */}
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
         <div className="flex-1 flex items-center gap-2 bg-white border border-gray-300 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
           <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -72,12 +130,10 @@ function SearchPageInner() {
         </button>
       </form>
 
-      {/* Content: sidebar + results */}
+      {/* ── Sidebar + results ── */}
       <div className="flex gap-8 items-start">
-        {/* FilterSidebar handles its own mobile/desktop rendering */}
         <FilterSidebar filters={filters} onChange={handleFiltersChange} />
 
-        {/* Results panel */}
         <div className="flex-1 min-w-0">
           {isLoading ? (
             <div className="text-center py-20 text-gray-400">
@@ -86,15 +142,34 @@ function SearchPageInner() {
             </div>
           ) : (
             <>
-              {listings.length > 0 && (
-                <p className="text-sm text-gray-500 mb-4">
-                  {listings.length} listing{listings.length !== 1 ? "s" : ""} found
+              {/* Results header: count + sort */}
+              <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                <p className="text-sm text-gray-500">
+                  {listings.length > 0
+                    ? `${listings.length} listing${listings.length !== 1 ? "s" : ""} found`
+                    : "No listings found — try broadening your filters"}
                 </p>
-              )}
+
+                {/* Sort dropdown */}
+                <div className="flex items-center gap-1.5 text-sm">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
+                  <select
+                    value={filters.sort ?? ""}
+                    onChange={(e) => handleSort(e.target.value)}
+                    className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer"
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               <ListingGrid listings={listings} />
 
-              {/* Load More button — only shown when a full page was returned */}
+              {/* Load more */}
               {hasMore && (
                 <div className="mt-8 text-center">
                   <button
@@ -108,7 +183,7 @@ function SearchPageInner() {
                         Loading more...
                       </>
                     ) : (
-                      `Load more listings`
+                      `Load ${PAGE_SIZE} more listings`
                     )}
                   </button>
                 </div>
@@ -121,7 +196,7 @@ function SearchPageInner() {
   );
 }
 
-// Wrapping in Suspense is required by Next.js when using useSearchParams in a client component
+// Suspense wrapper — required by Next.js for useSearchParams in client components
 export default function SearchPage() {
   return (
     <Suspense
