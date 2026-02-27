@@ -261,6 +261,22 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "image_urls": scraped.image_urls or [],
         "scraped_at": datetime.utcnow().isoformat(),
         "is_sponsored": False,
+        "items": [
+            {
+                "title": item.title,
+                "lot_number": item.lot_number,
+                "description": item.description,
+                "current_price": item.current_price,
+                "estimate_low": item.estimate_low,
+                "estimate_high": item.estimate_high,
+                "primary_image_url": item.primary_image_url,
+                "image_urls": item.image_urls,
+                "category": item.category,
+                "condition": item.condition,
+                "external_url": item.external_url,
+            }
+            for item in scraped.items
+        ],
     }
     _listing_id_counter += 1
     return mock

@@ -84,7 +84,7 @@ export default function AdminPage() {
   // Status breakdown
   let live = 0, upcoming = 0, ended = 0, endingSoon = 0;
   // Quality
-  let withImage = 0, withLocation = 0, withPrice = 0, withCategory = 0;
+  let withImage = 0, withLocation = 0, withPrice = 0, withCategory = 0, withItems = 0;
   // Platform + category maps
   const platformCounts: Record<string, { display_name: string; count: number }> = {};
   const categoryCounts: Record<string, number> = {};
@@ -105,6 +105,7 @@ export default function AdminPage() {
     if (l.primary_image_url)              withImage++;
     if (l.city || l.state || l.zip_code)  withLocation++;
     if (l.current_price !== null)         withPrice++;
+    if (l.items && l.items.length > 0)    withItems++;
     if (l.category) {
       withCategory++;
       categoryCounts[l.category] = (categoryCounts[l.category] ?? 0) + 1;
@@ -153,6 +154,7 @@ export default function AdminPage() {
     { label: "With location", count: withLocation, pct: total > 0 ? Math.round((withLocation / total) * 100) : 0, emoji: "📍" },
     { label: "With price",    count: withPrice,    pct: total > 0 ? Math.round((withPrice    / total) * 100) : 0, emoji: "💲" },
     { label: "Categorized",   count: withCategory, pct: total > 0 ? Math.round((withCategory / total) * 100) : 0, emoji: "🏷️" },
+    { label: "With item lots", count: withItems,   pct: total > 0 ? Math.round((withItems    / total) * 100) : 0, emoji: "🔨" },
   ];
 
   return (

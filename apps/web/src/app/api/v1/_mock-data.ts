@@ -11,6 +11,20 @@ export interface MockPlatform {
   logo_url: string | null;
 }
 
+export interface MockItem {
+  title: string;
+  lot_number: string | null;
+  description: string | null;
+  current_price: number | null;
+  estimate_low: number | null;
+  estimate_high: number | null;
+  primary_image_url: string | null;
+  image_urls: string[];
+  category: string | null;
+  condition: string | null;
+  external_url: string | null;
+}
+
 export interface MockListing {
   id: number;
   platform: MockPlatform;
@@ -36,6 +50,7 @@ export interface MockListing {
   image_urls: string[];
   scraped_at: string;
   is_sponsored?: boolean;
+  items?: MockItem[];
 }
 
 export const PLATFORMS: MockPlatform[] = [

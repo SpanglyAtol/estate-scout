@@ -43,8 +43,9 @@ export function isTokenExpired(): boolean {
   return Date.now() / 1000 > payload.exp;
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Use relative URLs so auth works on any host (Vercel, localhost:3000, custom domain).
+// The auth endpoints (/api/v1/auth/*) are co-located in this Next.js app.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 interface AuthResult {
   access_token: string;

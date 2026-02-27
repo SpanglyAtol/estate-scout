@@ -5,6 +5,7 @@ import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { AmazonAssociates } from "@/components/ads/amazon-associates";
 import { ListingImages } from "@/components/listings/listing-images";
+import { ItemsGrid } from "@/components/listings/items-grid";
 
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
@@ -176,6 +177,15 @@ export default async function ListingPage({ params }: PageProps) {
           <AmazonAssociates category={listing.category} />
         </div>
       </div>
+
+      {/* Items / lots grid — visible when scraper populated items */}
+      {listing.items && listing.items.length > 0 && (
+        <ItemsGrid
+          items={listing.items}
+          auctionUrl={listing.external_url}
+          platform={platform}
+        />
+      )}
 
       {/* Price check CTA */}
       <div className="mt-10 bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center">

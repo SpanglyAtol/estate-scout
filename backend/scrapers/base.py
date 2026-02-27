@@ -9,6 +9,26 @@ import httpx
 
 
 @dataclass
+class ScrapedItem:
+    """
+    A single lot / item within an auction or estate sale.
+    Populated by scrapers that can access item-level data (e.g. MaxSold).
+    Stored nested under ScrapedListing.items — no separate storage record needed.
+    """
+    title: str
+    lot_number: str | None = None
+    description: str | None = None
+    current_price: float | None = None
+    estimate_low: float | None = None
+    estimate_high: float | None = None
+    primary_image_url: str | None = None
+    image_urls: list[str] = field(default_factory=list)
+    category: str | None = None
+    condition: str | None = None
+    external_url: str | None = None   # direct link to this specific lot if available
+
+
+@dataclass
 class ScrapedListing:
     """
     Normalized output schema all scrapers must produce.
@@ -53,6 +73,9 @@ class ScrapedListing:
     # Media
     primary_image_url: str | None = None
     image_urls: list[str] = field(default_factory=list)
+
+    # Individual lots / items within this auction (populated where available)
+    items: list[ScrapedItem] = field(default_factory=list)
 
     # Raw payload for debugging / schema evolution
     raw_data: dict = field(default_factory=dict)

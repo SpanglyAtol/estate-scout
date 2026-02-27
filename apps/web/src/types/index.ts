@@ -10,6 +10,20 @@ export interface Platform {
   logo_url: string | null;
 }
 
+export interface AuctionItem {
+  title: string;
+  lot_number: string | null;
+  description: string | null;
+  current_price: number | null;
+  estimate_low: number | null;
+  estimate_high: number | null;
+  primary_image_url: string | null;
+  image_urls: string[];
+  category: string | null;
+  condition: string | null;
+  external_url: string | null;
+}
+
 export interface Listing {
   id: number;
   platform: Platform;
@@ -39,6 +53,7 @@ export interface Listing {
   scraped_at: string;
   distance_miles?: number;
   is_sponsored?: boolean;
+  items?: AuctionItem[];
 }
 
 export interface SearchFilters {

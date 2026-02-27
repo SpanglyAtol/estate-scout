@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getToken, isTokenExpired, logout } from "@/lib/auth";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Relative URL so the hook works on Vercel, localhost:3000, and any custom domain.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface UserProfile {
   id: string;

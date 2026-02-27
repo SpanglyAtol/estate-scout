@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Clock, Truck } from "lucide-react";
+import { MapPin, Clock, Truck, Hammer } from "lucide-react";
 import type { Listing } from "@/types";
 import { formatPrice, timeUntil, formatDistance, getAuctionStatus } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -147,6 +147,14 @@ export function ListingCard({ listing, className }: ListingCardProps) {
             </span>
           )}
         </div>
+
+        {/* Lots badge — shown when scraper captured individual items */}
+        {listing.items && listing.items.length > 0 && (
+          <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
+            <Hammer className="w-3 h-3" />
+            {listing.items.length} lots
+          </span>
+        )}
 
         {/* Fulfillment */}
         {listing.pickup_only && (

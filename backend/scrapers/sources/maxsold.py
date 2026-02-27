@@ -19,7 +19,7 @@ from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
 
-from scrapers.base import BaseScraper, ScrapedListing
+from scrapers.base import BaseScraper, ScrapedItem, ScrapedListing
 
 
 class MaxSoldScraper(BaseScraper):
@@ -63,17 +63,24 @@ class MaxSoldScraper(BaseScraper):
 
                 pp = page_data.get("props", {}).get("pageProps", {})
 
+                # Build auction_id → lots mapping from the listings payload
+                lots_by_auction: dict[str, list] = {}
+                for lot in pp.get("listings", {}).get("listings", []):
+                    aid = str(lot.get("amAuctionId", ""))
+                    if aid:
+                        lots_by_auction.setdefault(aid, []).append(lot)
+
                 # Yield one listing per unique auction (sale-level only).
-                # Lot-level listings are skipped because all lots within an
-                # auction share the same external URL, which creates duplicate
-                # cards that all link to the same page.
+                # Individual lots are stored as nested ScrapedItem objects.
                 for sale in pp.get("sales", {}).get("data", []):
                     sale_id = str(sale.get("amAuctionId", ""))
                     key = f"sale_{sale_id}"
                     if not sale_id or key in seen_ids:
                         continue
                     seen_ids.add(key)
-                    listing = self._sale_to_listing(sale)
+                    listing = self._sale_to_listing(
+                        sale, lots_by_auction.get(sale_id, [])
+                    )
                     if listing:
                         yield listing
 
@@ -140,8 +147,13 @@ class MaxSoldScraper(BaseScraper):
             self.logger.debug(f"MaxSold lot parse error: {exc}")
             return None
 
-    def _sale_to_listing(self, sale):
-        """Convert a MaxSold sale (auction) to a ScrapedListing."""
+    def _sale_to_listing(self, sale, lots=None):
+        """Convert a MaxSold sale (auction) to a ScrapedListing.
+
+        ``lots`` is an optional list of individual lot dicts from the same
+        __NEXT_DATA__ payload.  Each lot is converted to a ScrapedItem and
+        stored in listing.items so the frontend can display a browsable grid.
+        """
         try:
             auction_id = str(sale.get("amAuctionId", ""))
             if not auction_id:
@@ -152,11 +164,12 @@ class MaxSoldScraper(BaseScraper):
 
             addr = sale.get("address", {})
             state = addr.get("regionCode", "").upper()
+            external_url = f"{self.base_url}/auction/{auction_id}"
 
-            return ScrapedListing(
+            listing = ScrapedListing(
                 platform_slug=self.platform_slug,
                 external_id=f"sale_{auction_id}",
-                external_url=f"{self.base_url}/auction/{auction_id}",
+                external_url=external_url,
                 title=sale.get("title") or f"MaxSold Auction #{auction_id}",
                 category=sale.get("saleCategory"),
                 pickup_only=True,
@@ -169,6 +182,37 @@ class MaxSoldScraper(BaseScraper):
                 image_urls=images,
                 raw_data={"sale": sale},
             )
+
+            # Populate individual lot items
+            for lot in (lots or []):
+                try:
+                    lot_images = lot.get("imagePaths", [])
+                    bid_info = lot.get("currentBid") or {}
+                    price_raw = bid_info.get("amount")
+                    lot_title = lot.get("title") or lot.get("name") or ""
+                    if not lot_title:
+                        continue
+                    item = ScrapedItem(
+                        title=lot_title,
+                        lot_number=str(lot.get("amLotId") or lot.get("id") or "") or None,
+                        description=lot.get("description"),
+                        current_price=float(price_raw) if price_raw is not None else None,
+                        estimate_low=float(lot["estimateLow"]) if lot.get("estimateLow") else None,
+                        estimate_high=float(lot["estimateHigh"]) if lot.get("estimateHigh") else None,
+                        primary_image_url=lot_images[0] if lot_images else None,
+                        image_urls=lot_images,
+                        category=lot.get("saleCategory"),
+                        external_url=external_url,
+                    )
+                    listing.items.append(item)
+                except Exception as lot_exc:
+                    self.logger.debug(f"MaxSold lot item error: {lot_exc}")
+
+            if listing.items:
+                self.logger.info(
+                    f"MaxSold auction {auction_id}: {len(listing.items)} lots scraped"
+                )
+            return listing
         except Exception as exc:
             self.logger.debug(f"MaxSold sale parse error: {exc}")
             return None
