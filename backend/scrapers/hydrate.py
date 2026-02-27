@@ -110,6 +110,81 @@ PLATFORM_META = {
 
 _listing_id_counter = 1
 
+# ── Auto-categorization ───────────────────────────────────────────────────────
+# Maps our standard category slugs to keyword lists.
+# Keywords are matched (case-insensitive substring) against title + description.
+_CATEGORY_KEYWORDS: dict[str, list[str]] = {
+    "furniture": [
+        "furniture", "chair", "sofa", "couch", " table", "desk", "dresser",
+        "cabinet", "bookcase", "armchair", "ottoman", "sideboard", "credenza",
+        "wardrobe", "hutch", "buffet", "chest of drawers", "nightstand",
+        "headboard", "recliner", "loveseat", "chaise", "settee",
+    ],
+    "jewelry": [
+        "jewelry", "jewellery", " ring", "necklace", "bracelet", "earring",
+        "pendant", "diamond", "sapphire", "ruby", "emerald", "pearl",
+        "brooch", " watch", " chain", "locket", "cufflink", "gemstone",
+        "opal", "amethyst", "turquoise",
+    ],
+    "art": [
+        "painting", "watercolor", "lithograph", "etching", "sculpture",
+        " print", "artwork", "portrait", "canvas", "oil on", "gouache",
+        "pastel", "acrylic", "framed art",
+    ],
+    "ceramics": [
+        "ceramic", "pottery", "vase", "porcelain", "stoneware", "earthenware",
+        "majolica", "wedgwood", "meissen", "imari", "figurine", "platter",
+        "teapot", "gravy boat",
+    ],
+    "glass": [
+        " glass", "crystal", "stemware", "decanter", "art glass",
+        "blown glass", "pressed glass",
+    ],
+    "silver": [
+        "silver", "sterling", "silverware", "flatware", "candlestick",
+        "tea set", "coffee set", "epns",
+    ],
+    "collectibles": [
+        "collectible", "vintage", "antique", " coin", "stamp", "memorabilia",
+        "comic", "trading card", "baseball card", "sports card", "action figure",
+        "model train", "die-cast", "cast iron bank",
+    ],
+    "books": [
+        " book", "encyclopedia", "manuscript", "magazine", "library",
+        "first edition", "hardcover", "paperback",
+    ],
+    "clothing": [
+        "clothing", "apparel", " dress", "jacket", "coat", "handbag",
+        " purse", " shoes", "boots", "hat", "scarf", "fur coat",
+    ],
+    "tools": [
+        "tool", "drill", "lathe", " saw", "wrench", "workbench",
+        "grinder", "welder", "compressor", "router",
+    ],
+    "electronics": [
+        "camera", "laptop", "computer", "television", "stereo",
+        " audio", "speaker", "amplifier", "turntable",
+    ],
+    "toys": [
+        " toy", "lego", "board game", "puzzle", "train set", "teddy bear",
+    ],
+}
+
+
+def _auto_categorize(title: str, description: str | None) -> str | None:
+    """
+    Keyword-match a listing's title + description to a standard category slug.
+    Returns None if no category can be inferred.
+    """
+    text = (title or "").lower()
+    if description:
+        text += " " + description[:400].lower()
+    for category, keywords in _CATEGORY_KEYWORDS.items():
+        for kw in keywords:
+            if kw in text:
+                return category
+    return None
+
 
 def _compute_status(scraped: ScrapedListing) -> str:
     """Derive auction_status from dates and is_completed flag."""
@@ -157,6 +232,9 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
     if price is not None and premium_pct is not None:
         total_estimate = round(price * (1 + premium_pct / 100), 2)
 
+    # Use scraped category if present, otherwise auto-detect from title/description
+    category = scraped.category or _auto_categorize(scraped.title, scraped.description)
+
     mock: dict = {
         "id": _listing_id_counter,
         "platform": platform,
@@ -164,7 +242,7 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "external_url": scraped.external_url,
         "title": scraped.title or "Untitled",
         "description": scraped.description,
-        "category": scraped.category,
+        "category": category,
         "condition": scraped.condition,
         "current_price": price,
         "final_price": scraped.final_price,

@@ -57,6 +57,23 @@ function toQueryString(params: Record<string, unknown>): string {
   return qs.toString();
 }
 
+// --- Stats ---
+
+export interface StatsResult {
+  total: number;
+  live: number;
+  upcoming: number;
+  ended: number;
+  ending_soon: number;
+  platforms: number;
+  categories: Record<string, number>;
+  scraped_at: string | null;
+}
+
+export async function getStats(): Promise<StatsResult> {
+  return request<StatsResult>("/api/v1/stats");
+}
+
 // --- Listings ---
 
 export async function getListings(params: { page?: number; page_size?: number } = {}) {
