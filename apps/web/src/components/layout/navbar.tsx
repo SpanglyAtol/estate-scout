@@ -2,28 +2,34 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Search, BookMarked, MessageSquare, MapPin, LogIn, LogOut, Menu, X, BarChart3 } from "lucide-react";
+import {
+  Search, BookMarked, MessageSquare, MapPin,
+  LogIn, LogOut, Menu, X, BarChart3, User, Link2,
+} from "lucide-react";
 import { isLoggedIn, logout } from "@/lib/auth";
+import { getConnectedAccounts } from "@/lib/connected-accounts";
 
 export function Navbar() {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [connectedCount, setConnectedCount] = useState(0);
 
-  // Read auth state client-side (token is in localStorage)
   useEffect(() => {
-    setLoggedIn(isLoggedIn());
-    // Re-check on focus (handles login in another tab)
-    const handleFocus = () => setLoggedIn(isLoggedIn());
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+    const check = () => {
+      setLoggedIn(isLoggedIn());
+      setConnectedCount(getConnectedAccounts().length);
+    };
+    check();
+    window.addEventListener("focus", check);
+    return () => window.removeEventListener("focus", check);
   }, []);
 
   const navLinks = [
-    { href: "/search",      label: "Search",      icon: <Search    className="w-4 h-4" /> },
-    { href: "/estate-sales",label: "Estate Sales", icon: <MapPin    className="w-4 h-4" /> },
-    { href: "/valuation",   label: "Price Check",  icon: <MessageSquare className="w-4 h-4" /> },
-    { href: "/saved",       label: "Saved",        icon: <BookMarked className="w-4 h-4" /> },
-    { href: "/admin",       label: "Admin",        icon: <BarChart3  className="w-4 h-4" /> },
+    { href: "/search",       label: "Search",       icon: <Search      className="w-4 h-4" /> },
+    { href: "/estate-sales", label: "Estate Sales", icon: <MapPin      className="w-4 h-4" /> },
+    { href: "/valuation",    label: "Price Check",  icon: <MessageSquare className="w-4 h-4" /> },
+    { href: "/saved",        label: "Saved",        icon: <BookMarked  className="w-4 h-4" /> },
+    { href: "/admin",        label: "Admin",        icon: <BarChart3   className="w-4 h-4" /> },
   ];
 
   return (
@@ -49,14 +55,33 @@ export function Navbar() {
           ))}
 
           {loggedIn ? (
-            <button
-              onClick={() => { logout(); setLoggedIn(false); }}
-              className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Profile link with connected-accounts badge */}
+              <Link
+                href="/profile"
+                className="relative flex items-center gap-1.5 hover:text-blue-600 transition-colors"
+                title="My Profile & Connected Accounts"
+              >
+                <User className="w-4 h-4" />
+                Profile
+                {connectedCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-green-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                    {connectedCount}
+                  </span>
+                )}
+              </Link>
+
+              <span className="text-gray-200">|</span>
+
+              <button
+                onClick={() => { logout(); setLoggedIn(false); }}
+                className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
           ) : (
             <Link
               href="/auth"
@@ -94,13 +119,28 @@ export function Navbar() {
           ))}
           <hr className="border-gray-100" />
           {loggedIn ? (
-            <button
-              onClick={() => { logout(); setLoggedIn(false); setMobileOpen(false); }}
-              className="flex items-center gap-3 text-sm font-medium text-red-500 py-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+            <>
+              <Link
+                href="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 text-sm font-medium text-gray-700 py-2"
+              >
+                <Link2 className="w-4 h-4" />
+                My Profile
+                {connectedCount > 0 && (
+                  <span className="ml-auto bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {connectedCount} connected
+                  </span>
+                )}
+              </Link>
+              <button
+                onClick={() => { logout(); setLoggedIn(false); setMobileOpen(false); }}
+                className="flex items-center gap-3 text-sm font-medium text-red-500 py-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </>
           ) : (
             <Link
               href="/auth"
