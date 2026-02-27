@@ -57,6 +57,7 @@ from scrapers.sources.hibid import HibidScraper
 from scrapers.sources.maxsold import MaxSoldScraper
 from scrapers.sources.bidspotter import BidSpotterScraper
 from scrapers.base import ScrapedListing
+from scrapers.geocoder import geocode_listings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -259,6 +260,8 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "sale_starts_at": _dt(scraped.sale_starts_at),
         "primary_image_url": scraped.primary_image_url,
         "image_urls": scraped.image_urls or [],
+        "latitude": scraped.latitude,
+        "longitude": scraped.longitude,
         "scraped_at": datetime.utcnow().isoformat(),
         "is_sponsored": False,
         "items": [
@@ -325,6 +328,10 @@ async def hydrate(args):
         label = cls.__name__.replace("Scraper", "")
         summary.append(f"  {icon}  {label}: {count} listings")
         logger.info(f"   {icon} {label}: {count}")
+
+    # Geocode city+state → lat/lon (cached; only new cities hit the API)
+    logger.info("Running geocoder …")
+    all_listings = await geocode_listings(all_listings)
 
     # Write output
     out_path = Path(args.out)

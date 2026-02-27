@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
 
+// ── Haversine distance (km) between two lat/lon points ────────────────────────
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.toLowerCase() ?? "";
@@ -12,6 +26,10 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") ?? "1");
   const pageSize = parseInt(searchParams.get("page_size") ?? "24");
   const platformIds = searchParams.getAll("platform_ids").map(Number).filter(Boolean);
+  // Geographic radius search
+  const lat = parseFloat(searchParams.get("lat") ?? "") || null;
+  const lon = parseFloat(searchParams.get("lon") ?? "") || null;
+  const radiusMiles = parseFloat(searchParams.get("radius_miles") ?? "") || null;
 
   let results = [...getListings()];
 
@@ -71,6 +89,23 @@ export async function GET(req: NextRequest) {
           return true;
       }
     });
+  }
+
+  // ── Geographic radius filter ───────────────────────────────────────────────
+  if (lat != null && lon != null && radiusMiles != null) {
+    const radiusKm = radiusMiles * 1.60934;
+    results = results
+      .filter(
+        (l) =>
+          l.latitude != null &&
+          l.longitude != null &&
+          haversineKm(lat, lon, l.latitude, l.longitude) <= radiusKm
+      )
+      .map((l) => ({
+        ...l,
+        distance_miles:
+          haversineKm(lat, lon, l.latitude!, l.longitude!) / 1.60934,
+      }));
   }
 
   // ── Sort ───────────────────────────────────────────────────────────────────
