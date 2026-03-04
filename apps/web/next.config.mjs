@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Bundle scraped JSON data into Vercel serverless function output so
   // fs.readFileSync works correctly in API routes on Vercel
   outputFileTracingIncludes: {
@@ -15,7 +14,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.maxsold.com" },
       { protocol: "https", hostname: "**.gsalr.com" },
       { protocol: "https", hostname: "**.estatesales.org" },
-      // ── Cloud storage / CDN (images may live on these even for above sites) ─
+      // ── Cloud storage / CDN ────────────────────────────────────────────────
       { protocol: "https", hostname: "**.amazonaws.com" },
       { protocol: "https", hostname: "**.cloudfront.net" },
       { protocol: "https", hostname: "**.imgix.net" },
@@ -25,7 +24,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.azureedge.net" },
       { protocol: "https", hostname: "portal-images.azureedge.net" },
       { protocol: "https", hostname: "**.bidspotter.com" },
-      // ── HTTP fallback for older platforms serving non-HTTPS images ─────────
+      // ── HTTP fallback for older platforms ──────────────────────────────────
       { protocol: "http", hostname: "**.liveauctioneers.com" },
       { protocol: "http", hostname: "**.estatesales.net" },
       { protocol: "http", hostname: "**.hibid.com" },
