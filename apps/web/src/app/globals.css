@@ -2,26 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Antique / Classical Design Tokens ─────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --bg-primary:   #FDFAF4;   /* warm parchment */
+  --bg-surface:   #FFFFFF;   /* card surface */
+  --bg-muted:     #F5EFE0;   /* slightly deeper parchment */
+  --bg-subtle:    #EDE8D8;   /* borders / dividers */
+
+  /* Text */
+  --text-primary:   #2C1810; /* dark walnut */
+  --text-secondary: #6B4F3A; /* warm brown */
+  --text-muted:     #9C8070; /* muted warm gray */
+
+  /* Accent / Brand */
+  --accent:          #8B6914; /* antique gold */
+  --accent-hover:    #705510; /* deeper gold */
+  --accent-light:    #F5E8B0; /* pale gold tint */
+  --accent-surface:  #FDF6DC; /* gold-tinted surface */
+
+  /* Borders */
+  --border:         #DDD0B8; /* warm cream border */
+  --border-strong:  #C4B498; /* darker warm border */
+
+  /* Status */
+  --status-live:    #C0392B;
+  --status-upcoming:#6B4F3A;
+  --status-ended:   #9C8070;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  /* Backgrounds */
+  --bg-primary:   #1A1208;
+  --bg-surface:   #251C10;
+  --bg-muted:     #2F2212;
+  --bg-subtle:    #3D2E18;
+
+  /* Text */
+  --text-primary:   #F5EDD8;
+  --text-secondary: #C8B89A;
+  --text-muted:     #8C7A62;
+
+  /* Accent */
+  --accent:          #C9A227;
+  --accent-hover:    #E8B830;
+  --accent-light:    #3D2E08;
+  --accent-surface:  #2F2510;
+
+  /* Borders */
+  --border:         #3D2E18;
+  --border-strong:  #56432A;
+
+  /* Status */
+  --status-live:    #E85848;
+  --status-upcoming:#C8B89A;
+  --status-ended:   #6B5A48;
+}
+
+/* ── Base Styles ─────────────────────────────────────────────────────────────── */
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-lora), Georgia, 'Times New Roman', serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* ── Typography ──────────────────────────────────────────────────────────────── */
+
+h1, h2, h3, h4, h5, h6,
+.font-display {
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────────────── */
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .antique-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+  }
+
+  .antique-card-warm {
+    background-color: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+  }
+
+  /* Thin ornamental divider */
+  .ornament-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--accent);
+  }
+
+  .ornament-divider::before,
+  .ornament-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
   }
 }
