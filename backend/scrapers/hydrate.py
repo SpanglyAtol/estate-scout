@@ -111,6 +111,67 @@ PLATFORM_META = {
 
 _listing_id_counter = 1
 
+# ── US state validation ───────────────────────────────────────────────────────
+_US_STATES = {
+    "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN",
+    "IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV",
+    "NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN",
+    "TX","UT","VT","VA","WA","WV","WI","WY","DC",
+}
+
+# ── Relevance filtering ───────────────────────────────────────────────────────
+# Keywords that indicate non-antique / non-estate-sale content to exclude
+_EXCLUDE_TITLE_KEYWORDS = [
+    # Vehicles
+    "pickup truck", "box van", "motorhome", "caravan", "forklift",
+    "excavator", "tractor", "crane", "bulldozer", "backhoe",
+    "motorcycle", " quad ", "atv ", "snowmobile",
+    # Heavy industrial
+    "cnc machine", "hydraulic press", "metal lathe", " lathe ",
+    "compressor", "warehouse equipment", "industrial machinery",
+    "pallet rack", "conveyor", "generator set",
+    # Commercial / restaurant
+    "restaurant equipment", "commercial kitchen", "catering equipment",
+    "deep fryer", "commercial oven", "walk-in cooler",
+    # Construction
+    "scaffolding", "concrete mixer", "power tool lot",
+    # Clearly off-topic UK auction terms in titles
+    "luton", "pickups, box", "vans, motorhome",
+]
+
+# Platform-level listing_type overrides (these platforms always produce a
+# specific type regardless of what the scraper sets)
+_PLATFORM_LISTING_TYPE: dict[str, str] = {
+    "estatesales_net": "estate_sale",
+    "maxsold":         "estate_sale",
+}
+
+# Keywords suggesting a listing covers multiple items (a "lot")
+_LOT_KEYWORDS = [
+    "lot of", " lots ", "group of", "collection of", "box of",
+    "set of ", "pair of", "assorted", "various ", "multiple ",
+    "estate contents", "entire contents", "household items",
+    "box lot", "tray lot", "shelf lot",
+]
+
+
+def _is_relevant(listing: dict) -> bool:
+    """Return False for listings that are clearly off-topic or non-US."""
+    title = (listing.get("title") or "").lower()
+
+    # Reject known off-topic title patterns
+    for kw in _EXCLUDE_TITLE_KEYWORDS:
+        if kw in title:
+            return False
+
+    # Reject non-US listings: if state is set it must be a valid US abbreviation
+    state = (listing.get("state") or "").strip().upper()
+    if state and state not in _US_STATES:
+        return False
+
+    return True
+
+
 # ── Auto-categorization ───────────────────────────────────────────────────────
 # Maps our standard category slugs to keyword lists.
 # Keywords are matched (case-insensitive substring) against title + description.
@@ -239,10 +300,30 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
     est_low  = scraped.estimate_low  if scraped.estimate_low  is not None else (min(item_lows)  if item_lows  else None)
     est_high = scraped.estimate_high if scraped.estimate_high is not None else (max(item_highs) if item_highs else None)
 
-    # Determine final listing_type
-    lt = scraped.listing_type or "auction"
+    # ── listing_type ─────────────────────────────────────────────────────────
+    # Platform override takes priority (EstateSales.NET / MaxSold are always
+    # estate sales regardless of what the scraper field says)
+    lt = _PLATFORM_LISTING_TYPE.get(scraped.platform_slug) or scraped.listing_type or "auction"
     if scraped.buy_now_price is not None and lt == "auction":
         lt = "buy_now"
+
+    # ── item_type ─────────────────────────────────────────────────────────────
+    # Classifies what kind of thing this listing IS, which drives homepage
+    # section placement:
+    #   individual_item  → featured items grid (single antique/collectible)
+    #   lot              → box/group of items auctioned together
+    #   estate_sale      → in-person or timed estate sale event
+    #   auction_catalog  → multi-lot auction house catalog
+    title_lower = (scraped.title or "").lower()
+    if lt == "estate_sale":
+        item_type = "estate_sale"
+    elif scraped.items and len(scraped.items) > 1:
+        # Has embedded item list — it's an auction catalog or estate sale
+        item_type = "auction_catalog"
+    elif any(kw in title_lower for kw in _LOT_KEYWORDS):
+        item_type = "lot"
+    else:
+        item_type = "individual_item"
 
     # Use scraped category if present, otherwise auto-detect from title/description
     category = scraped.category or _auto_categorize(scraped.title, scraped.description)
@@ -257,6 +338,7 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "category": category,
         "condition": scraped.condition,
         "listing_type": lt,
+        "item_type": item_type,
         "current_price": price,
         "buy_now_price": scraped.buy_now_price,
         "estimate_low": est_low,
@@ -347,6 +429,13 @@ async def hydrate(args):
     # Geocode city+state → lat/lon (cached; only new cities hit the API)
     logger.info("Running geocoder …")
     all_listings = await geocode_listings(all_listings)
+
+    # Remove off-topic / non-US listings
+    before_filter = len(all_listings)
+    all_listings = [l for l in all_listings if _is_relevant(l)]
+    filtered_out = before_filter - len(all_listings)
+    if filtered_out:
+        logger.info(f"Relevance filter: removed {filtered_out} off-topic/non-US listings")
 
     # Write output
     out_path = Path(args.out)
