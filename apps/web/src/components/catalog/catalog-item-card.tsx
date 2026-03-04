@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Trash2, TrendingUp } from "lucide-react";
-import { type CatalogItem, deleteCatalogItem } from "./catalog-types";
+import { type CatalogItem } from "./catalog-types";
 import { AiAnalysisPanel } from "./ai-analysis-panel";
 
 interface Props {
@@ -16,7 +16,6 @@ export function CatalogItemCard({ item, onDeleted, onUpdated }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function handleDelete() {
-    deleteCatalogItem(item.id);
     onDeleted(item.id);
   }
 

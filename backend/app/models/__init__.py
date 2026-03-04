@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.saved_search import SavedSearch
 from app.models.alert import Alert
 from app.models.sponsored_placement import SponsoredPlacement
+from app.models.catalog_item import CatalogItem
 
 __all__ = [
     "Platform",
@@ -16,4 +17,5 @@ __all__ = [
     "SavedSearch",
     "Alert",
     "SponsoredPlacement",
+    "CatalogItem",
 ]

@@ -427,10 +427,25 @@ async def run_scraper(scraper_cls, rate_limiter, max_pages: int, **kwargs) -> li
     return results
 
 
+async def run_scraper_with_label(
+    scraper_cls,
+    rate_limiter: TokenBucketRateLimiter,
+    max_pages: int,
+    **kwargs,
+) -> tuple[str, list[dict]]:
+    """Run one scraper concurrently; returns (label, results)."""
+    label = scraper_cls.__name__.replace("Scraper", "")
+    logger.info(f"▶ Starting {label} …")
+    results = await run_scraper(scraper_cls, rate_limiter, max_pages, **kwargs)
+    icon = "✓" if results else "✗"
+    logger.info(f"  {icon} {label}: {len(results)} listings")
+    return label, results
+
+
 async def hydrate(args):
+    # Each platform gets its own per-domain bucket inside the shared limiter,
+    # so running scrapers in parallel is safe — they don't share tokens.
     rate_limiter = TokenBucketRateLimiter(default_rate=0.4)
-    all_listings: list[dict] = []
-    summary: list[str] = []
 
     # Map short names → (class, extra kwargs)
     target_map = {
@@ -449,16 +464,32 @@ async def hydrate(args):
         logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d")
         sys.exit(1)
 
-    for key in chosen:
-        cls, extra = target_map[key]
-        logger.info(f"▶ Running {cls.__name__} (max_pages={args.max_pages}) …")
-        results = await run_scraper(cls, rate_limiter, args.max_pages, **extra)
+    # ── Parallel execution ────────────────────────────────────────────────────
+    # Each scraper uses a different domain key inside the TokenBucketRateLimiter,
+    # so they can run simultaneously without violating per-platform rate limits.
+    # asyncio.gather() runs all coroutines concurrently within the single event loop.
+    logger.info(f"Running {len(chosen)} scrapers in parallel: {', '.join(chosen)}")
+
+    tasks = [
+        run_scraper_with_label(
+            target_map[key][0],   # scraper class
+            rate_limiter,
+            args.max_pages,
+            **target_map[key][1], # extra kwargs
+        )
+        for key in chosen
+    ]
+
+    # Return results as they finish (gather preserves task order)
+    reports: list[tuple[str, list[dict]]] = await asyncio.gather(*tasks)
+
+    all_listings: list[dict] = []
+    summary: list[str] = []
+    for label, results in reports:
         count = len(results)
         all_listings.extend(results)
         icon = "✓" if count > 0 else "✗"
-        label = cls.__name__.replace("Scraper", "")
         summary.append(f"  {icon}  {label}: {count} listings")
-        logger.info(f"   {icon} {label}: {count}")
 
     # Geocode city+state → lat/lon (cached; only new cities hit the API)
     logger.info("Running geocoder …")

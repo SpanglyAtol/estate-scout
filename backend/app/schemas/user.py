@@ -8,10 +8,17 @@ class UserCreate(BaseModel):
     display_name: str | None = None
 
 
+class UserUpdate(BaseModel):
+    """Partial update for user profile — all fields optional."""
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+
 class UserOut(BaseModel):
     id: str
     email: str
     display_name: str | None
+    avatar_url: str | None = None
     tier: str
     valuation_queries_this_month: int
     created_at: datetime

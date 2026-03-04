@@ -1,24 +1,95 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, BookOpen, Truck, Package, ChevronRight, Sparkles } from "lucide-react";
+import { Plus, BookOpen, Truck, Package, ChevronRight, Sparkles, Loader2, Cloud, HardDrive } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { loadCatalog, type CatalogItem } from "@/components/catalog/catalog-types";
+import {
+  loadCatalog,
+  loadCatalogFromApi,
+  addCatalogItemToApi,
+  updateCatalogItemInApi,
+  deleteCatalogItemFromApi,
+  type CatalogItem,
+} from "@/components/catalog/catalog-types";
 import { CatalogItemCard } from "@/components/catalog/catalog-item-card";
 import { AddItemModal } from "@/components/catalog/add-item-modal";
 
 type Tab = "catalog" | "ship-and-list";
 
+/**
+ * Detect whether the backend API is configured.
+ * If NEXT_PUBLIC_API_URL points somewhere other than the Next.js origin,
+ * we treat it as a real backend and use server-side catalog storage.
+ */
+function hasBackend(): boolean {
+  if (typeof window === "undefined") return false;
+  const url = process.env.NEXT_PUBLIC_API_URL ?? "";
+  return Boolean(url) && !url.includes("localhost:3000") && !url.includes("localhost");
+}
+
 export default function CatalogPage() {
   const { user, loading } = useAuth();
-  const [items, setItems]         = useState<CatalogItem[]>([]);
-  const [showAdd, setShowAdd]     = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("catalog");
+  const [items, setItems]           = useState<CatalogItem[]>([]);
+  const [fetching, setFetching]     = useState(false);
+  const [showAdd, setShowAdd]       = useState(false);
+  const [activeTab, setActiveTab]   = useState<Tab>("catalog");
+  const [useApi, setUseApi]         = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+
+  // Load items — prefer backend API when user is logged in and backend is available
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    setFetching(true);
+    setError(null);
+    const backendAvailable = hasBackend();
+    setUseApi(backendAvailable);
+    try {
+      if (backendAvailable) {
+        setItems(await loadCatalogFromApi());
+      } else {
+        setItems(loadCatalog());
+      }
+    } catch (err) {
+      // Fall back to localStorage if API fails
+      setUseApi(false);
+      setItems(loadCatalog());
+      console.warn("Catalog API unavailable, using localStorage:", err);
+    } finally {
+      setFetching(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    setItems(loadCatalog());
+    refresh();
+  }, [refresh]);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleAdded = useCallback((item: CatalogItem) => {
+    setItems((prev) => [item, ...prev]);
+    setShowAdd(false);
   }, []);
+
+  const handleDeleted = useCallback(async (id: string) => {
+    if (useApi) {
+      try { await deleteCatalogItemFromApi(id); } catch { /* ignore */ }
+    }
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  }, [useApi]);
+
+  const handleUpdated = useCallback(async (updated: CatalogItem) => {
+    if (useApi) {
+      try {
+        const refreshed = await updateCatalogItemInApi(updated.id, updated);
+        setItems((prev) => prev.map((i) => (i.id === refreshed.id ? refreshed : i)));
+        return;
+      } catch { /* fall through to local update */ }
+    }
+    setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+  }, [useApi]);
+
+  // ── Loading state ─────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -27,6 +98,8 @@ export default function CatalogPage() {
       </div>
     );
   }
+
+  // ── Unauthenticated ───────────────────────────────────────────────────────
 
   if (!user) {
     return (
@@ -55,6 +128,8 @@ export default function CatalogPage() {
     );
   }
 
+  // ── Authenticated ─────────────────────────────────────────────────────────
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
 
@@ -62,8 +137,23 @@ export default function CatalogPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold text-antique-text">My Catalog</h1>
-          <p className="text-antique-text-sec text-sm mt-1">
-            {items.length} item{items.length !== 1 ? "s" : ""} · Personal collection tracker
+          <p className="text-antique-text-sec text-sm mt-1 flex items-center gap-2">
+            {fetching ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <span>
+                {items.length} item{items.length !== 1 ? "s" : ""} · Personal collection tracker
+              </span>
+            )}
+            {useApi ? (
+              <span className="inline-flex items-center gap-1 text-green-600 text-xs">
+                <Cloud className="w-3 h-3" /> Synced
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-antique-text-mute text-xs">
+                <HardDrive className="w-3 h-3" /> Local only
+              </span>
+            )}
           </p>
         </div>
         <button
@@ -74,6 +164,12 @@ export default function CatalogPage() {
           Add Item
         </button>
       </div>
+
+      {error && (
+        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-8 border-b border-antique-border">
@@ -99,7 +195,11 @@ export default function CatalogPage() {
       {/* ── Catalog tab ── */}
       {activeTab === "catalog" && (
         <>
-          {items.length === 0 ? (
+          {fetching ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-antique-accent" />
+            </div>
+          ) : items.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-6xl mb-4">🏺</div>
               <h2 className="font-display text-xl font-bold text-antique-text mb-2">
@@ -132,7 +232,9 @@ export default function CatalogPage() {
                   {
                     icon: "📊",
                     title: "Collection Tracking",
-                    desc: "Keep a complete record of everything in your collection in one place.",
+                    desc: useApi
+                      ? "Items sync across all your devices automatically."
+                      : "Connect a backend to sync your catalog across devices.",
                   },
                 ].map(({ icon, title, desc }) => (
                   <div key={title} className="antique-card p-4">
@@ -159,10 +261,8 @@ export default function CatalogPage() {
                   <CatalogItemCard
                     key={item.id}
                     item={item}
-                    onDeleted={(id) => setItems((prev) => prev.filter((i) => i.id !== id))}
-                    onUpdated={(updated) =>
-                      setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
-                    }
+                    onDeleted={handleDeleted}
+                    onUpdated={handleUpdated}
                   />
                 ))}
               </div>
@@ -188,7 +288,6 @@ export default function CatalogPage() {
           </div>
 
           <div className="space-y-4">
-            {/* Cross-listing */}
             <div className="antique-card p-5 flex gap-4 items-start">
               <div className="w-10 h-10 bg-antique-accent-lt rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
                 🛍️
@@ -212,7 +311,6 @@ export default function CatalogPage() {
               </div>
             </div>
 
-            {/* Shipping */}
             <div className="antique-card p-5 flex gap-4 items-start">
               <div className="w-10 h-10 bg-antique-accent-lt rounded-xl flex items-center justify-center flex-shrink-0">
                 <Package className="w-5 h-5 text-antique-accent" />
@@ -236,7 +334,6 @@ export default function CatalogPage() {
               </div>
             </div>
 
-            {/* Smart descriptions */}
             <div className="antique-card p-5 flex gap-4 items-start">
               <div className="w-10 h-10 bg-antique-accent-lt rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
                 ✍️
@@ -273,10 +370,8 @@ export default function CatalogPage() {
       {showAdd && (
         <AddItemModal
           onClose={() => setShowAdd(false)}
-          onAdded={(item) => {
-            setItems((prev) => [item, ...prev]);
-            setShowAdd(false);
-          }}
+          onAdded={handleAdded}
+          useApi={useApi}
         />
       )}
     </div>

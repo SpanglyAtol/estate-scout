@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.database import engine
-from app.routers import admin, alerts, auth, billing, health, listings, saved_searches, search, valuation
+from app.routers import admin, alerts, auth, billing, catalog, health, listings, saved_searches, search, valuation
 from app.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -81,6 +81,7 @@ app.include_router(valuation.router, prefix="/api/v1/valuation", tags=["valuatio
 app.include_router(saved_searches.router, prefix="/api/v1/saved-searches", tags=["saved-searches"])
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
+app.include_router(catalog.router, prefix="/api/v1/catalog", tags=["catalog"])
 # Admin — only included when ADMIN_SECRET_KEY is set
 app.include_router(
     admin.router,

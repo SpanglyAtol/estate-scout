@@ -175,6 +175,110 @@ export async function deleteAlert(id: number) {
   return request<void>(`/api/v1/alerts/${id}`, { method: "DELETE" });
 }
 
+// --- User Profile ---
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  tier: string;
+  valuation_queries_this_month: number;
+  created_at: string;
+}
+
+export async function getMyProfile(): Promise<UserProfile> {
+  return request<UserProfile>("/api/v1/auth/me");
+}
+
+export async function updateMyProfile(data: {
+  display_name?: string;
+  avatar_url?: string;
+}): Promise<UserProfile> {
+  return request<UserProfile>("/api/v1/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+// --- Catalog ---
+
+export interface CatalogItemApi {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  condition: string | null;
+  notes: string | null;
+  image_urls: string[];
+  ai_analysis: {
+    narrative: string;
+    priceLow: number | null;
+    priceMid: number | null;
+    priceHigh: number | null;
+    priceCount: number;
+    queriedWith: string;
+  } | null;
+  estimate_low: number | null;
+  estimate_mid: number | null;
+  estimate_high: number | null;
+  last_analyzed_at: string | null;
+  added_at: string;
+  updated_at: string;
+}
+
+export async function getCatalogItems(): Promise<CatalogItemApi[]> {
+  return request<CatalogItemApi[]>("/api/v1/catalog/");
+}
+
+export async function createCatalogItemApi(data: {
+  title: string;
+  description?: string;
+  category?: string;
+  condition?: string;
+  notes?: string;
+  image_urls?: string[];
+}): Promise<CatalogItemApi> {
+  return request<CatalogItemApi>("/api/v1/catalog/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCatalogItemApi(
+  id: string,
+  data: Partial<{
+    title: string;
+    description: string;
+    category: string;
+    condition: string;
+    notes: string;
+    image_urls: string[];
+    ai_analysis: object;
+    estimate_low: number;
+    estimate_mid: number;
+    estimate_high: number;
+  }>,
+): Promise<CatalogItemApi> {
+  return request<CatalogItemApi>(`/api/v1/catalog/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCatalogItemApi(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1/catalog/${id}`, {
+    method: "DELETE",
+    headers: { ...getAuthHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({ detail: "Unknown error" }));
+    throw new ApiError(res.status, body.detail ?? `HTTP ${res.status}`);
+  }
+}
+
 // --- Billing ---
 
 export async function createCheckoutSession(plan: string = "pro") {
