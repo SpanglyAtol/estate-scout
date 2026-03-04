@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Playfair_Display, Lora } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
 import { QueryProvider } from "@/providers/query-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ChatbotWidget } from "@/components/chatbot/chatbot-widget";
 
-const inter = Inter({ subsets: ["latin"] });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-lora",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -25,20 +37,36 @@ export default function RootLayout({
   const adsenseId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID;
 
   return (
-    <html lang="en">
-      <head>{adsenseId ? <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}`} crossOrigin="anonymous" strategy="afterInteractive" /> : null}</head>
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning className={`${playfair.variable} ${lora.variable}`}>
+      <head>
+        {adsenseId ? (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        ) : null}
+      </head>
+      <body>
         <QueryProvider>
-          <Navbar />
-          <main className="min-h-screen bg-gray-50">{children}</main>
-          <footer className="border-t bg-white py-8 mt-16">
-            <div className="container mx-auto px-4 text-center text-sm text-gray-500">
-              <p>Estate Scout · Find it before anyone else</p>
-              <p className="mt-1">
-                We aggregate listings from third-party platforms. All purchases complete on the original platform.
-              </p>
-            </div>
-          </footer>
+          <ThemeProvider>
+            <Navbar />
+            <main className="min-h-screen bg-antique-bg">
+              {children}
+            </main>
+            <footer className="border-t border-antique-border bg-antique-surface py-10 mt-20">
+              <div className="container mx-auto px-4 text-center">
+                <p className="font-display text-base text-antique-text-sec tracking-wide">
+                  Estate Scout
+                </p>
+                <p className="text-xs text-antique-text-mute mt-2 max-w-md mx-auto leading-relaxed">
+                  We aggregate listings from third-party platforms. All purchases complete on the original platform.
+                </p>
+              </div>
+            </footer>
+            <ChatbotWidget />
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

@@ -1,15 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useCallback, useRef } from "react";
-import { Search, MapPin, Loader2, ExternalLink, ChevronDown } from "lucide-react";
+import { useState, useCallback, useRef, forwardRef } from "react";
+import { Search, MapPin, Loader2, ExternalLink, ChevronDown, Navigation } from "lucide-react";
 import type { Listing } from "@/types";
 import { formatPrice } from "@/lib/format";
 
 // Leaflet is browser-only — never SSR
 const AuctionMap = dynamic(
-  () =>
-    import("@/components/map/auction-map").then((m) => m.AuctionMap),
+  () => import("@/components/map/auction-map").then((m) => m.AuctionMap),
   { ssr: false, loading: () => <MapPlaceholder /> }
 );
 
@@ -41,12 +40,12 @@ async function zipToLatLon(
   }
 }
 
-// ── Map placeholder (shown while Leaflet loads) ───────────────────────────────
+// ── Map placeholder ───────────────────────────────────────────────────────────
 
 function MapPlaceholder() {
   return (
-    <div className="h-full w-full bg-gray-100 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+    <div className="h-full w-full bg-antique-muted flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-antique-accent animate-spin" />
     </div>
   );
 }
@@ -54,16 +53,42 @@ function MapPlaceholder() {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function MapSearch() {
-  const [zip, setZip] = useState("");
-  const [radius, setRadius] = useState(50);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [zip, setZip]           = useState("");
+  const [radius, setRadius]     = useState(50);
+  const [loading, setLoading]   = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [error, setError]       = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
-  const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [center, setCenter]     = useState<[number, number]>(DEFAULT_CENTER);
+  const [zoom, setZoom]         = useState(DEFAULT_ZOOM);
   const [locationLabel, setLocationLabel] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId]       = useState<number | null>(null);
   const listItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  const fetchListings = useCallback(
+    async (lat: number, lon: number, label: string) => {
+      const params = new URLSearchParams({
+        lat: String(lat),
+        lon: String(lon),
+        radius_miles: String(radius),
+        page_size: "200",
+        sort: "ending_soon",
+      });
+
+      try {
+        const res = await fetch(`/api/v1/search?${params}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: Listing[] = await res.json();
+        setListings(data);
+        setCenter([lat, lon]);
+        setZoom(radius <= 25 ? 12 : radius <= 75 ? 10 : 8);
+        setLocationLabel(label);
+      } catch {
+        setError("Failed to fetch listings. Please try again.");
+      }
+    },
+    [radius]
+  );
 
   const handleSearch = useCallback(async () => {
     const trimmed = zip.trim();
@@ -81,38 +106,38 @@ export function MapSearch() {
     setListings([]);
     setSelectedId(null);
 
-    // 1. Resolve ZIP → lat/lon
     const geo = await zipToLatLon(trimmed);
     if (!geo) {
-      setError(`ZIP code "${trimmed}" not found. Please try another.`);
+      setError(`Couldn't find ZIP code "${trimmed}" — please double-check and try again.`);
       setLoading(false);
       return;
     }
 
-    // 2. Fetch nearby listings from our search API
-    const params = new URLSearchParams({
-      lat: String(geo.lat),
-      lon: String(geo.lon),
-      radius_miles: String(radius),
-      page_size: "200",
-      sort: "ending_soon",
-    });
+    await fetchListings(geo.lat, geo.lon, `${geo.city}, ${geo.state} ${trimmed}`);
+    setLoading(false);
+  }, [zip, fetchListings]);
 
-    try {
-      const res = await fetch(`/api/v1/search?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Listing[] = await res.json();
-
-      setListings(data);
-      setCenter([geo.lat, geo.lon]);
-      setZoom(radius <= 25 ? 12 : radius <= 75 ? 10 : 8);
-      setLocationLabel(`${geo.city}, ${geo.state} ${trimmed}`);
-    } catch {
-      setError("Failed to fetch listings. Please try again.");
-    } finally {
-      setLoading(false);
+  const handleUseMyLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
     }
-  }, [zip, radius]);
+    setGeoLoading(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setListings([]);
+        setSelectedId(null);
+        await fetchListings(latitude, longitude, "your location");
+        setGeoLoading(false);
+      },
+      () => {
+        setError("Couldn't access your location. Please enter a ZIP code instead.");
+        setGeoLoading(false);
+      }
+    );
+  }, [fetchListings]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
@@ -125,14 +150,15 @@ export function MapSearch() {
   };
 
   const searched = locationLabel !== "";
+  const isLoading = loading || geoLoading;
 
   return (
     <div className="flex flex-col h-full">
       {/* ── Search bar ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3 z-10 shadow-sm">
+      <div className="bg-antique-surface border-b border-antique-border px-4 py-3 flex flex-wrap items-center gap-3 z-10 shadow-sm">
         {/* ZIP input */}
         <div className="relative flex-shrink-0">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-accent pointer-events-none" />
           <input
             type="text"
             value={zip}
@@ -140,7 +166,7 @@ export function MapSearch() {
             onKeyDown={handleKeyDown}
             placeholder="Enter ZIP code"
             maxLength={5}
-            className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm w-40 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="pl-9 pr-3 py-2 border border-antique-border rounded-lg text-sm w-40 bg-antique-bg text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
           />
         </div>
 
@@ -149,7 +175,7 @@ export function MapSearch() {
           <select
             value={radius}
             onChange={(e) => setRadius(Number(e.target.value))}
-            className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+            className="appearance-none pl-3 pr-8 py-2 border border-antique-border rounded-lg text-sm bg-antique-bg text-antique-text focus:outline-none focus:border-antique-accent cursor-pointer transition-colors"
           >
             {RADIUS_OPTIONS.map((r) => (
               <option key={r} value={r}>
@@ -157,33 +183,40 @@ export function MapSearch() {
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-text-mute pointer-events-none" />
         </div>
 
         {/* Search button */}
         <button
           onClick={handleSearch}
-          disabled={loading}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+          disabled={isLoading}
+          className="flex items-center gap-2 bg-antique-accent hover:bg-antique-accent-h disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Search className="w-4 h-4" />
-          )}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           Find Auctions
         </button>
 
+        {/* Use my location button */}
+        <button
+          onClick={handleUseMyLocation}
+          disabled={isLoading}
+          className="flex items-center gap-2 border border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent disabled:opacity-50 px-3 py-2 rounded-lg text-sm transition-colors flex-shrink-0 bg-antique-surface"
+        >
+          {geoLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4" />
+          )}
+          <span className="hidden sm:inline">Near Me</span>
+        </button>
+
         {/* Result count / location label */}
-        {searched && !loading && (
-          <span className="text-sm text-gray-500 ml-1">
+        {searched && !isLoading && (
+          <span className="text-sm text-antique-text-sec ml-1">
             {listings.length > 0 ? (
               <>
-                <span className="font-semibold text-gray-800">
-                  {listings.length}
-                </span>{" "}
-                auction{listings.length !== 1 ? "s" : ""} within {radius} mi
-                of {locationLabel}
+                <span className="font-semibold text-antique-text">{listings.length}</span>{" "}
+                auction{listings.length !== 1 ? "s" : ""} within {radius} mi of {locationLabel}
               </>
             ) : (
               <>No auctions found within {radius} mi of {locationLabel}</>
@@ -199,7 +232,7 @@ export function MapSearch() {
 
       {/* ── Map + side list ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Map (takes all remaining space on mobile, flex-1 on desktop) */}
+        {/* Map */}
         <div className="flex-1 relative">
           <AuctionMap
             listings={listings}
@@ -210,28 +243,27 @@ export function MapSearch() {
           />
 
           {/* Overlay hint when no search yet */}
-          {!searched && !loading && (
+          {!searched && !isLoading && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-6 py-4 text-center max-w-xs pointer-events-auto">
-                <MapPin className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                <p className="font-semibold text-gray-800 text-sm">
-                  Discover nearby auctions
+              <div className="bg-antique-surface/95 backdrop-blur-sm rounded-xl shadow-lg border border-antique-border px-6 py-5 text-center max-w-xs pointer-events-auto">
+                <MapPin className="w-8 h-8 text-antique-accent mx-auto mb-2" />
+                <p className="font-display font-bold text-antique-text text-base">
+                  Discover Nearby Auctions
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter a US ZIP code above to find estate sales and auctions
-                  on the map.
+                <p className="text-xs text-antique-text-sec mt-1 leading-relaxed">
+                  Enter a US ZIP code above or tap "Near Me" to find estate sales and auctions on the map.
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Side list (hidden on mobile when empty) */}
+        {/* Side list */}
         {listings.length > 0 && (
-          <aside className="hidden md:flex flex-col w-80 xl:w-96 border-l border-gray-200 bg-white overflow-y-auto">
-            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                {listings.length} Result{listings.length !== 1 ? "s" : ""} · Sorted by ending soon
+          <aside className="hidden md:flex flex-col w-80 xl:w-96 border-l border-antique-border bg-antique-surface overflow-y-auto">
+            <div className="px-4 py-3 border-b border-antique-border bg-antique-muted">
+              <p className="text-xs font-semibold text-antique-text-sec uppercase tracking-wide">
+                {listings.length} Result{listings.length !== 1 ? "s" : ""} · Ending soonest
               </p>
             </div>
 
@@ -260,54 +292,46 @@ export function MapSearch() {
 
 // ── Side list card ─────────────────────────────────────────────────────────────
 
-import { forwardRef } from "react";
-
 const SideCard = forwardRef<
   HTMLDivElement,
-  {
-    listing: Listing;
-    selected: boolean;
-    onClick: () => void;
-  }
+  { listing: Listing; selected: boolean; onClick: () => void }
 >(function SideCard({ listing, selected, onClick }, ref) {
   return (
     <div
       ref={ref}
       onClick={onClick}
-      className={`flex gap-3 p-3 border-b border-gray-100 cursor-pointer transition-colors ${
+      className={`flex gap-3 p-3 border-b border-antique-border cursor-pointer transition-colors ${
         selected
-          ? "bg-blue-50 border-l-4 border-l-blue-500"
-          : "hover:bg-gray-50"
+          ? "bg-antique-accent-s border-l-4 border-l-antique-accent"
+          : "hover:bg-antique-muted"
       }`}
     >
-      {/* Thumbnail */}
       {listing.primary_image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={listing.primary_image_url}
           alt={listing.title}
-          className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
+          className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-antique-muted"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
       ) : (
-        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0" />
+        <div className="w-16 h-16 rounded-lg bg-antique-muted flex-shrink-0 flex items-center justify-center text-2xl">
+          🏺
+        </div>
       )}
 
-      {/* Info */}
       <div className="flex-1 min-w-0 space-y-0.5">
-        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+        <p className="text-[10px] font-semibold text-antique-accent uppercase tracking-wide">
           {listing.platform.display_name}
         </p>
-        <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
+        <p className="text-sm font-medium text-antique-text line-clamp-2 leading-snug">
           {listing.title}
         </p>
         {(listing.city || listing.state) && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-antique-text-sec">
             📍 {[listing.city, listing.state].filter(Boolean).join(", ")}
             {listing.distance_miles != null && (
-              <span className="ml-1 text-gray-400">
+              <span className="ml-1 text-antique-text-mute">
                 · {listing.distance_miles.toFixed(1)} mi
               </span>
             )}
@@ -315,14 +339,14 @@ const SideCard = forwardRef<
         )}
         <div className="flex items-center gap-2 pt-0.5">
           {listing.current_price != null && (
-            <span className="text-sm font-bold text-blue-700">
+            <span className="text-sm font-bold text-antique-accent">
               {formatPrice(listing.current_price)}
             </span>
           )}
           <a
             href={`/listing/${listing.id}`}
             onClick={(e) => e.stopPropagation()}
-            className="ml-auto text-xs text-blue-500 hover:text-blue-700 flex items-center gap-0.5 flex-shrink-0"
+            className="ml-auto text-xs text-antique-accent hover:text-antique-accent-h flex items-center gap-0.5 flex-shrink-0"
           >
             Details <ExternalLink className="w-3 h-3" />
           </a>
