@@ -10,7 +10,7 @@ import Link from "next/link";
 import {
   Package, TrendingUp, Clock, Calendar, AlertCircle,
   CheckCircle, RefreshCw, ExternalLink, BarChart3, Tag,
-  Database, Key, Zap, DollarSign, Globe, ChevronRight,
+  Database, Zap, DollarSign, Globe, ChevronRight,
   GitBranch, Server, Bot, CreditCard, Megaphone,
 } from "lucide-react";
 import { getListings } from "@/lib/scraped-data";

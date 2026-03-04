@@ -2,167 +2,273 @@
 
 import Link from "next/link";
 import {
-  Search, Bell, MapPin, Check, Star, Megaphone, ShoppingBag, Tag,
+  Check, Search, Bell, MapPin, BookOpen,
+  Star, Package, Zap, X,
 } from "lucide-react";
 
-// ── Revenue stream cards ──────────────────────────────────────────────────────
+// ── Tier definitions ──────────────────────────────────────────────────────────
 
-const revenueStreams = [
+const tiers = [
   {
-    icon: Megaphone,
-    color: "blue",
-    title: "Contextual Ads",
-    description:
-      "Google AdSense shows relevant ads between listing cards — think cleaning kits for pottery, display cases for collectibles, shipping supplies for antiques. Ads are placed thoughtfully and never in the middle of search results.",
-    note: "We chose AdSense because it matches ads to what you're actually browsing.",
+    id: "free",
+    name: "Free",
+    price: 0,
+    period: null,
+    badge: null,
+    description: "Everything you need to discover and browse estate sales and auctions.",
+    cta: "Get Started",
+    ctaHref: "/search",
+    ctaStyle: "border border-antique-border text-antique-text hover:border-antique-accent",
+    features: [
+      { label: "Search all platforms (HiBid, MaxSold, BidSpotter, EstateSales.NET)", included: true },
+      { label: "Map view — find sales near you by ZIP or location", included: true },
+      { label: "Listing detail pages with buyer's premium breakdown", included: true },
+      { label: "5 saved searches", included: true },
+      { label: "5 AI price checks per month", included: true },
+      { label: "Basic item catalog (5 items)", included: true },
+      { label: "Contextual ads between results", included: false, note: "ad-supported" },
+      { label: "Unlimited saved searches", included: false },
+      { label: "Extended catalog", included: false },
+    ],
   },
   {
-    icon: ShoppingBag,
-    color: "amber",
-    title: "Amazon Affiliate Links",
-    description:
-      "When you're viewing a piece of silver or a vintage camera, we surface \"How to care for & display this\" with relevant Amazon product links. If you buy something through a link, we earn a small commission at no cost to you.",
-    note: "Only shown on listing detail pages. Never pushed as ads.",
+    id: "pro",
+    name: "Subscriber",
+    price: 6,
+    period: "month",
+    badge: "Most Popular",
+    description: "Ad-free browsing, unlimited saved searches, and a 100-item personal catalog.",
+    cta: "Start Free Trial",
+    ctaHref: "/auth?plan=pro",
+    ctaStyle: "bg-antique-accent text-white hover:bg-antique-accent-h",
+    features: [
+      { label: "Everything in Free", included: true },
+      { label: "No ads — completely clean browsing experience", included: true },
+      { label: "Unlimited saved searches & price alerts", included: true },
+      { label: "Personal catalog up to 100 items", included: true },
+      { label: "AI price checks — 50 per month", included: true },
+      { label: "AI item analysis from your catalog photos", included: true },
+      { label: "Email notifications for saved searches", included: true },
+      { label: "Early access to new features", included: true },
+      { label: "Unlimited catalog", included: false },
+    ],
   },
   {
-    icon: Tag,
-    color: "green",
-    title: "Sponsored Listings",
-    description:
-      "Local estate sale companies can pay to appear at the top of relevant searches with a clear \"Sponsored\" badge. These are real active sales, not random banners — they're always relevant to what you're searching for.",
-    note: "Sponsored placements are always labeled. We never disguise them.",
+    id: "premium",
+    name: "Collector",
+    price: 20,
+    period: "month",
+    badge: "For Serious Collectors",
+    description: "Unlimited catalog, unlimited AI checks, and full historical market data.",
+    cta: "Start Free Trial",
+    ctaHref: "/auth?plan=premium",
+    ctaStyle: "bg-antique-text text-antique-bg hover:opacity-80",
+    features: [
+      { label: "Everything in Subscriber", included: true },
+      { label: "Unlimited personal catalog", included: true },
+      { label: "Unlimited AI price checks", included: true },
+      { label: "Historical price charts by category", included: true },
+      { label: "Bulk CSV export of your catalog", included: true },
+      { label: "Priority support", included: true },
+      { label: "Cross-listing to eBay & Etsy (coming soon)", included: true },
+      { label: "Shipping carrier comparison (coming soon)", included: true },
+    ],
   },
 ];
 
-const colorMap: Record<string, { bg: string; icon: string; border: string }> = {
-  blue:  { bg: "bg-blue-50",  icon: "text-blue-600",  border: "border-blue-100" },
-  amber: { bg: "bg-amber-50", icon: "text-amber-600", border: "border-amber-100" },
-  green: { bg: "bg-green-50", icon: "text-green-600", border: "border-green-100" },
-};
+// ── FAQ ───────────────────────────────────────────────────────────────────────
 
-// ── Full feature list ─────────────────────────────────────────────────────────
-
-const features = [
-  { icon: Search,  text: "Search across LiveAuctioneers, EstateSales.NET, HiBid, MaxSold & more" },
-  { icon: MapPin,  text: "Browse local estate sales by city or zip — 8 platforms in one place" },
-  { icon: Bell,    text: "Save searches and set price alerts with email notifications" },
-  { icon: Star,    text: "AI Price Check — see comparable sold items and estimated value" },
-  { icon: Check,   text: "Filter by location radius, pickup only, ending soon, price range" },
-  { icon: Check,   text: "Unlimited saved searches and alerts during early access" },
-  { icon: Check,   text: "Full listing detail pages with buyer's premium breakdowns" },
-  { icon: Check,   text: "Mobile-friendly — works on any device" },
+const faqs = [
+  {
+    q: "What counts as an AI price check?",
+    a: "Each valuation query — whether typed in the chatbot or run from your catalog — uses one check. Viewing the result again does not use another.",
+  },
+  {
+    q: "What is the item catalog?",
+    a: "Your personal catalog lets you upload photos of antiques and collectibles you own or are considering buying. The AI analyzes each item to provide identification, provenance notes, condition assessment, and a price estimate.",
+  },
+  {
+    q: "Will the free tier always exist?",
+    a: "Yes. Core search, map browsing, and listing details will always be free. We want the best discovery tool for estate sales to be accessible to everyone.",
+  },
+  {
+    q: "Can I cancel anytime?",
+    a: "Absolutely. Cancel from your profile page at any time. You keep your subscription benefits until the end of the billing period.",
+  },
+  {
+    q: "Why $6 and $20?",
+    a: "We want the subscriber tier to be a no-brainer for anyone who uses the site regularly. The Collector tier covers users building a serious inventory — the unlimited catalog and AI checks pay for themselves quickly.",
+  },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
+    <div className="container mx-auto px-4 py-12 max-w-5xl">
 
       {/* Hero */}
       <div className="text-center mb-14">
-        <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 text-sm font-semibold px-4 py-1.5 rounded-full mb-5">
-          <Check className="w-4 h-4" /> 100% Free — No Credit Card Required
-        </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Estate Scout is Free.
-          <br />
-          <span className="text-blue-600">Here&apos;s How We Keep It That Way.</span>
+        <p className="text-antique-accent font-display text-sm tracking-[0.2em] uppercase mb-3">
+          Pricing
+        </p>
+        <h1 className="font-display text-4xl md:text-5xl font-bold text-antique-text leading-tight mb-4 max-w-2xl mx-auto">
+          Simple, Honest Pricing
         </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          We believe everyone — from casual weekend browsers to serious collectors — deserves
-          access to every estate sale and auction in one place, without a subscription.
+        <p className="text-antique-text-sec text-lg max-w-xl mx-auto leading-relaxed">
+          Free to browse. Upgrade when you want an ad-free experience and a personal catalog for your collection.
         </p>
-        <div className="mt-8 flex gap-4 justify-center flex-wrap">
-          <Link
-            href="/search"
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Start Searching
-          </Link>
-          <Link
-            href="/estate-sales"
-            className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-          >
-            Browse Local Sales
-          </Link>
-        </div>
       </div>
 
-      {/* Revenue streams */}
-      <div className="mb-16">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
-          How We Make Money
+      {/* Tier cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        {tiers.map((tier) => (
+          <div
+            key={tier.id}
+            className={`relative antique-card p-6 flex flex-col ${
+              tier.id === "pro" ? "ring-2 ring-antique-accent ring-offset-2 ring-offset-antique-bg" : ""
+            }`}
+          >
+            {tier.badge && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <span className="bg-antique-accent text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  {tier.badge}
+                </span>
+              </div>
+            )}
+
+            <div className="mb-5">
+              <h2 className="font-display text-lg font-bold text-antique-text mb-1">{tier.name}</h2>
+              <div className="flex items-baseline gap-1 mb-2">
+                {tier.price === 0 ? (
+                  <span className="font-display text-3xl font-bold text-antique-text">Free</span>
+                ) : (
+                  <>
+                    <span className="text-sm text-antique-text-sec">$</span>
+                    <span className="font-display text-3xl font-bold text-antique-text">{tier.price}</span>
+                    <span className="text-sm text-antique-text-mute">/ {tier.period}</span>
+                  </>
+                )}
+              </div>
+              <p className="text-xs text-antique-text-sec leading-relaxed">{tier.description}</p>
+            </div>
+
+            <ul className="space-y-2.5 mb-6 flex-1">
+              {tier.features.map((f) => (
+                <li key={f.label} className="flex items-start gap-2.5">
+                  {f.included ? (
+                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <X className="w-4 h-4 text-antique-border flex-shrink-0 mt-0.5" />
+                  )}
+                  <span className={`text-xs leading-relaxed ${f.included ? "text-antique-text-sec" : "text-antique-text-mute line-through"}`}>
+                    {f.label}
+                    {f.note && (
+                      <span className="ml-1 not-line-through no-underline text-antique-text-mute">
+                        ({f.note})
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              href={tier.ctaHref}
+              className={`block text-center py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors ${tier.ctaStyle}`}
+            >
+              {tier.cta}
+            </Link>
+          </div>
+        ))}
+      </div>
+
+      {/* What your subscription supports */}
+      <div className="antique-card p-8 mb-14">
+        <h2 className="font-display text-xl font-bold text-antique-text text-center mb-2">
+          What Your Subscription Supports
         </h2>
-        <p className="text-gray-500 text-center mb-8 text-sm">
-          Three ad-supported revenue streams — none of them subscriptions.
+        <p className="text-antique-text-sec text-sm text-center mb-8 max-w-xl mx-auto">
+          Subscriptions keep Estate Scout independent, ad-light, and continuously improving.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {revenueStreams.map((stream) => {
-            const Icon = stream.icon;
-            const c = colorMap[stream.color];
-            return (
-              <div
-                key={stream.title}
-                className={`rounded-2xl border p-6 ${c.bg} ${c.border}`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 bg-white shadow-sm`}>
-                  <Icon className={`w-5 h-5 ${c.icon}`} />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">{stream.title}</h3>
-                <p className="text-sm text-gray-600 mb-3">{stream.description}</p>
-                <p className="text-xs text-gray-400 italic">{stream.note}</p>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+          {[
+            { icon: Search,   label: "Daily scraper runs",       sub: "Fresh listings every morning" },
+            { icon: Star,     label: "AI model costs",           sub: "Price checks & catalog analysis" },
+            { icon: Package,  label: "Database infrastructure",  sub: "Built for 9M+ listings" },
+            { icon: Zap,      label: "New platform scrapers",    sub: "eBay, 1stDibs, Proxibid next" },
+          ].map(({ icon: Icon, label, sub }) => (
+            <div key={label}>
+              <Icon className="w-6 h-6 text-antique-accent mx-auto mb-2" />
+              <p className="text-sm font-semibold text-antique-text">{label}</p>
+              <p className="text-xs text-antique-text-mute mt-0.5">{sub}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Full feature list */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-12">
-        <div className="text-center mb-6">
-          <span className="text-xs font-semibold uppercase tracking-wide text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-            Early Access — Everything Included
-          </span>
-          <h2 className="text-2xl font-bold text-gray-900 mt-3 mb-1">
-            Everything, Free, Right Now
-          </h2>
-          <p className="text-sm text-gray-500">
-            While we&apos;re in early access, all features are available to everyone.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {features.map((f) => {
-            const Icon = f.icon;
-            return (
-              <div key={f.text} className="flex items-start gap-3">
-                <Icon className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-gray-700">{f.text}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Transparency note */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center">
-        <h3 className="font-semibold text-gray-900 mb-2">A Note on the Future</h3>
-        <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-          We may introduce an optional small upgrade to remove banner ads entirely — something
-          like $4–5/month for users who find the app valuable and want a cleaner experience.
-          Core search, estate sale browsing, and alerts will always be free.
-          <br />
-          <span className="text-gray-400 text-xs mt-2 block">
-            No bait-and-switch. No features held hostage. We&apos;ll earn your trust first.
-          </span>
+      {/* Revenue model transparency */}
+      <div className="antique-card-warm border border-antique-border rounded-xl p-6 mb-14">
+        <h2 className="font-display text-lg font-bold text-antique-text mb-1">How We Stay Free for Everyone</h2>
+        <p className="text-xs text-antique-text-sec mb-4 leading-relaxed">
+          Free users see contextual ads between listing cards — relevant things like display cases, cleaning supplies,
+          and shipping materials. Ads are never shown inside search results or on detail pages. Subscribers see no ads at all.
         </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-antique-text-sec">
+          <div className="flex items-start gap-2">
+            <Bell className="w-4 h-4 text-antique-accent flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-antique-text">Contextual Ads</p>
+              <p>Google AdSense — relevant to what you browse</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <BookOpen className="w-4 h-4 text-antique-accent flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-antique-text">Affiliate Links</p>
+              <p>Care &amp; display products on listing detail pages</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-antique-accent flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-antique-text">Sponsored Listings</p>
+              <p>Estate sale companies can promote relevant sales</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Comparison note */}
-      <p className="text-center text-sm text-gray-400 mt-8">
-        WorthPoint (historical prices only, no discovery) charges $200/year.{" "}
-        <strong className="text-gray-600">We do both — and we&apos;re free.</strong>
-      </p>
+      {/* FAQ */}
+      <div className="mb-10">
+        <h2 className="font-display text-xl font-bold text-antique-text text-center mb-8">
+          Frequently Asked Questions
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {faqs.map(({ q, a }) => (
+            <div key={q} className="antique-card p-5">
+              <p className="text-sm font-semibold text-antique-text mb-1.5">{q}</p>
+              <p className="text-xs text-antique-text-sec leading-relaxed">{a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom CTA */}
+      <div className="text-center">
+        <p className="text-antique-text-mute text-sm mb-4">
+          WorthPoint charges $200/year for historical prices only.
+          Estate Scout gives you live discovery, price checking, and a personal catalog — starting free.
+        </p>
+        <Link
+          href="/search"
+          className="inline-flex items-center gap-2 bg-antique-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-antique-accent-h transition-colors"
+        >
+          <Search className="w-4 h-4" />
+          Start Searching for Free
+        </Link>
+      </div>
+
     </div>
   );
 }
