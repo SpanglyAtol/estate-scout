@@ -426,6 +426,11 @@ export default function AdminPage() {
                   "BidSpotter, HiBid, MaxSold, EstateSales.NET scrapers",
                   "Data classification (item_type / listing_type)",
                   "Relevance filter (US-only, no industrial)",
+                  "eBay sold listings scraper (price comps)",
+                  "1stDibs scraper (premium asking prices)",
+                  "Proxibid auction calendar scraper",
+                  "LiveAuctioneers 3-layer anti-403 strategy",
+                  "Market Prices page (price charts by category)",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-1.5">
                     <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
@@ -446,7 +451,6 @@ export default function AdminPage() {
                   "OpenAI key → real AI valuations",
                   "Supabase database → real user accounts",
                   "Railway backend → live search API",
-                  "LiveAuctioneers scraper (currently 403 blocked)",
                   "Google AdSense integration",
                   "Stripe subscription checkout",
                   "Email price alerts (SendGrid)",
@@ -467,11 +471,7 @@ export default function AdminPage() {
               </div>
               <ul className="space-y-2 text-xs text-antique-text-sec">
                 {[
-                  "eBay sold listings scraper",
-                  "1stDibs scraper",
-                  "Proxibid scraper",
                   "Image-based AI identification (GPT-4o Vision)",
-                  "Historical price charts per category",
                   "Dealer / consignment accounts",
                   "Sponsored listing placements",
                   "Mobile app (Expo / React Native)",

@@ -24,8 +24,12 @@ from scrapers.storage import ScraperStorage
 SCRAPERS = {
     "liveauctioneers": "scrapers.sources.liveauctioneers.LiveAuctioneersScraper",
     "estatesales_net": "scrapers.sources.estatesales_net.EstateSalesNetScraper",
-    "hibid": "scrapers.sources.hibid.HibidScraper",
-    "maxsold": "scrapers.sources.maxsold.MaxSoldScraper",
+    "hibid":           "scrapers.sources.hibid.HibidScraper",
+    "maxsold":         "scrapers.sources.maxsold.MaxSoldScraper",
+    "bidspotter":      "scrapers.sources.bidspotter.BidSpotterScraper",
+    "ebay":            "scrapers.sources.ebay.EbaySoldListingsScraper",
+    "proxibid":        "scrapers.sources.proxibid.ProxibidScraper",
+    "1stdibs":         "scrapers.sources.onedibs.OneDibsScraper",
 }
 
 logging.basicConfig(

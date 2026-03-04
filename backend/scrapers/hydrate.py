@@ -13,19 +13,26 @@ Options:
   --state WA              State abbreviation used by MaxSold (default: WA)
   --city Seattle          Optionally filter to a single city (MaxSold/EstateSales)
   --max-pages 17          Pages per scraper (default: 17)
-                            - BidSpotter: 17 × 60 = ~1020 listings
-                            - HiBid: 17 × 100 = ~1700 auctions (GraphQL)
-                            - EstateSales.NET: 17 × 3  = ~51 listings (JSON-LD)
+                            - BidSpotter: 17 × 60  = ~1020 listings
+                            - HiBid: 17 × 100      = ~1700 auctions (GraphQL)
+                            - EstateSales.NET: 17 × 3 = ~51 listings (JSON-LD)
+                            - eBay: 5 × 48 × 5 cats = ~1200 sold comps (price data)
+                            - Proxibid: 10 × ~20   = ~200 auction events
+                            - 1stDibs: 3 pages × 6 queries = ~price reference data
   --out PATH              Output JSON path (default: apps/web/src/data/scraped-listings.json)
   --targets ms,bs,hi,es   Comma-separated scrapers (default: ms,bs,hi,es)
                             ms=maxsold      – HTML scraper, WA only
                             bs=bidspotter   – JSON API, all US
                             hi=hibid        – GraphQL API, all US
                             es=estatesales  – JSON-LD, all US (~3/page)
-                            la=liveauctioneers – blocked (403), skip for now
+                            la=liveauctioneers – 3-layer anti-403 strategy
+                            eb=ebay         – sold listings price comps
+                            pb=proxibid     – auction calendar events
+                            1d=1stdibs      – premium antiques asking prices
 
 Notes:
-  - LiveAuctioneers returns 403; omit "la" from --targets.
+  - LiveAuctioneers now uses a 3-layer fallback (JSON API → HTML → sitemap).
+  - eBay/Proxibid/1stDibs are new; add them to --targets to enable.
   - Run this periodically (e.g., daily via GitHub Actions) to keep data fresh.
 """
 
@@ -56,6 +63,9 @@ from scrapers.sources.estatesales_net import EstateSalesNetScraper
 from scrapers.sources.hibid import HibidScraper
 from scrapers.sources.maxsold import MaxSoldScraper
 from scrapers.sources.bidspotter import BidSpotterScraper
+from scrapers.sources.ebay import EbaySoldListingsScraper
+from scrapers.sources.proxibid import ProxibidScraper
+from scrapers.sources.onedibs import OneDibsScraper
 from scrapers.base import ScrapedListing
 from scrapers.geocoder import geocode_listings
 
@@ -105,6 +115,27 @@ PLATFORM_META = {
         "name": "bidspotter",
         "display_name": "BidSpotter",
         "base_url": "https://www.bidspotter.com",
+        "logo_url": None,
+    },
+    "ebay": {
+        "id": 6,
+        "name": "ebay",
+        "display_name": "eBay",
+        "base_url": "https://www.ebay.com",
+        "logo_url": None,
+    },
+    "proxibid": {
+        "id": 7,
+        "name": "proxibid",
+        "display_name": "Proxibid",
+        "base_url": "https://www.proxibid.com",
+        "logo_url": None,
+    },
+    "1stdibs": {
+        "id": 8,
+        "name": "1stdibs",
+        "display_name": "1stDibs",
+        "base_url": "https://www.1stdibs.com",
         "logo_url": None,
     },
 }
@@ -403,16 +434,19 @@ async def hydrate(args):
 
     # Map short names → (class, extra kwargs)
     target_map = {
-        "la": (LiveAuctioneersScraper,  {"state": args.state}),
-        "es": (EstateSalesNetScraper,   {"state": "",         "city": args.city}),  # national (3 per page × max_pages)
-        "hi": (HibidScraper,            {"state": "",         "country": "USA"}),   # all US via GraphQL
-        "ms": (MaxSoldScraper,          {"state": args.state}),
-        "bs": (BidSpotterScraper,       {"state": None}),   # country-wide (all US)
+        "la": (LiveAuctioneersScraper,   {"state": args.state}),
+        "es": (EstateSalesNetScraper,    {"state": "",         "city": args.city}),  # national
+        "hi": (HibidScraper,             {"state": "",         "country": "USA"}),   # all US via GraphQL
+        "ms": (MaxSoldScraper,           {"state": args.state}),
+        "bs": (BidSpotterScraper,        {"state": None}),    # country-wide (all US)
+        "eb": (EbaySoldListingsScraper,  {}),                  # eBay sold comps (all antique cats)
+        "pb": (ProxibidScraper,          {"state": ""}),       # all US auction events
+        "1d": (OneDibsScraper,           {}),                  # 1stDibs premium asking prices
     }
 
     chosen = [t.strip() for t in args.targets.split(",") if t.strip() in target_map]
     if not chosen:
-        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs")
+        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d")
         sys.exit(1)
 
     for key in chosen:
@@ -461,7 +495,7 @@ def main():
     parser.add_argument("--city",      default="",         help="City to filter (optional)")
     parser.add_argument("--max-pages", type=int, default=17, help="Pages per scraper (default: 17; 17×60=1020 BidSpotter listings)")
     parser.add_argument("--targets",   default="ms,bs,hi,es",
-                        help="Comma-separated scrapers: la,es,hi,ms,bs (default: ms,bs,hi,es)")
+                        help="Comma-separated scrapers: la,es,hi,ms,bs,eb,pb,1d (default: ms,bs,hi,es)")
     parser.add_argument("--out",       default=str(DEFAULT_OUT),
                         help=f"Output JSON path (default: {DEFAULT_OUT})")
     args = parser.parse_args()
