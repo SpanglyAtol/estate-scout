@@ -19,10 +19,13 @@ export default async function HomePage() {
 
   try {
     [featured, endingSoon, live, upcoming, estateSales, stats] = await Promise.all([
-      searchListings({ listing_type: "auction", status: "live", page_size: 6 }),
+      // Featured: individual items (single antiques/collectibles) currently live
+      searchListings({ item_type: "individual_item", status: "live", page_size: 6 }),
       searchListings({ status: "ending_soon", page_size: 6 }),
+      // Live auctions: auction catalogs and any live listings
       searchListings({ status: "live", page_size: 12 }),
       searchListings({ status: "upcoming", page_size: 6 }),
+      // Estate sales & lots go at the bottom
       searchListings({ listing_type: "estate_sale", page_size: 6 }),
       getStats(),
     ]);

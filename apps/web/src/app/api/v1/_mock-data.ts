@@ -35,6 +35,7 @@ export interface MockListing {
   category: string | null;
   condition: string | null;
   listing_type?: 'auction' | 'estate_sale' | 'buy_now';
+  item_type?: 'individual_item' | 'lot' | 'estate_sale' | 'auction_catalog';
   current_price: number | null;
   buy_now_price?: number | null;
   estimate_low?: number | null;

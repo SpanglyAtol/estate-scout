@@ -99,6 +99,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // ── Item type filter ───────────────────────────────────────────────────────
+  const itemType = searchParams.get("item_type");
+  if (itemType) {
+    results = results.filter(
+      (l) => (l as unknown as { item_type?: string }).item_type === itemType
+    );
+  }
+
   // ── Geographic radius filter ───────────────────────────────────────────────
   if (lat != null && lon != null && radiusMiles != null) {
     const radiusKm = radiusMiles * 1.60934;

@@ -34,30 +34,30 @@
 
 .dark {
   /* Backgrounds */
-  --bg-primary:   #1A1208;
-  --bg-surface:   #251C10;
-  --bg-muted:     #2F2212;
-  --bg-subtle:    #3D2E18;
+  --bg-primary:   #111111;   /* near black */
+  --bg-surface:   #1C1C1C;   /* card surface */
+  --bg-muted:     #242424;   /* muted bg */
+  --bg-subtle:    #2E2E2E;   /* dividers */
 
   /* Text */
-  --text-primary:   #F5EDD8;
-  --text-secondary: #C8B89A;
-  --text-muted:     #8C7A62;
+  --text-primary:   #F0F0F0;   /* near white */
+  --text-secondary: #A8A8A8;   /* medium grey */
+  --text-muted:     #686868;   /* dimmer grey */
 
-  /* Accent */
+  /* Accent — gold pops well on neutral grey */
   --accent:          #C9A227;
   --accent-hover:    #E8B830;
-  --accent-light:    #3D2E08;
-  --accent-surface:  #2F2510;
+  --accent-light:    #252010;   /* subtle gold-tinted dark */
+  --accent-surface:  #1E1B0D;
 
   /* Borders */
-  --border:         #3D2E18;
-  --border-strong:  #56432A;
+  --border:         #2E2E2E;
+  --border-strong:  #404040;
 
   /* Status */
   --status-live:    #E85848;
-  --status-upcoming:#C8B89A;
-  --status-ended:   #6B5A48;
+  --status-upcoming:#A8A8A8;
+  --status-ended:   #686868;
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────────────────── */
