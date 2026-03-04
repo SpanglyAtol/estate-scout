@@ -251,7 +251,7 @@ export function MapSearch() {
                   Discover Nearby Auctions
                 </p>
                 <p className="text-xs text-antique-text-sec mt-1 leading-relaxed">
-                  Enter a US ZIP code above or tap "Near Me" to find estate sales and auctions on the map.
+                  Enter a US ZIP code above or tap &ldquo;Near Me&rdquo; to find estate sales and auctions on the map.
                 </p>
               </div>
             </div>

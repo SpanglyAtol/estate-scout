@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Bundle scraped JSON data into Vercel serverless function output so
-  // fs.readFileSync works correctly in API routes on Vercel
-  outputFileTracingIncludes: {
-    "/api/**": ["./src/data/**"],
-  },
   images: {
     remotePatterns: [
       // ── Core scraper sources ───────────────────────────────────────────────
