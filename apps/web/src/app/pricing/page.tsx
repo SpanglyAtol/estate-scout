@@ -6,9 +6,21 @@ import {
   Star, Package, Zap, X,
 } from "lucide-react";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface TierFeature {
+  label: string;
+  included: boolean;
+  note?: string;
+}
+
 // ── Tier definitions ──────────────────────────────────────────────────────────
 
-const tiers = [
+const tiers: Array<{
+  id: string; name: string; price: number; period: string | null;
+  badge: string | null; description: string; cta: string;
+  ctaHref: string; ctaStyle: string; features: TierFeature[];
+}> = [
   {
     id: "free",
     name: "Free",
