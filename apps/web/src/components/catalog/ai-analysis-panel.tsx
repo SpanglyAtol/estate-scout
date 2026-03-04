@@ -95,7 +95,7 @@ export function AiAnalysisPanel({ item, onUpdated, onClose }: Props) {
               className="w-full border border-antique-border rounded-lg px-3 py-2.5 text-sm bg-antique-bg text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors resize-none"
             />
             <p className="text-xs text-antique-text-mute mt-1">
-              You can ask: "How much is this worth?", "Identify this piece", "What is the history of this maker?"
+              You can ask: &ldquo;How much is this worth?&rdquo;, &ldquo;Identify this piece&rdquo;, &ldquo;What is the history of this maker?&rdquo;
             </p>
           </div>
 
