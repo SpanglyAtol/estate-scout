@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { Search, Clock, Calendar, TrendingUp, Package, MapPin } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
