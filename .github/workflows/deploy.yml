@@ -1,9 +1,15 @@
 name: Deploy to Vercel
 
+# Vercel is now connected directly to GitHub via its Git integration.
+# Deployments to estatescout.vercel.app happen automatically on every
+# push to master — no token or manual trigger needed here.
+#
+# This workflow is intentionally disabled (no 'on:' triggers active).
+# To re-enable CLI-based deploys, uncomment the 'on:' block below and
+# set VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID in repo secrets.
+
 on:
-  push:
-    branches: [master]
-  workflow_dispatch:
+  workflow_dispatch:   # manual-only; automatic deploys handled by Vercel Git integration
 
 jobs:
   deploy:
