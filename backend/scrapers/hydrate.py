@@ -233,6 +233,17 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
     if price is not None and premium_pct is not None:
         total_estimate = round(price * (1 + premium_pct / 100), 2)
 
+    # Derive listing-level estimate from item estimates if not explicitly set
+    item_lows  = [i.estimate_low  for i in scraped.items if i.estimate_low  is not None]
+    item_highs = [i.estimate_high for i in scraped.items if i.estimate_high is not None]
+    est_low  = scraped.estimate_low  if scraped.estimate_low  is not None else (min(item_lows)  if item_lows  else None)
+    est_high = scraped.estimate_high if scraped.estimate_high is not None else (max(item_highs) if item_highs else None)
+
+    # Determine final listing_type
+    lt = scraped.listing_type or "auction"
+    if scraped.buy_now_price is not None and lt == "auction":
+        lt = "buy_now"
+
     # Use scraped category if present, otherwise auto-detect from title/description
     category = scraped.category or _auto_categorize(scraped.title, scraped.description)
 
@@ -245,7 +256,11 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "description": scraped.description,
         "category": category,
         "condition": scraped.condition,
+        "listing_type": lt,
         "current_price": price,
+        "buy_now_price": scraped.buy_now_price,
+        "estimate_low": est_low,
+        "estimate_high": est_high,
         "final_price": scraped.final_price,
         "is_completed": scraped.is_completed,
         "buyers_premium_pct": premium_pct,

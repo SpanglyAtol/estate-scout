@@ -25,45 +25,61 @@ export default async function ListingPage({ params }: PageProps) {
     notFound();
   }
 
+  const lt = listing.listing_type ?? "auction";
   const status = getAuctionStatus(listing);
   const countdown = timeUntil(listing.sale_ends_at);
   const platform = listing.platform.display_name;
 
-  // CTA configuration based on status
-  const ctaConfig = {
-    upcoming: {
-      label: `Preview on ${platform} →`,
-      className:
-        "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-700 bg-white py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
-    },
-    live: {
-      label: `Bid on ${platform}`,
-      className:
-        "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
-    },
-    ending_soon: {
-      label: `Bid Now — Ending Soon!`,
-      className:
-        "flex items-center justify-center gap-2 w-full bg-red-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-red-700 transition-colors animate-pulse",
-    },
-    ended: {
-      label: `View Results on ${platform} →`,
-      className:
-        "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
-    },
-    completed: {
-      label: `View Results on ${platform} →`,
-      className:
-        "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
-    },
-    unknown: {
-      label: `View on ${platform} →`,
-      className:
-        "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
-    },
-  };
+  // CTA configuration based on listing type + status
+  let cta: { label: string; className: string };
 
-  const cta = ctaConfig[status] ?? ctaConfig.unknown;
+  if (lt === "estate_sale") {
+    cta = {
+      label: `Browse Estate Sale on ${platform} →`,
+      className:
+        "flex items-center justify-center gap-2 w-full border-2 border-green-500 text-green-700 bg-green-50 py-4 rounded-xl font-bold text-lg hover:bg-green-100 transition-colors",
+    };
+  } else if (lt === "buy_now") {
+    cta = {
+      label: `Buy Now on ${platform} →`,
+      className:
+        "flex items-center justify-center gap-2 w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors",
+    };
+  } else {
+    const ctaConfig = {
+      upcoming: {
+        label: `Preview on ${platform} →`,
+        className:
+          "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-700 bg-white py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+      },
+      live: {
+        label: `Bid on ${platform}`,
+        className:
+          "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
+      },
+      ending_soon: {
+        label: `Bid Now — Ending Soon!`,
+        className:
+          "flex items-center justify-center gap-2 w-full bg-red-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-red-700 transition-colors animate-pulse",
+      },
+      ended: {
+        label: `View Results on ${platform} →`,
+        className:
+          "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+      },
+      completed: {
+        label: `View Results on ${platform} →`,
+        className:
+          "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+      },
+      unknown: {
+        label: `View on ${platform} →`,
+        className:
+          "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
+      },
+    };
+    cta = ctaConfig[status] ?? ctaConfig.unknown;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -84,33 +100,79 @@ export default async function ListingPage({ params }: PageProps) {
 
           <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
 
-          {/* Price */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-blue-600">
-                {formatPrice(listing.current_price)}
-              </span>
-              <span className="text-gray-500 text-sm">current bid</span>
+          {/* Price / info box — type-aware */}
+          {lt === "estate_sale" ? (
+            <div className="bg-green-50 rounded-xl p-4 space-y-1 border border-green-200">
+              <p className="text-sm font-semibold text-green-800">In-Person Estate Sale</p>
+              {listing.sale_starts_at && (
+                <p className="text-sm text-green-700">
+                  {formatDate(listing.sale_starts_at)}
+                  {listing.sale_ends_at && ` – ${formatDate(listing.sale_ends_at)}`}
+                </p>
+              )}
+              <p className="text-xs text-green-600">Pricing is set at the sale — browse items in person</p>
             </div>
-            {listing.buyers_premium_pct && (
-              <p className="text-sm text-gray-600">
-                + {listing.buyers_premium_pct}% buyer&apos;s premium ={" "}
-                <strong>{formatPrice(listing.total_cost_estimate)} total</strong>
-              </p>
-            )}
-          </div>
+          ) : lt === "buy_now" && listing.buy_now_price != null ? (
+            <div className="bg-green-50 rounded-xl p-4 space-y-1 border border-green-200">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-green-600">
+                  {formatPrice(listing.buy_now_price)}
+                </span>
+                <span className="text-gray-500 text-sm">fixed price</span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl p-4 space-y-1">
+              {listing.current_price != null ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-blue-600">
+                      {formatPrice(listing.current_price)}
+                    </span>
+                    <span className="text-gray-500 text-sm">current bid</span>
+                  </div>
+                  {listing.buyers_premium_pct && (
+                    <p className="text-sm text-gray-600">
+                      + {listing.buyers_premium_pct}% buyer&apos;s premium ={" "}
+                      <strong>{formatPrice(listing.total_cost_estimate)} total</strong>
+                    </p>
+                  )}
+                </>
+              ) : listing.estimate_low != null ? (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-amber-600">
+                    Est. {formatPrice(listing.estimate_low)}
+                    {listing.estimate_high != null
+                      ? `–${formatPrice(listing.estimate_high)}`
+                      : "+"}
+                  </span>
+                  <span className="text-gray-500 text-sm">lot estimate · no bids yet</span>
+                </div>
+              ) : (
+                <span className="text-gray-400 italic">No price info available</span>
+              )}
+            </div>
+          )}
 
-          {/* Status banner */}
-          {(status === "ended" || status === "completed") && (
+          {/* Status banners — auctions only */}
+          {lt === "auction" && (status === "ended" || status === "completed") && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm font-medium">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               This auction has ended
             </div>
           )}
-          {status === "upcoming" && listing.sale_starts_at && (
+          {lt === "auction" && status === "upcoming" && listing.sale_starts_at && (
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 text-sm font-medium">
               <Calendar className="w-4 h-4 flex-shrink-0" />
               Auction starts {formatDate(listing.sale_starts_at)}
+            </div>
+          )}
+
+          {/* Pickup-only banner */}
+          {listing.pickup_only && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm font-medium">
+              <Truck className="w-4 h-4 flex-shrink-0" />
+              Pickup only — item cannot be shipped
             </div>
           )}
 
@@ -133,18 +195,12 @@ export default async function ListingPage({ params }: PageProps) {
                 {listing.city}, {listing.state}
               </div>
             )}
-            {countdown && status !== "ended" && status !== "completed" && (
+            {lt === "auction" && countdown && status !== "ended" && status !== "completed" && (
               <div className="flex items-center gap-2 text-gray-600">
                 <Clock className="w-4 h-4 text-gray-400" />
                 {status === "upcoming" ? "Starts" : countdown + " remaining"}
                 {listing.sale_ends_at && status !== "upcoming" &&
                   ` · Ends ${formatDate(listing.sale_ends_at)}`}
-              </div>
-            )}
-            {listing.pickup_only && (
-              <div className="flex items-center gap-2 text-amber-700">
-                <Truck className="w-4 h-4" />
-                Pickup only — no shipping
               </div>
             )}
             {listing.category && (

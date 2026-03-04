@@ -33,7 +33,11 @@ export interface Listing {
   description: string | null;
   category: string | null;
   condition: string | null;
+  listing_type?: 'auction' | 'estate_sale' | 'buy_now';
   current_price: number | null;
+  buy_now_price?: number | null;
+  estimate_low?: number | null;
+  estimate_high?: number | null;
   final_price: number | null;
   is_completed: boolean;
   auction_status?: 'upcoming' | 'live' | 'ended' | 'completed' | 'unknown';
@@ -68,6 +72,7 @@ export interface SearchFilters {
   category?: string;
   platform_ids?: number[];
   status?: string;
+  listing_type?: 'auction' | 'estate_sale' | 'buy_now';
   sort?: "ending_soon" | "price_asc" | "price_desc" | "newest";
   page?: number;
   page_size?: number;

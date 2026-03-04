@@ -91,6 +91,14 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // ── Listing type filter ────────────────────────────────────────────────────
+  const listingType = searchParams.get("listing_type");
+  if (listingType) {
+    results = results.filter(
+      (l) => ((l.listing_type as string | undefined) ?? "auction") === listingType
+    );
+  }
+
   // ── Geographic radius filter ───────────────────────────────────────────────
   if (lat != null && lon != null && radiusMiles != null) {
     const radiusKm = radiusMiles * 1.60934;

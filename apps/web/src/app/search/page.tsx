@@ -36,6 +36,7 @@ function paramsToFilters(p: URLSearchParams): SearchFilters {
     ending_hours:  p.get("ending_hours") ? Number(p.get("ending_hours")) : undefined,
     pickup_only:   p.get("pickup_only") === "true" ? true : undefined,
     platform_ids:  platformIds.length ? platformIds : undefined,
+    listing_type:  (p.get("listing_type") as SearchFilters["listing_type"]) ?? undefined,
   };
 }
 
@@ -49,6 +50,7 @@ function filtersToParams(f: SearchFilters): URLSearchParams {
   if (f.max_price)     p.set("max_price",     String(f.max_price));
   if (f.ending_hours)  p.set("ending_hours",  String(f.ending_hours));
   if (f.pickup_only)   p.set("pickup_only",   "true");
+  if (f.listing_type)  p.set("listing_type",  f.listing_type);
   if (f.radius_miles && f.radius_miles !== 50)
                        p.set("radius_miles",  String(f.radius_miles));
   if (f.platform_ids?.length)

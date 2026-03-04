@@ -70,6 +70,7 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
     filters.max_price,
     filters.platform_ids?.length,
     filters.status,
+    filters.listing_type,
     filters.radius_miles && filters.radius_miles !== 50 ? filters.radius_miles : null,
   ].filter(Boolean).length;
 
@@ -95,6 +96,31 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
           </button>
         )}
       </div>
+
+      {/* Listing Type */}
+      <Section title="Listing Type">
+        <div className="space-y-1.5">
+          {[
+            { label: "All types",                 value: undefined       },
+            { label: "Auctions (online bidding)", value: "auction"       },
+            { label: "Estate Sales (in-person)",  value: "estate_sale"   },
+            { label: "Buy Now (fixed price)",      value: "buy_now"       },
+          ].map((opt) => (
+            <label key={opt.label} className="flex items-center gap-2.5 cursor-pointer group">
+              <input
+                type="radio"
+                name="listing_type"
+                checked={(filters.listing_type ?? undefined) === opt.value}
+                onChange={() => update({ listing_type: opt.value as SearchFilters["listing_type"] })}
+                className="accent-blue-600"
+              />
+              <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+                {opt.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </Section>
 
       {/* Status */}
       <Section title="Status">

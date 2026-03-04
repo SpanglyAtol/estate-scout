@@ -187,6 +187,7 @@ class EstateSalesNetScraper(BaseScraper):
                 external_url=url if url.startswith("http") else self.base_url + url,
                 title=title,
                 description=description,
+                listing_type="estate_sale",
                 pickup_only=True,   # Physical estate sales require in-person
                 ships_nationally=False,
                 city=city,
