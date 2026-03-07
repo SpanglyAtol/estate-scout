@@ -2,19 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Antique / Classical Design Tokens ─────────────────────────────────────── */
+/* ── Design Tokens ──────────────────────────────────────────────────────────── */
 
 :root {
   /* Backgrounds */
-  --bg-primary:   #FDFAF4;   /* warm parchment */
+  --bg-primary:   #FAF7F2;   /* warm parchment (slightly brighter) */
   --bg-surface:   #FFFFFF;   /* card surface */
-  --bg-muted:     #F5EFE0;   /* slightly deeper parchment */
-  --bg-subtle:    #EDE8D8;   /* borders / dividers */
+  --bg-muted:     #F3EDE0;   /* slightly deeper parchment */
+  --bg-subtle:    #E8E0CE;   /* borders / dividers */
 
-  /* Text */
-  --text-primary:   #2C1810; /* dark walnut */
-  --text-secondary: #6B4F3A; /* warm brown */
-  --text-muted:     #9C8070; /* muted warm gray */
+  /* Text — improved contrast */
+  --text-primary:   #1A0F08; /* near-black walnut (stronger contrast) */
+  --text-secondary: #5C4030; /* warm brown (cleaner) */
+  --text-muted:     #8C6F5F; /* muted warm */
 
   /* Accent / Brand */
   --accent:          #8B6914; /* antique gold */
@@ -22,42 +22,42 @@
   --accent-light:    #F5E8B0; /* pale gold tint */
   --accent-surface:  #FDF6DC; /* gold-tinted surface */
 
-  /* Borders */
-  --border:         #DDD0B8; /* warm cream border */
-  --border-strong:  #C4B498; /* darker warm border */
+  /* Borders — slightly stronger for readability */
+  --border:         #CEC4AA; /* warm cream border */
+  --border-strong:  #B5A688; /* darker warm border */
 
   /* Status */
   --status-live:    #C0392B;
-  --status-upcoming:#6B4F3A;
-  --status-ended:   #9C8070;
+  --status-upcoming:#5C4030;
+  --status-ended:   #8C6F5F;
 }
 
 .dark {
-  /* Backgrounds */
-  --bg-primary:   #111111;   /* near black */
-  --bg-surface:   #1C1C1C;   /* card surface */
-  --bg-muted:     #242424;   /* muted bg */
-  --bg-subtle:    #2E2E2E;   /* dividers */
+  /* Backgrounds — warm dark instead of pure greyscale */
+  --bg-primary:   #17130F;   /* very dark warm brown */
+  --bg-surface:   #1F1A16;   /* warm dark surface */
+  --bg-muted:     #261F1A;   /* warm muted bg */
+  --bg-subtle:    #302620;   /* warm dividers */
 
-  /* Text */
-  --text-primary:   #F0F0F0;   /* near white */
-  --text-secondary: #A8A8A8;   /* medium grey */
-  --text-muted:     #686868;   /* dimmer grey */
+  /* Text — warm tones instead of neutral grey */
+  --text-primary:   #F2ECE5;   /* warm near-white */
+  --text-secondary: #B5A895;   /* warm medium */
+  --text-muted:     #7A6A5A;   /* warm dim */
 
-  /* Accent — gold pops well on neutral grey */
+  /* Accent — gold pops on warm dark */
   --accent:          #C9A227;
   --accent-hover:    #E8B830;
-  --accent-light:    #252010;   /* subtle gold-tinted dark */
-  --accent-surface:  #1E1B0D;
+  --accent-light:    #282010;   /* subtle gold-tinted dark */
+  --accent-surface:  #201C0A;
 
-  /* Borders */
-  --border:         #2E2E2E;
-  --border-strong:  #404040;
+  /* Borders — more visible on warm dark bg */
+  --border:         #3A2E26;
+  --border-strong:  #4E3F35;
 
   /* Status */
   --status-live:    #E85848;
-  --status-upcoming:#A8A8A8;
-  --status-ended:   #686868;
+  --status-upcoming:#B5A895;
+  --status-ended:   #7A6A5A;
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────────────────── */
@@ -73,7 +73,7 @@ html.dark {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-lora), Georgia, 'Times New Roman', serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

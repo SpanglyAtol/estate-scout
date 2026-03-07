@@ -9,6 +9,13 @@ const nextConfig = {
       { protocol: "https", hostname: "**.maxsold.com" },
       { protocol: "https", hostname: "**.gsalr.com" },
       { protocol: "https", hostname: "**.estatesales.org" },
+      // ── New scrapers (eBay, 1stDibs, Proxibid) ────────────────────────────
+      { protocol: "https", hostname: "**.ebayimg.com" },
+      { protocol: "https", hostname: "i.ebayimg.com" },
+      { protocol: "https", hostname: "**.1stdibs.com" },
+      { protocol: "https", hostname: "a.1stdibscdn.com" },
+      { protocol: "https", hostname: "**.proxibid.com" },
+      { protocol: "https", hostname: "**.bidpath.com" },
       // ── Cloud storage / CDN ────────────────────────────────────────────────
       { protocol: "https", hostname: "**.amazonaws.com" },
       { protocol: "https", hostname: "**.cloudfront.net" },

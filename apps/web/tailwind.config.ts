@@ -32,7 +32,7 @@ const config: Config = {
       },
       fontFamily: {
         display: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
-        body:    ["var(--font-lora)", "Lora", "Georgia", "serif"],
+        body:    ["var(--font-inter)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Arial", "sans-serif"],
       },
       borderRadius: {
         card: "0.75rem",

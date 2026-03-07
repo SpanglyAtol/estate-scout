@@ -75,13 +75,13 @@ export function AmazonAssociates({ category }: AmazonAssociatesProps) {
     (category ? CATEGORY_LINKS[category.toLowerCase()] ?? DEFAULT_LINKS : DEFAULT_LINKS);
 
   return (
-    <div className="border border-gray-200 rounded-2xl p-5 bg-white">
+    <div className="antique-card p-5">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">🛍️</span>
-        <h3 className="font-semibold text-gray-900 text-sm">
-          Clean & display your find
+        <h3 className="font-semibold text-antique-text text-sm">
+          Clean &amp; display your find
         </h3>
-        <span className="ml-auto text-xs text-gray-400">via Amazon</span>
+        <span className="ml-auto text-xs text-antique-text-mute">via Amazon</span>
       </div>
       <ul className="space-y-2">
         {links.map((link) => (
@@ -90,9 +90,9 @@ export function AmazonAssociates({ category }: AmazonAssociatesProps) {
               href={buildAmazonUrl(link.keywords, tag)}
               target="_blank"
               rel="noopener noreferrer sponsored"
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+              className="flex items-center gap-2 text-sm text-antique-accent hover:text-antique-accent-h hover:underline"
             >
-              <span className="text-gray-400">→</span>
+              <span className="text-antique-text-mute">→</span>
               {link.label}
             </a>
           </li>
