@@ -105,6 +105,12 @@ function ValuationPageContent() {
             <CompGrid
               comps={latestResult.comparable_sales}
               priceRange={latestResult.price_range}
+              confidenceLevel={latestResult.confidence_level}
+              confidenceReason={latestResult.confidence_reason}
+              priceSpread={latestResult.price_spread}
+              clarifyingPrompts={latestResult.clarifying_prompts}
+              detectionSummary={latestResult.detection_summary}
+              isHighAmbiguity={latestResult.is_high_ambiguity}
             />
           ) : (
             <div className="bg-antique-surface border border-antique-border rounded-2xl p-8 text-center text-antique-text-mute">

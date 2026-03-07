@@ -139,6 +139,13 @@ export interface PriceRange {
   currency: string;
 }
 
+export interface SpreadBucket {
+  label: string;
+  count: number;
+}
+
+export type ConfidenceLevel = "high" | "medium" | "low" | "insufficient";
+
 export interface ValuationResult {
   query: string;
   price_range: PriceRange;
@@ -146,6 +153,19 @@ export interface ValuationResult {
   narrative: string;
   data_source: "ai" | "comps_only" | "no_data";
   cached: boolean;
+  // ── Layer 3: variance-aware enrichment ─────────────────────────────────────
+  /** Overall confidence in the price range estimate */
+  confidence_level: ConfidenceLevel;
+  /** Human-readable reason for the confidence level */
+  confidence_reason: string;
+  /** Price distribution buckets for the spread histogram */
+  price_spread: SpreadBucket[];
+  /** What the user can add to get a more accurate estimate */
+  clarifying_prompts: string[];
+  /** What the query parser detected (e.g. "Rolex · watches") */
+  detection_summary: string | null;
+  /** True when the query references a high-ambiguity category without enough specifics */
+  is_high_ambiguity: boolean;
 }
 
 export interface ValuationRequest {
