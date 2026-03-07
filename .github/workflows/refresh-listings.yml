@@ -1,52 +1,42 @@
-name: Refresh Listings
+name: Refresh Listings (Full National)
 
-# Runs twice daily to scrape fresh national listings across all platforms.
-# The scraped JSON is committed to the repo so Vercel bundles it at build time.
+# Fallback full-national run once daily.
+# Split per-platform runs in scrape-fast.yml / scrape-medium.yml / scrape-slow.yml
+# are preferred; this workflow runs as a safety net.
+#
+# Vercel deploys automatically when this workflow commits & pushes to the branch
+# via Vercel's GitHub integration — NO VERCEL_TOKEN step needed.
 on:
   schedule:
-    - cron: "0 6  * * *"   # 6:00 AM UTC (morning refresh)
-    - cron: "0 18 * * *"   # 6:00 PM UTC (evening refresh)
-  workflow_dispatch:        # allow manual trigger from the GitHub Actions UI
+    - cron: "0 3 * * *"   # 3:00 AM UTC daily (off-peak)
+  workflow_dispatch:        # manual trigger from the GitHub Actions UI
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # needed to commit scraped-listings.json back to repo
+      contents: write
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install scraper dependencies
+      - name: Install dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli
 
-      # --national runs: BidSpotter (all US) + HiBid (GraphQL, all US) +
-      # EstateSales.NET (20 states) + MaxSold (13 US metros) +
-      # eBay sold comps + Proxibid auction calendar
-      - name: Run national hydration
+      - name: Run national hydration (BidSpotter + HiBid + EstateSales + MaxSold + Proxibid)
         run: python backend/scrapers/hydrate.py --national --max-pages 17
 
-      - name: Commit updated listings if changed
+      - name: Commit if changed
         run: |
-          git config user.name "github-actions[bot]"
+          git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add apps/web/src/data/scraped-listings.json
-          # Only commit if the file actually changed
-          git diff --staged --quiet || git commit -m "chore: refresh scraped listings [skip ci]"
+          git add apps/web/src/data/scraped-listings.json \
+                  apps/web/src/data/scraped-listings-fast.json \
+                  apps/web/src/data/scraped-listings-estate.json \
+                  apps/web/src/data/scraped-listings-ebay.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: full national listings refresh [skip ci]"
           git push
-
-      - name: Deploy to Vercel
-        # Requires VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID secrets.
-        # Set these in: GitHub repo → Settings → Secrets and variables → Actions
-        run: npx vercel --prod --token "$VERCEL_TOKEN" --yes
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        working-directory: apps/web

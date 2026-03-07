@@ -1,0 +1,47 @@
+name: Scrape — Slow (eBay Sold Comps + 1stDibs)
+
+# eBay scrapes 5 antique categories × 5 pages of sold listings — the most
+# thorough source of real market-clearing prices for the AI valuation engine.
+# 1stDibs provides premium dealer asking prices across 6 search queries.
+# Both are rate-limited to be respectful; typically 15-20 minutes total.
+# Runs once daily at 2 AM UTC (off-peak for both platforms).
+#
+# Output: apps/web/src/data/scraped-listings-ebay.json
+# Vercel redeploys automatically on push via GitHub integration.
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 2:00 AM UTC daily
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 40     # eBay + 1stDibs can take up to 25 min at full depth
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli
+
+      - name: Scrape eBay sold comps + 1stDibs price references
+        run: |
+          python backend/scrapers/hydrate.py \
+            --targets eb,1d \
+            --state "" \
+            --max-pages 5 \
+            --out apps/web/src/data/scraped-listings-ebay.json
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/data/scraped-listings-ebay.json
+          git diff --staged --quiet || git commit -m "chore: refresh eBay sold comps + 1stDibs [skip ci]"
+          git push

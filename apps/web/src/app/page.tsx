@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Search, Clock, Calendar, TrendingUp, Package, MapPin } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
+import { CuratedPicks } from "@/components/home/curated-picks";
 import { getStats, searchListings } from "@/lib/api-client";
 import type { StatsResult } from "@/lib/api-client";
 import type { Listing } from "@/types";
@@ -99,6 +100,9 @@ export default async function HomePage() {
           ))}
         </section>
       )}
+
+      {/* ── Curator's Picks (AI-powered, client-side hydrated) ────────────────── */}
+      <CuratedPicks />
 
       {/* ── Featured Individual Items ─────────────────────────────────────────── */}
       {featured.length > 0 && (
