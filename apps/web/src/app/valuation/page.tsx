@@ -63,8 +63,8 @@ function ValuationPageContent() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Price Check</h1>
-      <p className="text-gray-600 mb-8">
+      <h1 className="text-3xl font-bold text-antique-text mb-2 font-display">AI Price Check</h1>
+      <p className="text-antique-text-sec mb-8">
         Describe an item to see what similar pieces sold for — and get an estimated value.
       </p>
 
@@ -81,7 +81,7 @@ function ValuationPageContent() {
           {/* Example queries */}
           {messages.length === 0 && (
             <div className="mt-4 space-y-2">
-              <p className="text-xs font-medium text-gray-500 uppercase">Try these:</p>
+              <p className="text-xs font-medium text-antique-text-mute uppercase">Try these:</p>
               {[
                 "Imari porcelain bowl 8 inch blue and red",
                 "Fornasetti plate architectural design",
@@ -90,7 +90,7 @@ function ValuationPageContent() {
                 <button
                   key={example}
                   onClick={() => handleSend(example)}
-                  className="w-full text-left text-sm bg-white border border-gray-200 rounded-lg px-4 py-2.5 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  className="w-full text-left text-sm bg-antique-surface border border-antique-border rounded-lg px-4 py-2.5 hover:border-antique-accent hover:bg-antique-accent-s transition-colors text-antique-text"
                 >
                   {example}
                 </button>
@@ -107,7 +107,7 @@ function ValuationPageContent() {
               priceRange={latestResult.price_range}
             />
           ) : (
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400">
+            <div className="bg-antique-surface border border-antique-border rounded-2xl p-8 text-center text-antique-text-mute">
               <div className="text-5xl mb-4">📊</div>
               <p className="font-medium">Comparable sales will appear here</p>
               <p className="text-sm mt-2">
