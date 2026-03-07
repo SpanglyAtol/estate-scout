@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   loadCatalog,
   loadCatalogFromApi,
-  addCatalogItemToApi,
   updateCatalogItemInApi,
   deleteCatalogItemFromApi,
   type CatalogItem,

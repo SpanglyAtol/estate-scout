@@ -21,18 +21,7 @@ import type { MockListing } from "@/app/api/v1/_mock-data";
 
 export const dynamic = "force-dynamic";
 
-// ── Colour palette (CSS vars) ─────────────────────────────────────────────────
-const CHART_COLOURS = [
-  "fill-antique-accent",
-  "fill-blue-400",
-  "fill-green-500",
-  "fill-amber-400",
-  "fill-purple-400",
-  "fill-rose-400",
-  "fill-teal-400",
-  "fill-orange-400",
-];
-
+// ── Colour palette ────────────────────────────────────────────────────────────
 const HEX_COLOURS = [
   "#8B6914", "#60A5FA", "#4ADE80",
   "#FBBF24", "#A78BFA", "#FB7185",
@@ -409,7 +398,7 @@ export default function PricesPage() {
             Price Distribution by Category
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {catStats.slice(0, 6).map(({ name, avg: catAvg, median: catMed, min, max, count }, i) => {
+            {catStats.slice(0, 6).map(({ name, median: catMed, min, max, count }, i) => {
               const catPrices = withPrice
                 .filter((l) => (l.category || "Uncategorised") === name)
                 .map((l) => (l.final_price ?? l.current_price)!);
