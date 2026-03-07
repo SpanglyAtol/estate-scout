@@ -37,25 +37,25 @@ export default async function ListingPage({ params }: PageProps) {
     cta = {
       label: `Browse Estate Sale on ${platform} →`,
       className:
-        "flex items-center justify-center gap-2 w-full border-2 border-green-500 text-green-700 bg-green-50 py-4 rounded-xl font-bold text-lg hover:bg-green-100 transition-colors",
+        "flex items-center justify-center gap-2 w-full border-2 border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-700 py-4 rounded-xl font-bold text-lg hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors",
     };
   } else if (lt === "buy_now") {
     cta = {
       label: `Buy Now on ${platform} →`,
       className:
-        "flex items-center justify-center gap-2 w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors",
+        "flex items-center justify-center gap-2 w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 transition-colors",
     };
   } else {
     const ctaConfig = {
       upcoming: {
         label: `Preview on ${platform} →`,
         className:
-          "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-700 bg-white py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+          "flex items-center justify-center gap-2 w-full border-2 border-antique-border text-antique-text bg-antique-surface py-4 rounded-xl font-bold text-lg hover:border-antique-border-s transition-colors",
       },
       live: {
         label: `Bid on ${platform}`,
         className:
-          "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
+          "flex items-center justify-center gap-2 w-full bg-antique-accent text-white py-4 rounded-xl font-bold text-lg hover:bg-antique-accent-h transition-colors",
       },
       ending_soon: {
         label: `Bid Now — Ending Soon!`,
@@ -65,17 +65,17 @@ export default async function ListingPage({ params }: PageProps) {
       ended: {
         label: `View Results on ${platform} →`,
         className:
-          "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+          "flex items-center justify-center gap-2 w-full border-2 border-antique-border text-antique-text-mute bg-antique-muted py-4 rounded-xl font-bold text-lg hover:border-antique-border-s transition-colors",
       },
       completed: {
         label: `View Results on ${platform} →`,
         className:
-          "flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-500 bg-gray-50 py-4 rounded-xl font-bold text-lg hover:border-gray-400 transition-colors",
+          "flex items-center justify-center gap-2 w-full border-2 border-antique-border text-antique-text-mute bg-antique-muted py-4 rounded-xl font-bold text-lg hover:border-antique-border-s transition-colors",
       },
       unknown: {
         label: `View on ${platform} →`,
         className:
-          "flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors",
+          "flex items-center justify-center gap-2 w-full bg-antique-accent text-white py-4 rounded-xl font-bold text-lg hover:bg-antique-accent-h transition-colors",
       },
     };
     cta = ctaConfig[status] ?? ctaConfig.unknown;
@@ -94,45 +94,45 @@ export default async function ListingPage({ params }: PageProps) {
         {/* Details */}
         <div className="space-y-4">
           {/* Platform badge */}
-          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+          <span className="inline-block bg-antique-accent-s text-antique-accent text-xs font-semibold px-3 py-1 rounded-full border border-antique-accent-lt">
             {platform}
           </span>
 
-          <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
+          <h1 className="text-2xl font-bold text-antique-text font-display">{listing.title}</h1>
 
           {/* Price / info box — type-aware */}
           {lt === "estate_sale" ? (
-            <div className="bg-green-50 rounded-xl p-4 space-y-1 border border-green-200">
-              <p className="text-sm font-semibold text-green-800">In-Person Estate Sale</p>
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-4 space-y-1 border border-emerald-200 dark:border-emerald-800">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">In-Person Estate Sale</p>
               {listing.sale_starts_at && (
-                <p className="text-sm text-green-700">
+                <p className="text-sm text-emerald-700 dark:text-emerald-500">
                   {formatDate(listing.sale_starts_at)}
                   {listing.sale_ends_at && ` – ${formatDate(listing.sale_ends_at)}`}
                 </p>
               )}
-              <p className="text-xs text-green-600">Pricing is set at the sale — browse items in person</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-500">Pricing is set at the sale — browse items in person</p>
             </div>
           ) : lt === "buy_now" && listing.buy_now_price != null ? (
-            <div className="bg-green-50 rounded-xl p-4 space-y-1 border border-green-200">
+            <div className="bg-antique-muted rounded-xl p-4 space-y-1 border border-antique-border">
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-green-600">
+                <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                   {formatPrice(listing.buy_now_price)}
                 </span>
-                <span className="text-gray-500 text-sm">fixed price</span>
+                <span className="text-antique-text-mute text-sm">fixed price</span>
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-xl p-4 space-y-1">
+            <div className="bg-antique-muted rounded-xl p-4 space-y-1 border border-antique-border">
               {listing.current_price != null ? (
                 <>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-blue-600">
+                    <span className="text-3xl font-bold text-antique-accent">
                       {formatPrice(listing.current_price)}
                     </span>
-                    <span className="text-gray-500 text-sm">current bid</span>
+                    <span className="text-antique-text-mute text-sm">current bid</span>
                   </div>
                   {listing.buyers_premium_pct && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-antique-text-sec">
                       + {listing.buyers_premium_pct}% buyer&apos;s premium ={" "}
                       <strong>{formatPrice(listing.total_cost_estimate)} total</strong>
                     </p>
@@ -140,16 +140,16 @@ export default async function ListingPage({ params }: PageProps) {
                 </>
               ) : listing.estimate_low != null ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-amber-600">
+                  <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">
                     Est. {formatPrice(listing.estimate_low)}
                     {listing.estimate_high != null
                       ? `–${formatPrice(listing.estimate_high)}`
                       : "+"}
                   </span>
-                  <span className="text-gray-500 text-sm">lot estimate · no bids yet</span>
+                  <span className="text-antique-text-mute text-sm">lot estimate · no bids yet</span>
                 </div>
               ) : (
-                <span className="text-gray-400 italic">No price info available</span>
+                <span className="text-antique-text-mute italic">No price info available</span>
               )}
             </div>
           )}
@@ -162,7 +162,7 @@ export default async function ListingPage({ params }: PageProps) {
             </div>
           )}
           {lt === "auction" && status === "upcoming" && listing.sale_starts_at && (
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 text-sm font-medium">
+            <div className="flex items-center gap-2 bg-antique-accent-s border border-antique-accent-lt text-antique-accent rounded-xl px-4 py-3 text-sm font-medium">
               <Calendar className="w-4 h-4 flex-shrink-0" />
               Auction starts {formatDate(listing.sale_starts_at)}
             </div>
@@ -190,22 +190,22 @@ export default async function ListingPage({ params }: PageProps) {
           {/* Meta */}
           <div className="space-y-2 text-sm">
             {listing.city && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-antique-text-sec">
+                <MapPin className="w-4 h-4 text-antique-text-mute" />
                 {listing.city}, {listing.state}
               </div>
             )}
             {lt === "auction" && countdown && status !== "ended" && status !== "completed" && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <Clock className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-antique-text-sec">
+                <Clock className="w-4 h-4 text-antique-text-mute" />
                 {status === "upcoming" ? "Starts" : countdown + " remaining"}
                 {listing.sale_ends_at && status !== "upcoming" &&
                   ` · Ends ${formatDate(listing.sale_ends_at)}`}
               </div>
             )}
             {listing.category && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <Tag className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-antique-text-sec">
+                <Tag className="w-4 h-4 text-antique-text-mute" />
                 {listing.category}
               </div>
             )}
@@ -213,15 +213,15 @@ export default async function ListingPage({ params }: PageProps) {
 
           {/* Description */}
           {listing.description && (
-            <div className="prose prose-sm max-w-none text-gray-700">
-              <h3 className="font-semibold text-gray-900 not-prose">Description</h3>
+            <div className="prose prose-sm max-w-none text-antique-text-sec">
+              <h3 className="font-semibold text-antique-text not-prose">Description</h3>
               <p className="mt-1 whitespace-pre-wrap">{listing.description.slice(0, 500)}</p>
               {listing.description.length > 500 && (
                 <a
                   href={listing.external_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 not-prose text-sm"
+                  className="text-antique-accent not-prose text-sm hover:text-antique-accent-h"
                 >
                   Read full description on {platform} →
                 </a>
@@ -244,14 +244,14 @@ export default async function ListingPage({ params }: PageProps) {
       )}
 
       {/* Price check CTA */}
-      <div className="mt-10 bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center">
-        <h2 className="font-bold text-lg text-gray-900 mb-2">Is this a good deal?</h2>
-        <p className="text-gray-600 text-sm mb-4">
+      <div className="mt-10 bg-antique-accent-s border border-antique-accent-lt rounded-2xl p-6 text-center">
+        <h2 className="font-bold text-lg text-antique-text mb-2">Is this a good deal?</h2>
+        <p className="text-antique-text-sec text-sm mb-4">
           Use our AI price check to see what similar items sold for.
         </p>
         <Link
           href={`/valuation?q=${encodeURIComponent(listing.title)}`}
-          className="inline-block bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+          className="inline-block bg-antique-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-antique-accent-h transition-colors"
         >
           Check Price
         </Link>

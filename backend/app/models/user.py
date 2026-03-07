@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
@@ -15,6 +15,7 @@ class User(Base):
     )
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     tier: Mapped[str] = mapped_column(String(20), default="free")  # free | pro | premium
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -32,3 +33,4 @@ class User(Base):
 
     saved_searches: Mapped[list["SavedSearch"]] = relationship(back_populates="user")  # noqa: F821
     alerts: Mapped[list["Alert"]] = relationship(back_populates="user")  # noqa: F821
+    catalog_items: Mapped[list["CatalogItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")  # noqa: F821

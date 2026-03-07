@@ -59,7 +59,7 @@ export function ListingAdBanner({ slot }: { slot: string }) {
 
   return (
     <div className="col-span-full py-2">
-      <p className="text-xs text-gray-400 text-center mb-1 uppercase tracking-wide">
+      <p className="text-xs text-antique-text-mute text-center mb-1 uppercase tracking-wide">
         Advertisement
       </p>
       <AdUnit slot={slot} format="fluid" className="min-h-[90px]" />

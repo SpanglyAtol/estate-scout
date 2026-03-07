@@ -33,8 +33,11 @@ from dateutil import parser as dtp
 
 from scrapers.base import BaseScraper, ScrapedListing
 
-# States ordered by typical estate-sale volume
-POPULAR_STATES = ["CA", "TX", "FL", "NY", "PA", "OH", "IL", "GA", "NC", "MI"]
+# States ordered by typical estate-sale volume (20 states for better national coverage)
+POPULAR_STATES = [
+    "CA", "TX", "FL", "NY", "PA", "OH", "IL", "GA", "NC", "MI",
+    "NJ", "VA", "WA", "AZ", "MA", "CO", "TN", "IN", "MO", "MN",
+]
 
 
 class EstateSalesNetScraper(BaseScraper):

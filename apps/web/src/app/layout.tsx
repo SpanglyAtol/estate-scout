@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Lora } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
@@ -13,9 +13,9 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-const lora = Lora({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-lora",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -37,7 +37,7 @@ export default function RootLayout({
   const adsenseId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID;
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${playfair.variable} ${lora.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${playfair.variable} ${inter.variable}`}>
       <head>
         {adsenseId ? (
           <Script

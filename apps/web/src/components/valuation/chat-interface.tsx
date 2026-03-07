@@ -35,9 +35,9 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 p-4 min-h-[300px] max-h-[500px] border rounded-xl bg-gray-50">
+      <div className="flex-1 overflow-y-auto space-y-3 p-4 min-h-[300px] max-h-[500px] border border-antique-border rounded-xl bg-antique-muted">
         {messages.length === 0 && (
-          <div className="text-center text-gray-400 py-12 text-sm">
+          <div className="text-center text-antique-text-mute py-12 text-sm">
             <p className="text-3xl mb-3">🏺</p>
             <p>Describe an item to get a price estimate.</p>
             <p className="mt-1">
@@ -58,8 +58,8 @@ export function ChatInterface({
               className={cn(
                 "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
                 msg.role === "user"
-                  ? "bg-blue-600 text-white rounded-br-sm"
-                  : "bg-white border border-gray-200 text-gray-800 rounded-bl-sm"
+                  ? "bg-antique-accent text-white rounded-br-sm"
+                  : "bg-antique-surface border border-antique-border text-antique-text rounded-bl-sm"
               )}
             >
               {msg.content}
@@ -69,8 +69,8 @@ export function ChatInterface({
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-2.5">
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            <div className="bg-antique-surface border border-antique-border rounded-2xl rounded-bl-sm px-4 py-2.5">
+              <Loader2 className="w-4 h-4 animate-spin text-antique-text-mute" />
             </div>
           </div>
         )}
@@ -86,12 +86,12 @@ export function ChatInterface({
           onChange={(e) => setInput(e.target.value)}
           placeholder={placeholder}
           disabled={isLoading}
-          className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+          className="flex-1 border border-antique-border bg-antique-surface text-antique-text rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-antique-accent disabled:bg-antique-muted"
         />
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
-          className="bg-blue-600 text-white rounded-xl px-4 py-2.5 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="bg-antique-accent text-white rounded-xl px-4 py-2.5 hover:bg-antique-accent-h disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Send className="w-4 h-4" />
         </button>

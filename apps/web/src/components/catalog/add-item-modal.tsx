@@ -1,22 +1,31 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { X, Upload, Plus } from "lucide-react";
-import { addCatalogItem, CATEGORIES, CONDITIONS, type CatalogItem } from "./catalog-types";
+import { X, Upload, Plus, Loader2 } from "lucide-react";
+import {
+  addCatalogItem,
+  addCatalogItemToApi,
+  CATEGORIES,
+  CONDITIONS,
+  type CatalogItem,
+} from "./catalog-types";
 
 interface Props {
   onClose: () => void;
   onAdded: (item: CatalogItem) => void;
+  /** When true, saves to the backend API; otherwise uses localStorage. */
+  useApi?: boolean;
 }
 
-export function AddItemModal({ onClose, onAdded }: Props) {
-  const [title, setTitle]       = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [condition, setCondition] = useState(CONDITIONS[1]);
+export function AddItemModal({ onClose, onAdded, useApi = false }: Props) {
+  const [title, setTitle]             = useState("");
+  const [category, setCategory]       = useState(CATEGORIES[0]);
+  const [condition, setCondition]     = useState(CONDITIONS[1]);
   const [description, setDescription] = useState("");
-  const [notes, setNotes]       = useState("");
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [saving, setSaving]     = useState(false);
+  const [notes, setNotes]             = useState("");
+  const [imageUrls, setImageUrls]     = useState<string[]>([]);
+  const [saving, setSaving]           = useState(false);
+  const [saveError, setSaveError]     = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleFiles(files: FileList | null) {
@@ -36,13 +45,29 @@ export function AddItemModal({ onClose, onAdded }: Props) {
     setImageUrls((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
-    const item = addCatalogItem({ title, category, condition, description, notes, imageUrls });
-    onAdded(item);
-    setSaving(false);
+    setSaveError(null);
+    try {
+      let item: CatalogItem;
+      if (useApi) {
+        item = await addCatalogItemToApi({ title, category, condition, description, notes, imageUrls });
+      } else {
+        item = addCatalogItem({ title, category, condition, description, notes, imageUrls });
+      }
+      onAdded(item);
+    } catch (err) {
+      // Fall back to localStorage if API fails
+      try {
+        const item = addCatalogItem({ title, category, condition, description, notes, imageUrls });
+        onAdded(item);
+      } catch {
+        setSaveError(err instanceof Error ? err.message : "Failed to save item");
+        setSaving(false);
+      }
+    }
   }
 
   return (
@@ -60,6 +85,12 @@ export function AddItemModal({ onClose, onAdded }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {saveError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {saveError}
+            </div>
+          )}
+
           {/* Title */}
           <div>
             <label className="block text-xs font-semibold text-antique-text-sec uppercase tracking-wide mb-1.5">
@@ -177,7 +208,7 @@ export function AddItemModal({ onClose, onAdded }: Props) {
               disabled={!title.trim() || saving}
               className="flex-1 flex items-center justify-center gap-2 bg-antique-accent hover:bg-antique-accent-h disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors"
             >
-              <Plus className="w-4 h-4" />
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Save Item
             </button>
             <button

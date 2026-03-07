@@ -13,19 +13,27 @@ Options:
   --state WA              State abbreviation used by MaxSold (default: WA)
   --city Seattle          Optionally filter to a single city (MaxSold/EstateSales)
   --max-pages 17          Pages per scraper (default: 17)
-                            - BidSpotter: 17 × 60 = ~1020 listings
-                            - HiBid: 17 × 100 = ~1700 auctions (GraphQL)
-                            - EstateSales.NET: 17 × 3  = ~51 listings (JSON-LD)
+                            - BidSpotter: 17 × 60  = ~1020 listings
+                            - HiBid: 17 × 100      = ~1700 auctions (GraphQL)
+                            - EstateSales.NET: 17 × 3 = ~51 listings (JSON-LD)
+                            - eBay: 5 × 48 × 5 cats = ~1200 sold comps (price data)
+                            - Proxibid: 10 × ~20   = ~200 auction events
+                            - 1stDibs: 3 pages × 6 queries = ~price reference data
   --out PATH              Output JSON path (default: apps/web/src/data/scraped-listings.json)
-  --targets ms,bs,hi,es   Comma-separated scrapers (default: ms,bs,hi,es)
+  --national              Shortcut: all public scrapers, state="" (national)
+  --targets bs,hi,es,ms  Comma-separated scrapers (default: bs,hi,es,ms)
                             ms=maxsold      – HTML scraper, WA only
                             bs=bidspotter   – JSON API, all US
                             hi=hibid        – GraphQL API, all US
                             es=estatesales  – JSON-LD, all US (~3/page)
-                            la=liveauctioneers – blocked (403), skip for now
+                            la=liveauctioneers – 3-layer anti-403 strategy
+                            eb=ebay         – sold listings price comps
+                            pb=proxibid     – auction calendar events
+                            1d=1stdibs      – premium antiques asking prices
 
 Notes:
-  - LiveAuctioneers returns 403; omit "la" from --targets.
+  - LiveAuctioneers now uses a 3-layer fallback (JSON API → HTML → sitemap).
+  - eBay/Proxibid/1stDibs are new; add them to --targets to enable.
   - Run this periodically (e.g., daily via GitHub Actions) to keep data fresh.
 """
 
@@ -56,6 +64,9 @@ from scrapers.sources.estatesales_net import EstateSalesNetScraper
 from scrapers.sources.hibid import HibidScraper
 from scrapers.sources.maxsold import MaxSoldScraper
 from scrapers.sources.bidspotter import BidSpotterScraper
+from scrapers.sources.ebay import EbaySoldListingsScraper
+from scrapers.sources.proxibid import ProxibidScraper
+from scrapers.sources.onedibs import OneDibsScraper
 from scrapers.base import ScrapedListing
 from scrapers.geocoder import geocode_listings
 
@@ -105,6 +116,27 @@ PLATFORM_META = {
         "name": "bidspotter",
         "display_name": "BidSpotter",
         "base_url": "https://www.bidspotter.com",
+        "logo_url": None,
+    },
+    "ebay": {
+        "id": 6,
+        "name": "ebay",
+        "display_name": "eBay",
+        "base_url": "https://www.ebay.com",
+        "logo_url": None,
+    },
+    "proxibid": {
+        "id": 7,
+        "name": "proxibid",
+        "display_name": "Proxibid",
+        "base_url": "https://www.proxibid.com",
+        "logo_url": None,
+    },
+    "1stdibs": {
+        "id": 8,
+        "name": "1stdibs",
+        "display_name": "1stDibs",
+        "base_url": "https://www.1stdibs.com",
         "logo_url": None,
     },
 }
@@ -396,35 +428,69 @@ async def run_scraper(scraper_cls, rate_limiter, max_pages: int, **kwargs) -> li
     return results
 
 
+async def run_scraper_with_label(
+    scraper_cls,
+    rate_limiter: TokenBucketRateLimiter,
+    max_pages: int,
+    **kwargs,
+) -> tuple[str, list[dict]]:
+    """Run one scraper concurrently; returns (label, results)."""
+    label = scraper_cls.__name__.replace("Scraper", "")
+    logger.info(f"▶ Starting {label} …")
+    results = await run_scraper(scraper_cls, rate_limiter, max_pages, **kwargs)
+    icon = "✓" if results else "✗"
+    logger.info(f"  {icon} {label}: {len(results)} listings")
+    return label, results
+
+
 async def hydrate(args):
+    # Each platform gets its own per-domain bucket inside the shared limiter,
+    # so running scrapers in parallel is safe — they don't share tokens.
     rate_limiter = TokenBucketRateLimiter(default_rate=0.4)
-    all_listings: list[dict] = []
-    summary: list[str] = []
 
     # Map short names → (class, extra kwargs)
     target_map = {
-        "la": (LiveAuctioneersScraper,  {"state": args.state}),
-        "es": (EstateSalesNetScraper,   {"state": "",         "city": args.city}),  # national (3 per page × max_pages)
-        "hi": (HibidScraper,            {"state": "",         "country": "USA"}),   # all US via GraphQL
-        "ms": (MaxSoldScraper,          {"state": args.state}),
-        "bs": (BidSpotterScraper,       {"state": None}),   # country-wide (all US)
+        "la": (LiveAuctioneersScraper,   {"state": args.state}),
+        "es": (EstateSalesNetScraper,    {"state": "",         "city": args.city}),  # national
+        "hi": (HibidScraper,             {"state": "",         "country": "USA"}),   # all US via GraphQL
+        "ms": (MaxSoldScraper,           {"state": args.state}),
+        "bs": (BidSpotterScraper,        {"state": None}),    # country-wide (all US)
+        "eb": (EbaySoldListingsScraper,  {}),                  # eBay sold comps (all antique cats)
+        "pb": (ProxibidScraper,          {"state": ""}),       # all US auction events
+        "1d": (OneDibsScraper,           {}),                  # 1stDibs premium asking prices
     }
 
     chosen = [t.strip() for t in args.targets.split(",") if t.strip() in target_map]
     if not chosen:
-        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs")
+        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d")
         sys.exit(1)
 
-    for key in chosen:
-        cls, extra = target_map[key]
-        logger.info(f"▶ Running {cls.__name__} (max_pages={args.max_pages}) …")
-        results = await run_scraper(cls, rate_limiter, args.max_pages, **extra)
+    # ── Parallel execution ────────────────────────────────────────────────────
+    # Each scraper uses a different domain key inside the TokenBucketRateLimiter,
+    # so they can run simultaneously without violating per-platform rate limits.
+    # asyncio.gather() runs all coroutines concurrently within the single event loop.
+    logger.info(f"Running {len(chosen)} scrapers in parallel: {', '.join(chosen)}")
+
+    tasks = [
+        run_scraper_with_label(
+            target_map[key][0],   # scraper class
+            rate_limiter,
+            args.max_pages,
+            **target_map[key][1], # extra kwargs
+        )
+        for key in chosen
+    ]
+
+    # Return results as they finish (gather preserves task order)
+    reports: list[tuple[str, list[dict]]] = await asyncio.gather(*tasks)
+
+    all_listings: list[dict] = []
+    summary: list[str] = []
+    for label, results in reports:
         count = len(results)
         all_listings.extend(results)
         icon = "✓" if count > 0 else "✗"
-        label = cls.__name__.replace("Scraper", "")
         summary.append(f"  {icon}  {label}: {count} listings")
-        logger.info(f"   {icon} {label}: {count}")
 
     # Geocode city+state → lat/lon (cached; only new cities hit the API)
     logger.info("Running geocoder …")
@@ -457,14 +523,23 @@ def main():
     parser = argparse.ArgumentParser(
         description="Run Estate Scout scrapers and write real listing data to JSON."
     )
-    parser.add_argument("--state",     default="WA",       help="State to scrape for state-filtered scrapers (default: WA)")
+    parser.add_argument("--state",     default="",
+                        help="State for state-filtered scrapers (default: '' = national mode)")
     parser.add_argument("--city",      default="",         help="City to filter (optional)")
-    parser.add_argument("--max-pages", type=int, default=17, help="Pages per scraper (default: 17; 17×60=1020 BidSpotter listings)")
-    parser.add_argument("--targets",   default="ms,bs,hi,es",
-                        help="Comma-separated scrapers: la,es,hi,ms,bs (default: ms,bs,hi,es)")
+    parser.add_argument("--max-pages", type=int, default=17,
+                        help="Pages per scraper (default: 17; 17×60=~1020 BidSpotter listings)")
+    parser.add_argument("--national",  action="store_true",
+                        help="Shortcut: run all national scrapers (bs,hi,es,ms,eb,pb) with state=''")
+    parser.add_argument("--targets",   default="bs,hi,es,ms",
+                        help="Comma-separated scrapers: la,es,hi,ms,bs,eb,pb,1d (default: bs,hi,es,ms)")
     parser.add_argument("--out",       default=str(DEFAULT_OUT),
                         help=f"Output JSON path (default: {DEFAULT_OUT})")
     args = parser.parse_args()
+
+    # --national shortcut: all public scrapers with no state filter
+    if args.national:
+        args.targets = "bs,hi,es,ms,eb,pb"
+        args.state = ""
 
     asyncio.run(hydrate(args))
 

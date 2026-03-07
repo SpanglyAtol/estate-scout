@@ -3,11 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Loader2, ArrowUpDown } from "lucide-react";
+import { Search, Loader2, ArrowUpDown, LayoutGrid, LayoutList } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { FilterSidebar } from "@/components/filters/filter-sidebar";
 import { searchListings } from "@/lib/api-client";
 import type { SearchFilters } from "@/types";
+import { cn } from "@/lib/cn";
 
 const PAGE_SIZE = 24;
 
@@ -18,6 +19,9 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "price_desc",   label: "Price: High → Low" },
   { value: "newest",       label: "Newest first"      },
 ];
+
+type ViewMode = "gallery" | "list";
+const VIEW_MODE_KEY = "es_view_mode";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +73,18 @@ function SearchPageInner() {
     paramsToFilters(rawParams)
   );
   const [query, setQuery] = useState(rawParams.get("q") ?? "");
+  const [viewMode, setViewMode] = useState<ViewMode>("gallery");
+
+  // Restore persisted view mode preference
+  useEffect(() => {
+    const saved = localStorage.getItem(VIEW_MODE_KEY);
+    if (saved === "list" || saved === "gallery") setViewMode(saved);
+  }, []);
+
+  function toggleViewMode(mode: ViewMode) {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_MODE_KEY, mode);
+  }
 
   // Sync filters → URL (replace so back-button still works naturally)
   useEffect(() => {
@@ -87,7 +103,6 @@ function SearchPageInner() {
     setFilters((f) => ({ ...f, q: query || undefined, page: 1, page_size: PAGE_SIZE }));
   }
 
-  // When sidebar filters change, reset paging but keep page_size if it was bumped
   function handleFiltersChange(newFilters: SearchFilters) {
     setFilters({ ...newFilters, page: 1, page_size: PAGE_SIZE });
   }
@@ -114,19 +129,19 @@ function SearchPageInner() {
 
       {/* ── Search bar ── */}
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-        <div className="flex-1 flex items-center gap-2 bg-white border border-gray-300 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-          <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
+        <div className="flex-1 flex items-center gap-2 bg-antique-surface border border-antique-border rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-antique-accent focus-within:border-transparent">
+          <Search className="w-5 h-5 text-antique-text-mute flex-shrink-0" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search antiques, ceramics, furniture..."
-            className="flex-1 outline-none text-sm bg-transparent"
+            className="flex-1 outline-none text-sm bg-transparent text-antique-text placeholder:text-antique-text-mute"
           />
         </div>
         <button
           type="submit"
-          className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-medium"
+          className="bg-antique-accent text-white px-6 py-3 rounded-xl hover:bg-antique-accent-h transition-colors font-medium"
         >
           Search
         </button>
@@ -138,38 +153,70 @@ function SearchPageInner() {
 
         <div className="flex-1 min-w-0">
           {isLoading ? (
-            <div className="text-center py-20 text-gray-400">
+            <div className="text-center py-20 text-antique-text-mute">
               <div className="text-4xl mb-3">⏳</div>
               <p>Searching across all platforms...</p>
             </div>
           ) : (
             <>
-              {/* Results header: count + sort */}
+              {/* Results header: count + sort + view toggle */}
               <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-antique-text-mute">
                   {listings.length > 0
                     ? `${listings.length} listing${listings.length !== 1 ? "s" : ""} found`
                     : "No listings found — try broadening your filters"}
                 </p>
 
-                {/* Sort dropdown */}
-                <div className="flex items-center gap-1.5 text-sm">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  <select
-                    value={filters.sort ?? ""}
-                    onChange={(e) => handleSort(e.target.value)}
-                    className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer"
-                  >
-                    {SORT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-2">
+                  {/* Sort dropdown */}
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-antique-text-mute" />
+                    <select
+                      value={filters.sort ?? ""}
+                      onChange={(e) => handleSort(e.target.value)}
+                      className="bg-antique-surface border border-antique-border rounded-lg px-3 py-1.5 text-sm text-antique-text focus:ring-2 focus:ring-antique-accent focus:border-transparent outline-none cursor-pointer"
+                    >
+                      {SORT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* View mode toggle */}
+                  <div className="flex items-center border border-antique-border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleViewMode("gallery")}
+                      className={cn(
+                        "p-1.5 transition-colors",
+                        viewMode === "gallery"
+                          ? "bg-antique-accent text-white"
+                          : "bg-antique-surface text-antique-text-mute hover:text-antique-text"
+                      )}
+                      aria-label="Gallery view"
+                      title="Gallery view"
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleViewMode("list")}
+                      className={cn(
+                        "p-1.5 transition-colors",
+                        viewMode === "list"
+                          ? "bg-antique-accent text-white"
+                          : "bg-antique-surface text-antique-text-mute hover:text-antique-text"
+                      )}
+                      aria-label="List view"
+                      title="List view"
+                    >
+                      <LayoutList className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <ListingGrid listings={listings} />
+              <ListingGrid listings={listings} viewMode={viewMode} />
 
               {/* Load more */}
               {hasMore && (
@@ -177,7 +224,7 @@ function SearchPageInner() {
                   <button
                     onClick={loadMore}
                     disabled={isLoadingMore}
-                    className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-8 py-3 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:shadow-sm transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 bg-antique-surface border border-antique-border text-antique-text-sec px-8 py-3 rounded-xl hover:border-antique-accent hover:text-antique-accent hover:shadow-sm transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoadingMore ? (
                       <>
@@ -204,7 +251,7 @@ export default function SearchPage() {
     <Suspense
       fallback={
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-antique-text-mute">
             <div className="text-4xl mb-3">⏳</div>
             <p>Loading search...</p>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Loader2, X, TrendingUp } from "lucide-react";
-import { updateCatalogItem, type CatalogItem } from "./catalog-types";
+import { type CatalogItem } from "./catalog-types";
 
 interface Props {
   item: CatalogItem;
@@ -46,7 +46,6 @@ export function AiAnalysisPanel({ item, onUpdated, onClose }: Props) {
         },
       };
 
-      updateCatalogItem(item.id, patch);
       onUpdated({ ...item, ...patch });
     } catch {
       setError("Analysis failed — please try again.");

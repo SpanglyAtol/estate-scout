@@ -42,16 +42,16 @@ interface SectionProps {
 function Section({ title, children }: SectionProps) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="border-b border-gray-100 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
+    <div className="border-b border-antique-border pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between w-full text-sm font-semibold text-gray-700 mb-3"
+        className="flex items-center justify-between w-full text-sm font-semibold text-antique-text mb-3"
       >
         {title}
         {open ? (
-          <ChevronUp className="w-4 h-4 text-gray-400" />
+          <ChevronUp className="w-4 h-4 text-antique-text-mute" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className="w-4 h-4 text-antique-text-mute" />
         )}
       </button>
       {open && children}
@@ -86,11 +86,11 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
     <div className="space-y-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-base font-bold text-gray-900">Filters</h2>
+        <h2 className="text-base font-bold text-antique-text">Filters</h2>
         {activeFilterCount > 0 && (
           <button
             onClick={clearAll}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            className="text-xs text-antique-accent hover:text-antique-accent-h font-medium"
           >
             Clear all ({activeFilterCount})
           </button>
@@ -112,9 +112,9 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
                 name="listing_type"
                 checked={(filters.listing_type ?? undefined) === opt.value}
                 onChange={() => update({ listing_type: opt.value as SearchFilters["listing_type"] })}
-                className="accent-blue-600"
+                className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+              <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
                 {opt.label}
               </span>
             </label>
@@ -138,9 +138,9 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
                 name="status"
                 checked={(filters.status ?? undefined) === opt.value}
                 onChange={() => update({ status: opt.value })}
-                className="accent-blue-600"
+                className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+              <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
                 {opt.label}
               </span>
             </label>
@@ -157,8 +157,8 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
               onClick={() => update({ category: filters.category === cat ? undefined : cat })}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
                 filters.category === cat
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  ? "bg-antique-accent text-white border-antique-accent"
+                  : "bg-antique-surface text-antique-text-sec border-antique-border hover:border-antique-accent"
               }`}
             >
               {cat}
@@ -171,7 +171,7 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
       <Section title="Price Range">
         <div className="flex items-center gap-2">
           <div className="flex-1">
-            <label className="text-xs text-gray-500 mb-1 block">Min ($)</label>
+            <label className="text-xs text-antique-text-mute mb-1 block">Min ($)</label>
             <input
               type="number"
               min={0}
@@ -180,12 +180,12 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
               onChange={(e) =>
                 update({ min_price: e.target.value ? Number(e.target.value) : undefined })
               }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full border border-antique-border bg-antique-surface text-antique-text rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-antique-accent focus:border-transparent outline-none"
             />
           </div>
-          <span className="text-gray-400 mt-5">—</span>
+          <span className="text-antique-text-mute mt-5">—</span>
           <div className="flex-1">
-            <label className="text-xs text-gray-500 mb-1 block">Max ($)</label>
+            <label className="text-xs text-antique-text-mute mb-1 block">Max ($)</label>
             <input
               type="number"
               min={0}
@@ -194,7 +194,7 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
               onChange={(e) =>
                 update({ max_price: e.target.value ? Number(e.target.value) : undefined })
               }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full border border-antique-border bg-antique-surface text-antique-text rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-antique-accent focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -209,15 +209,15 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
               onClick={() => update({ radius_miles: miles })}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 (filters.radius_miles ?? 50) === miles
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  ? "bg-antique-accent text-white border-antique-accent"
+                  : "bg-antique-surface text-antique-text-sec border-antique-border hover:border-antique-accent"
               }`}
             >
               {miles} mi
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mt-2">Location required for radius filtering</p>
+        <p className="text-xs text-antique-text-mute mt-2">Location required for radius filtering</p>
       </Section>
 
       {/* Ending time */}
@@ -236,9 +236,9 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
                 name="ending_hours"
                 checked={(filters.ending_hours ?? undefined) === opt.value}
                 onChange={() => update({ ending_hours: opt.value })}
-                className="accent-blue-600"
+                className="w-4 h-4"
               />
-              <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+              <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
                 {opt.label}
               </span>
             </label>
@@ -253,9 +253,9 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
             type="checkbox"
             checked={filters.pickup_only ?? false}
             onChange={(e) => update({ pickup_only: e.target.checked || undefined })}
-            className="accent-blue-600"
+            className="w-4 h-4"
           />
-          <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+          <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
             Pickup only (no shipping)
           </span>
         </label>
@@ -296,12 +296,12 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden flex items-center gap-2 bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-blue-400 transition-colors"
+        className="lg:hidden flex items-center gap-2 bg-antique-surface border border-antique-border rounded-xl px-4 py-2.5 text-sm font-medium text-antique-text hover:border-antique-accent transition-colors"
       >
         <SlidersHorizontal className="w-4 h-4" />
         Filters
         {activeFilterCount > 0 && (
-          <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="bg-antique-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
             {activeFilterCount}
           </span>
         )}
@@ -316,17 +316,17 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
             onClick={() => setMobileOpen(false)}
           />
           {/* Drawer */}
-          <div className="relative ml-auto w-80 max-w-full h-full bg-white shadow-2xl overflow-y-auto p-5">
+          <div className="relative ml-auto w-80 max-w-full h-full bg-antique-surface shadow-2xl overflow-y-auto p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Filters</h2>
+              <h2 className="font-bold text-antique-text">Filters</h2>
               <button onClick={() => setMobileOpen(false)}>
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-antique-text-mute" />
               </button>
             </div>
             {content}
             <button
               onClick={() => setMobileOpen(false)}
-              className="mt-6 w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              className="mt-6 w-full bg-antique-accent text-white py-3 rounded-xl font-semibold hover:bg-antique-accent-h transition-colors"
             >
               Apply Filters
             </button>
@@ -336,7 +336,7 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-56 flex-shrink-0">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 sticky top-4">
+        <div className="bg-antique-surface border border-antique-border rounded-2xl p-5 sticky top-4">
           {content}
         </div>
       </aside>

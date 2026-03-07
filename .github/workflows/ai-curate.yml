@@ -1,0 +1,60 @@
+name: AI Curation (Claude Haiku)
+
+# Runs Claude Haiku over the current scraped listings to produce
+# apps/web/src/data/scraped-curated.json — a hand-curated set of
+# "Featured Picks" and per-category top selections with editorial notes.
+#
+# Architecture / cost:
+#   - Claude Haiku input:  ~2 500 tokens/run  ($0.00063/run)
+#   - Claude Haiku output: ~3 000 tokens/run  ($0.00375/run)
+#   - At 4× daily runs:    ~$0.017/day  →  ~$0.51/month
+#   - No extra infrastructure — GitHub Actions compute is free at this volume
+#
+# Triggers:
+#   - After scrape-fast completes (most frequent data update)
+#   - Daily at 7 AM UTC as a standalone refresh
+#   - Manual trigger
+#
+# Required secret:  ANTHROPIC_API_KEY
+on:
+  workflow_run:
+    workflows: ["Scrape — Fast (BidSpotter + HiBid)"]
+    types: [completed]
+  schedule:
+    - cron: "0 7 * * *"   # 7:00 AM UTC daily
+  workflow_dispatch:
+
+jobs:
+  curate:
+    # Only run if the triggering workflow succeeded (or if triggered directly)
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pull the latest data files committed by the scraper workflows
+      - name: Pull latest listings data
+        run: git pull --rebase origin ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Run AI curation worker
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python backend/workers/ai_curate.py
+
+      - name: Commit curated picks if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/data/scraped-curated.json
+          git diff --staged --quiet || git commit -m "chore: refresh AI curated picks [skip ci]"
+          git push

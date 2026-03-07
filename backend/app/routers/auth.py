@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.dependencies import get_db, require_current_user
 from app.models.user import User
-from app.schemas.user import Token, UserCreate, UserOut
+from app.schemas.user import Token, UserCreate, UserOut, UserUpdate
 
 router = APIRouter()
 
@@ -78,4 +78,19 @@ async def login(request: Request, body: UserCreate, db: AsyncSession = Depends(g
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user=Depends(require_current_user)):
     """Return the currently authenticated user."""
+    return current_user
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_me(
+    body: UserUpdate,
+    current_user=Depends(require_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update profile fields (display_name, avatar_url). All fields are optional."""
+    patch = body.model_dump(exclude_none=True)
+    for field, value in patch.items():
+        setattr(current_user, field, value)
+    await db.commit()
+    await db.refresh(current_user)
     return current_user
