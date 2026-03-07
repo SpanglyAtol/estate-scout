@@ -69,6 +69,7 @@ from scrapers.sources.proxibid import ProxibidScraper
 from scrapers.sources.onedibs import OneDibsScraper
 from scrapers.base import ScrapedListing
 from scrapers.geocoder import geocode_listings
+from scrapers.enricher import enrich, auto_categorize, CATEGORY_KEYWORDS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -204,80 +205,8 @@ def _is_relevant(listing: dict) -> bool:
     return True
 
 
-# ── Auto-categorization ───────────────────────────────────────────────────────
-# Maps our standard category slugs to keyword lists.
-# Keywords are matched (case-insensitive substring) against title + description.
-_CATEGORY_KEYWORDS: dict[str, list[str]] = {
-    "furniture": [
-        "furniture", "chair", "sofa", "couch", " table", "desk", "dresser",
-        "cabinet", "bookcase", "armchair", "ottoman", "sideboard", "credenza",
-        "wardrobe", "hutch", "buffet", "chest of drawers", "nightstand",
-        "headboard", "recliner", "loveseat", "chaise", "settee",
-    ],
-    "jewelry": [
-        "jewelry", "jewellery", " ring", "necklace", "bracelet", "earring",
-        "pendant", "diamond", "sapphire", "ruby", "emerald", "pearl",
-        "brooch", " watch", " chain", "locket", "cufflink", "gemstone",
-        "opal", "amethyst", "turquoise",
-    ],
-    "art": [
-        "painting", "watercolor", "lithograph", "etching", "sculpture",
-        " print", "artwork", "portrait", "canvas", "oil on", "gouache",
-        "pastel", "acrylic", "framed art",
-    ],
-    "ceramics": [
-        "ceramic", "pottery", "vase", "porcelain", "stoneware", "earthenware",
-        "majolica", "wedgwood", "meissen", "imari", "figurine", "platter",
-        "teapot", "gravy boat",
-    ],
-    "glass": [
-        " glass", "crystal", "stemware", "decanter", "art glass",
-        "blown glass", "pressed glass",
-    ],
-    "silver": [
-        "silver", "sterling", "silverware", "flatware", "candlestick",
-        "tea set", "coffee set", "epns",
-    ],
-    "collectibles": [
-        "collectible", "vintage", "antique", " coin", "stamp", "memorabilia",
-        "comic", "trading card", "baseball card", "sports card", "action figure",
-        "model train", "die-cast", "cast iron bank",
-    ],
-    "books": [
-        " book", "encyclopedia", "manuscript", "magazine", "library",
-        "first edition", "hardcover", "paperback",
-    ],
-    "clothing": [
-        "clothing", "apparel", " dress", "jacket", "coat", "handbag",
-        " purse", " shoes", "boots", "hat", "scarf", "fur coat",
-    ],
-    "tools": [
-        "tool", "drill", "lathe", " saw", "wrench", "workbench",
-        "grinder", "welder", "compressor", "router",
-    ],
-    "electronics": [
-        "camera", "laptop", "computer", "television", "stereo",
-        " audio", "speaker", "amplifier", "turntable",
-    ],
-    "toys": [
-        " toy", "lego", "board game", "puzzle", "train set", "teddy bear",
-    ],
-}
-
-
-def _auto_categorize(title: str, description: str | None) -> str | None:
-    """
-    Keyword-match a listing's title + description to a standard category slug.
-    Returns None if no category can be inferred.
-    """
-    text = (title or "").lower()
-    if description:
-        text += " " + description[:400].lower()
-    for category, keywords in _CATEGORY_KEYWORDS.items():
-        for kw in keywords:
-            if kw in text:
-                return category
-    return None
+# _CATEGORY_KEYWORDS and _auto_categorize have been replaced by enricher.py.
+# Import CATEGORY_KEYWORDS and auto_categorize from there if needed for reference.
 
 
 def _compute_status(scraped: ScrapedListing) -> str:
@@ -358,7 +287,22 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         item_type = "individual_item"
 
     # Use scraped category if present, otherwise auto-detect from title/description
-    category = scraped.category or _auto_categorize(scraped.title, scraped.description)
+    category = scraped.category or auto_categorize(scraped.title, scraped.description)
+
+    # Enrich with structured attributes (maker, brand, period, etc.)
+    # If the ScrapedListing was already enriched at scrape time, these fields
+    # will be set; otherwise we run enrichment here.
+    if not scraped.maker and not scraped.attributes:
+        enriched = enrich(scraped.title, scraped.description, category)
+    else:
+        enriched = {
+            "maker": scraped.maker,
+            "brand": scraped.brand,
+            "collaboration_brands": scraped.collaboration_brands,
+            "period": scraped.period,
+            "country_of_origin": scraped.country_of_origin,
+            "attributes": scraped.attributes,
+        }
 
     mock: dict = {
         "id": _listing_id_counter,
@@ -393,6 +337,13 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "longitude": scraped.longitude,
         "scraped_at": datetime.utcnow().isoformat(),
         "is_sponsored": False,
+        # ── Enriched structured fields ─────────────────────────────────────────
+        "maker": enriched.get("maker"),
+        "brand": enriched.get("brand"),
+        "collaboration_brands": enriched.get("collaboration_brands") or [],
+        "period": enriched.get("period"),
+        "country_of_origin": enriched.get("country_of_origin"),
+        "attributes": enriched.get("attributes") or {},
         "items": [
             {
                 "title": item.title,

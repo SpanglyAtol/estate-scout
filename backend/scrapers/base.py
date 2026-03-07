@@ -80,6 +80,19 @@ class ScrapedListing:
     # Individual lots / items within this auction (populated where available)
     items: list[ScrapedItem] = field(default_factory=list)
 
+    # ── Enriched structured attributes (populated by enricher.py) ─────────────
+    # maker / brand are indexed strings for fast filtering.
+    # collaboration_brands captures "Brand A x Brand B" style items.
+    # period captures era/style (e.g. "art_deco", "mid_century_modern").
+    # country_of_origin captures "Made in France" style signals.
+    # attributes is the flexible category-specific structured dict.
+    maker: str | None = None
+    brand: str | None = None
+    collaboration_brands: list[str] = field(default_factory=list)
+    period: str | None = None
+    country_of_origin: str | None = None
+    attributes: dict = field(default_factory=dict)
+
     # Raw payload for debugging / schema evolution
     raw_data: dict = field(default_factory=dict)
 

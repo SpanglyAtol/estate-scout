@@ -70,6 +70,18 @@ class Listing(Base):
     # Full-text search (populated via trigger or manual update)
     search_vector: Mapped[str | None] = mapped_column(TSVECTOR, nullable=True)
 
+    # ── Enriched structured fields (populated by enricher.py at ingest time) ──
+    # Indexed columns for the most-filtered attributes.
+    maker: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    brand: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
+    period: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    country_of_origin: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # collaboration_brands stored as a Postgres text array for containment queries
+    # e.g. WHERE 'supreme' = ANY(collaboration_brands)
+    collaboration_brands: Mapped[list[str]] = mapped_column(ARRAY(String(200)), default=list)
+    # Category-specific structured data — flexible schema, JSONB for GIN indexing
+    attributes: Mapped[dict] = mapped_column(JSONB, default=dict)
+
     # Raw scrape payload - schema flexible
     raw_data: Mapped[dict] = mapped_column(JSONB, default=dict)
 

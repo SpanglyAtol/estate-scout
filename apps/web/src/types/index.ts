@@ -24,6 +24,21 @@ export interface AuctionItem {
   external_url: string | null;
 }
 
+/**
+ * Category-specific structured attributes extracted at ingest time by enricher.py.
+ * Keys vary by category — always check for undefined before use.
+ *
+ * Watches: model, movement, case_material, case_size_mm, dial_color, complications[],
+ *          bracelet, has_box, has_papers, is_vintage, year_approx
+ * Jewelry: piece_type, metal, primary_stone, secondary_stones[], carat_weight, is_signed
+ * Ceramics: sub_type, style, piece_count, pattern_name, is_marked
+ * Silver: purity, sub_type, piece_count, pattern_name, weight_oz
+ * Art:    medium, is_signed, is_framed, subject, width_in, height_in, edition_number
+ * Furniture: style, material, piece_type, is_pair
+ * Coins: grade, grading_service, denomination, metal, year
+ */
+export type ListingAttributes = Record<string, string | number | boolean | string[] | undefined>;
+
 export interface Listing {
   id: number;
   platform: Platform;
@@ -59,6 +74,19 @@ export interface Listing {
   distance_miles?: number;
   is_sponsored?: boolean;
   items?: AuctionItem[];
+  // ── Enriched structured fields ──────────────────────────────────────────────
+  /** Normalized maker/manufacturer slug, e.g. "rolex", "haviland", "gorham" */
+  maker?: string | null;
+  /** Normalized brand slug — same as maker for most items; differs for designer/licensed goods */
+  brand?: string | null;
+  /** Non-empty only for collaboration items, e.g. ["louis_vuitton", "supreme"] */
+  collaboration_brands?: string[];
+  /** Era/style period slug, e.g. "art_deco", "mid_century_modern", "victorian" */
+  period?: string | null;
+  /** Country of manufacture slug, e.g. "france", "england", "japan" */
+  country_of_origin?: string | null;
+  /** Category-specific structured data — see ListingAttributes JSDoc above */
+  attributes?: ListingAttributes;
 }
 
 export interface SearchFilters {
@@ -78,6 +106,17 @@ export interface SearchFilters {
   sort?: "ending_soon" | "price_asc" | "price_desc" | "newest";
   page?: number;
   page_size?: number;
+  // ── Enriched field filters ──────────────────────────────────────────────────
+  /** Filter by maker slug, e.g. "rolex", "wedgwood", "gorham" */
+  maker?: string;
+  /** Filter by brand slug */
+  brand?: string;
+  /** Filter by era/style period slug, e.g. "art_deco", "victorian" */
+  period?: string;
+  /** Filter by country of origin slug, e.g. "france", "england" */
+  country_of_origin?: string;
+  /** Filter to items that include this brand in a collaboration */
+  collaboration?: string;
 }
 
 export interface CompSale {
