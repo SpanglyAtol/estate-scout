@@ -30,7 +30,7 @@ function SafeImage({
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-300 text-8xl">
+      <div className="w-full h-full flex items-center justify-center text-antique-text-mute text-8xl">
         🏺
       </div>
     );
@@ -63,7 +63,7 @@ export function ListingImages({ primaryImageUrl, imageUrls, title }: ListingImag
   return (
     <div className="space-y-3">
       {/* Primary / selected image */}
-      <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden relative">
+      <div className="aspect-square bg-antique-muted rounded-2xl overflow-hidden relative border border-antique-border">
         {displaySrc ? (
           <SafeImage
             src={displaySrc}
@@ -72,7 +72,7 @@ export function ListingImages({ primaryImageUrl, imageUrls, title }: ListingImag
             priority={selectedIdx === 0}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 text-8xl">
+          <div className="w-full h-full flex items-center justify-center text-antique-text-mute text-8xl">
             🏺
           </div>
         )}
@@ -85,10 +85,10 @@ export function ListingImages({ primaryImageUrl, imageUrls, title }: ListingImag
             <button
               key={i}
               onClick={() => setSelectedIdx(i)}
-              className={`aspect-square bg-gray-100 rounded-lg overflow-hidden relative border-2 transition-colors ${
+              className={`aspect-square bg-antique-muted rounded-lg overflow-hidden relative border-2 transition-colors ${
                 selectedIdx === i
-                  ? "border-blue-500"
-                  : "border-transparent hover:border-gray-300"
+                  ? "border-antique-accent"
+                  : "border-transparent hover:border-antique-border"
               }`}
             >
               <SafeImage src={url} alt={`${title} photo ${i + 1}`} className="object-cover" />
