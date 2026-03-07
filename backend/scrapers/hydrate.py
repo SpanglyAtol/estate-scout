@@ -20,7 +20,8 @@ Options:
                             - Proxibid: 10 × ~20   = ~200 auction events
                             - 1stDibs: 3 pages × 6 queries = ~price reference data
   --out PATH              Output JSON path (default: apps/web/src/data/scraped-listings.json)
-  --targets ms,bs,hi,es   Comma-separated scrapers (default: ms,bs,hi,es)
+  --national              Shortcut: all public scrapers, state="" (national)
+  --targets bs,hi,es,ms  Comma-separated scrapers (default: bs,hi,es,ms)
                             ms=maxsold      – HTML scraper, WA only
                             bs=bidspotter   – JSON API, all US
                             hi=hibid        – GraphQL API, all US
@@ -522,14 +523,23 @@ def main():
     parser = argparse.ArgumentParser(
         description="Run Estate Scout scrapers and write real listing data to JSON."
     )
-    parser.add_argument("--state",     default="WA",       help="State to scrape for state-filtered scrapers (default: WA)")
+    parser.add_argument("--state",     default="",
+                        help="State for state-filtered scrapers (default: '' = national mode)")
     parser.add_argument("--city",      default="",         help="City to filter (optional)")
-    parser.add_argument("--max-pages", type=int, default=17, help="Pages per scraper (default: 17; 17×60=1020 BidSpotter listings)")
-    parser.add_argument("--targets",   default="ms,bs,hi,es",
-                        help="Comma-separated scrapers: la,es,hi,ms,bs,eb,pb,1d (default: ms,bs,hi,es)")
+    parser.add_argument("--max-pages", type=int, default=17,
+                        help="Pages per scraper (default: 17; 17×60=~1020 BidSpotter listings)")
+    parser.add_argument("--national",  action="store_true",
+                        help="Shortcut: run all national scrapers (bs,hi,es,ms,eb,pb) with state=''")
+    parser.add_argument("--targets",   default="bs,hi,es,ms",
+                        help="Comma-separated scrapers: la,es,hi,ms,bs,eb,pb,1d (default: bs,hi,es,ms)")
     parser.add_argument("--out",       default=str(DEFAULT_OUT),
                         help=f"Output JSON path (default: {DEFAULT_OUT})")
     args = parser.parse_args()
+
+    # --national shortcut: all public scrapers with no state filter
+    if args.national:
+        args.targets = "bs,hi,es,ms,eb,pb"
+        args.state = ""
 
     asyncio.run(hydrate(args))
 

@@ -22,6 +22,25 @@ from bs4 import BeautifulSoup
 from scrapers.base import BaseScraper, ScrapedItem, ScrapedListing
 
 
+# Major US metro coordinates for national coverage.
+# Each coordinate pair anchors a MaxSold geo-search with a 150 km radius.
+_US_METRO_COORDS = [
+    (47.6062,  -122.3321),   # Seattle, WA
+    (40.7128,   -74.0060),   # New York, NY
+    (34.0522,  -118.2437),   # Los Angeles, CA
+    (41.8781,   -87.6298),   # Chicago, IL
+    (29.7604,   -95.3698),   # Houston, TX
+    (39.9526,   -75.1652),   # Philadelphia, PA
+    (33.4484,  -112.0740),   # Phoenix, AZ
+    (32.7767,   -96.7970),   # Dallas, TX
+    (39.7392,  -104.9903),   # Denver, CO
+    (42.3601,   -71.0589),   # Boston, MA
+    (44.9778,   -93.2650),   # Minneapolis, MN
+    (33.7490,   -84.3880),   # Atlanta, GA
+    (25.7617,   -80.1918),   # Miami, FL
+]
+
+
 class MaxSoldScraper(BaseScraper):
     platform_slug = "maxsold"
     base_url = "https://maxsold.com"
@@ -37,16 +56,46 @@ class MaxSoldScraper(BaseScraper):
         """
         Yield ScrapedListings from MaxSold's homepage __NEXT_DATA__.
         MaxSold geo-locates by IP so we get regionally relevant results.
-        We try the main homepage and also pass lat/lng coords for WA if
-        a state filter is requested.
-        """
-        pages_to_try = [self.HOME_URL]
 
-        # Seattle-area coordinates as a fallback search anchor
-        if state.upper() in ("WA", ""):
-            pages_to_try.append(
-                "https://maxsold.com/?lat=47.6062&lng=-122.3321&radius=150000"
-            )
+        When state="" (national mode), cycles through 13 major US metros to
+        get broad geographic coverage.  When a specific state is requested,
+        only tries metro coordinates in or near that state.
+        """
+        # Build the list of geo-search URLs to try
+        if state.upper() == "":
+            # National mode: hit every metro coordinate for maximum coverage
+            pages_to_try = [
+                f"https://maxsold.com/?lat={lat}&lng={lng}&radius=150000"
+                for lat, lng in _US_METRO_COORDS
+            ]
+        else:
+            # State-specific mode: only use metros roughly matching that state
+            # Fall through to WA (Seattle) coords as default fallback
+            pages_to_try = [self.HOME_URL]
+            if state.upper() == "WA":
+                pages_to_try.append("https://maxsold.com/?lat=47.6062&lng=-122.3321&radius=150000")
+            elif state.upper() in ("NY", "NJ", "CT"):
+                pages_to_try.append("https://maxsold.com/?lat=40.7128&lng=-74.0060&radius=150000")
+            elif state.upper() in ("CA",):
+                pages_to_try.append("https://maxsold.com/?lat=34.0522&lng=-118.2437&radius=150000")
+            elif state.upper() in ("IL",):
+                pages_to_try.append("https://maxsold.com/?lat=41.8781&lng=-87.6298&radius=150000")
+            elif state.upper() in ("TX",):
+                pages_to_try.append("https://maxsold.com/?lat=29.7604&lng=-95.3698&radius=150000")
+            elif state.upper() in ("PA",):
+                pages_to_try.append("https://maxsold.com/?lat=39.9526&lng=-75.1652&radius=150000")
+            elif state.upper() in ("AZ",):
+                pages_to_try.append("https://maxsold.com/?lat=33.4484&lng=-112.0740&radius=150000")
+            elif state.upper() in ("CO",):
+                pages_to_try.append("https://maxsold.com/?lat=39.7392&lng=-104.9903&radius=150000")
+            elif state.upper() in ("MA",):
+                pages_to_try.append("https://maxsold.com/?lat=42.3601&lng=-71.0589&radius=150000")
+            elif state.upper() in ("MN",):
+                pages_to_try.append("https://maxsold.com/?lat=44.9778&lng=-93.2650&radius=150000")
+            elif state.upper() in ("GA",):
+                pages_to_try.append("https://maxsold.com/?lat=33.7490&lng=-84.3880&radius=150000")
+            elif state.upper() in ("FL",):
+                pages_to_try.append("https://maxsold.com/?lat=25.7617&lng=-80.1918&radius=150000")
 
         seen_ids: set = set()
 
