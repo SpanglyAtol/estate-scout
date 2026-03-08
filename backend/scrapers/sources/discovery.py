@@ -168,7 +168,7 @@ _SEED_SITES: dict[str, dict] = {
         "strong_signals": 5,
         "validated_at": "2026-01-01T00:00:00",
     },
-    "https://www.bruunrasmussen.dk": {
+    "https://www.treadwaygallery.com": {
         "url": "https://www.treadwaygallery.com",
         "name": "Treadway Gallery",
         "platform_type": "unknown",

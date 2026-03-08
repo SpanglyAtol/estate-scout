@@ -143,6 +143,238 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 }
 
 
+# ── Sub-category taxonomy ──────────────────────────────────────────────────────
+# Maps category slug → (sub_category_slug → keyword list).
+# Keywords are matched against the full lowercased title+description text.
+# Ordering within each category matters: first match wins, so more specific
+# sub-categories should appear before broader fallbacks.
+
+_SUB_CATEGORY_KEYWORDS: dict[str, dict[str, list[str]]] = {
+    "ceramics": {
+        "art_pottery":    ["rookwood", "roseville", "weller", "peters reed",
+                           "van briggle", "grueby", "newcomb college", "fulper",
+                           "marblehead pottery", "teco", "overbeck", "clewell",
+                           "american art pottery"],
+        "asian_ceramics": ["imari", "satsuma", "famille rose", "famille verte",
+                           "chinese export", "chinese porcelain", "japanese porcelain",
+                           "celadon", "canton", "nanking", "moriage"],
+        "majolica":       ["majolica", "palissy"],
+        "porcelain":      ["meissen", "sèvres", "sevres", "kpm berlin", "limoges",
+                           "haviland", "bone china", "royal worcester", "minton",
+                           "coalport", "royal crown derby"],
+        "stoneware":      ["stoneware", "salt glaze", "salt-glaze", "redware",
+                           "slip decorated", "jug", "crock", "churn"],
+        "transferware":   ["transferware", "flow blue", "blue and white transfer",
+                           "ironstone", "blue willow"],
+        "figurines":      ["figurine", "figure group", "bisque", "parian",
+                           "lladro", "hummel", "royal doulton figurine"],
+        "tableware":      ["tea set", "tea service", "dinner set", "dinner service",
+                           "dessert set", "service for", "plates and"],
+    },
+    "jewelry": {
+        "rings":       [" ring ", " rings ", "band ring", "solitaire", "signet ring",
+                        "cocktail ring", "wedding band", "engagement ring"],
+        "necklaces":   ["necklace", "strand necklace", "chain necklace",
+                        "lavaliere", "rivière", "riviere necklace"],
+        "bracelets":   ["bracelet", "bangle", "cuff bracelet", "tennis bracelet",
+                        "charm bracelet"],
+        "brooches":    ["brooch", "broach", " pin", "clip brooch", "fur clip",
+                        "dress clip", "chatelaine"],
+        "earrings":    ["earring", "ear clip", "ear screw", "ear stud",
+                        "drop earring", "chandelier earring"],
+        "pendants":    ["pendant", "locket", "lavalier", "drop pendant"],
+        "sets":        ["parure", "demi-parure", "suite", "set of jewelry",
+                        "matching set", "suite of"],
+        "cufflinks":   ["cufflink", "cuff links", "studs and cufflinks",
+                        "dress set"],
+    },
+    "art": {
+        "oil_painting":   ["oil on", "oil painting", "oil on canvas",
+                           "oil on board", "oil on panel"],
+        "watercolor":     ["watercolor", "watercolour", "gouache", "aquarelle"],
+        "prints_graphics": ["lithograph", "etching", "engraving", " print",
+                            "woodblock", "serigraph", "silkscreen", "aquatint",
+                            "mezzotint", "drypoint"],
+        "sculpture":      ["sculpture", "bronze sculpture", "marble sculpture",
+                           "terracotta sculpture", "carved figure", "carved wood"],
+        "folk_art":       ["folk art", "outsider art", "primitive art",
+                           "naive art", "self-taught"],
+        "photography":    ["photograph", "daguerreotype", "tintype", "albumen",
+                           "silver gelatin", "cyanotype"],
+        "pastel_drawing": ["pastel", "charcoal drawing", " drawing", " sketch",
+                           "pencil drawing", "chalk drawing"],
+    },
+    "silver": {
+        "flatware":      ["flatware", " spoon", " spoons", " fork", " forks",
+                          " knife", "place setting", "service for ", "carving set"],
+        "hollowware":    ["tea service", "tea set", "coffee service", "teapot",
+                          "coffee pot", "sugar bowl", "cream pitcher", "samovar",
+                          "cream and sugar"],
+        "candlesticks":  ["candlestick", "candelabra", "taper holder",
+                          "pair of candlesticks"],
+        "trays_salvers": [" tray", "salver", "card tray", "calling card tray",
+                          "waiter"],
+        "decorative":    ["silver bowl", "silver pitcher", "epergne",
+                          "silver basket", "trophy cup", "loving cup"],
+    },
+    "furniture": {
+        "seating":      ["chair", "sofa", "couch", "armchair", "ottoman",
+                         "settee", "loveseat", "recliner", "bench", "stool",
+                         "wingback", "bergère", "fauteuil", "chaise lounge"],
+        "tables":       [" table", "dining table", "coffee table", "side table",
+                         "end table", "console table", "pembroke", "drop-leaf",
+                         "extension table", "library table"],
+        "case_pieces":  ["dresser", "chest of drawers", "chest on chest",
+                         "cabinet", "bookcase", "highboy", "lowboy",
+                         "credenza", "sideboard", "buffet", "hutch", "wardrobe",
+                         "armoire", "vitrine", "secretary bookcase"],
+        "desks":        [" desk", "secretary desk", "bureau plat", "kneehole",
+                         "writing desk", "davenport desk"],
+        "mirrors":      ["mirror", "looking glass", "pier glass", "overmantel"],
+        "beds":         ["headboard", "bed frame", "canopy bed", "four-poster",
+                         "daybed"],
+    },
+    "glass": {
+        "art_glass":        ["art glass", "steuben", "lalique", "daum nancy",
+                             "daum glass", "gallé", "galle glass", "murano",
+                             "tiffany favrile", "studio glass", "loetz",
+                             "moser glass", "quezal", "aurene"],
+        "cut_crystal":      ["cut crystal", "waterford", "baccarat crystal",
+                             "brilliant cut glass", "cut glass bowl",
+                             "cut glass decanter"],
+        "depression_glass": ["depression glass", "elegant glass", "heisey",
+                             "cambridge glass", "fostoria", "imperial glass",
+                             "tiffin glass", "duncan miller"],
+        "pressed_glass":    ["pressed glass", "pattern glass", "milk glass",
+                             "vaseline glass", "uranium glass", "slag glass",
+                             "carnival glass"],
+        "blown_glass":      ["blown glass", "hand-blown", "art blown",
+                             "off-hand", "offhand glass"],
+    },
+    "coins": {
+        "us_coins":       ["morgan dollar", "peace dollar", "liberty dollar",
+                           "buffalo nickel", "mercury dime", "barber dime",
+                           "walking liberty", "franklin half", "kennedy half",
+                           "lincoln cent", "wheat cent", "indian head cent",
+                           "barber quarter", "seated liberty"],
+        "world_coins":    ["world coin", "foreign coin", "british coin",
+                           "gold franc", "thaler", "crown coin"],
+        "bullion":        ["bullion", "gold bar", "silver bar", "gold eagle coin",
+                           "silver eagle coin", "american gold eagle",
+                           "american silver eagle", "maple leaf coin",
+                           "krugerrand"],
+        "currency":       ["currency", "paper money", "banknote", "bank note",
+                           "obsolete currency", "confederate currency",
+                           "fractional currency"],
+        "medals_tokens":  ["medal", " token", "medallion", "military medal",
+                           "award medal", "challenge coin"],
+    },
+    "books": {
+        "first_editions":  ["first edition", "first printing", "1st edition",
+                            "first issue", "advance copy"],
+        "maps_prints":     [" map", "atlas", "antique map", "engraved map",
+                            "cartography", "chart of"],
+        "ephemera":        ["ephemera", "trade card", "advertising card",
+                            "broadside", "handbill", "sheet music"],
+        "illustrated":     ["illustrated", "color plate", "colour plate",
+                            "chromolithograph", "hand-colored", "hand coloured"],
+        "manuscripts":     ["manuscript", " autograph", "signed letter",
+                            "autograph letter", "als ", "als,", "document signed"],
+    },
+    "watches": {
+        "wristwatches":  ["wristwatch", "automatic watch", "mechanical watch",
+                          "quartz watch", "men's watch", "lady's watch",
+                          "dress watch", "sport watch"],
+        "pocket_watches": ["pocket watch", "railroad watch", "hunter case",
+                           "open face watch", "half hunter"],
+        "clocks":        ["mantel clock", "bracket clock", "wall clock",
+                          "grandfather clock", "longcase", "carriage clock",
+                          "anniversary clock", "cuckoo clock", "ship's clock"],
+    },
+    "collectibles": {
+        "advertising":    ["advertising sign", "tin sign", "advertising tin",
+                           "general store", "country store", "porcelain sign"],
+        "toys_games":     ["toy", "board game", "cast iron bank", "tin toy",
+                           "pressed steel", "tin lithograph", "cap gun"],
+        "sports":         ["sports memorabilia", "baseball memorabilia",
+                           "signed baseball", "signed jersey", "game used",
+                           "sports card", "baseball card"],
+        "militaria":      ["military", "wwi", "wwii", "civil war", "sword",
+                           "bayonet", "uniform", "insignia", "medal militaria"],
+        "americana":      ["americana", "patriotic", "political button",
+                           "campaign button", "flag", "folk carving"],
+        "holiday":        ["christmas ornament", "holiday ornament", "feather tree",
+                           "halloween", "german christmas", "early christmas"],
+    },
+    "clothing": {
+        "coats_furs":   ["fur coat", "mink coat", "fox fur", "shearling",
+                         " coat", "mink stole"],
+        "dresses":      [" dress", "gown", "evening gown", "ball gown",
+                         "tea gown", "beaded dress"],
+        "accessories":  ["handbag", " purse", " bag", "clutch", " hat",
+                         "scarf", "gloves", "belt"],
+        "shoes":        [" shoes", "boots", "pumps", "heels", "footwear"],
+        "designer":     ["chanel", "dior", "givenchy", "balenciaga", "gucci",
+                         "hermès", "hermes", "ysl", "saint laurent",
+                         "valentino", "versace", "couture"],
+    },
+    "tools": {
+        "hand_tools":  ["hand tool", "plane", "spokeshave", "drawknife",
+                        "marking gauge", "brace and bit", "hand drill",
+                        "chisel", "mallet", "hand saw"],
+        "measuring":   ["measuring", "level", "transit", "surveying",
+                        "micrometer", "calipers", "vernier"],
+        "power_tools": ["power tool", "electric drill", "router", "grinder",
+                        "belt sander", "band saw", "table saw"],
+    },
+    "electronics": {
+        "radios":    ["radio", "tube radio", "cathedral radio", "console radio",
+                     "transistor radio", "vintage radio"],
+        "cameras":   ["camera", "leica", "rolleiflex", "hasselblad",
+                     "vintage camera", "film camera", "view camera"],
+        "audio":     ["amplifier", "turntable", "record player", "reel to reel",
+                     "tube amplifier", "hi-fi", "hifi", "stereo receiver"],
+        "scientific": ["oscilloscope", "voltmeter", "signal generator",
+                      "scientific instrument", "vacuum tube"],
+    },
+    "toys": {
+        "cast_iron":    ["cast iron", "cast-iron toy", "cast iron horse",
+                         "cast iron bank", "cast iron vehicle"],
+        "tin_toys":     ["tin toy", "tin lithograph", "tin automobile",
+                         "clockwork toy", "wind-up toy", "tin robot"],
+        "dolls":        ["doll", "bisque doll", "china doll", "cloth doll",
+                         "composition doll", "celluloid doll"],
+        "trains":       ["train set", "model train", "lionel", "american flyer",
+                         "gauge train", "tin train"],
+        "games":        ["board game", "card game", "puzzle", "jigsaw",
+                         "game board", "antique game"],
+    },
+    "furniture_lighting": {
+        "lamps":     ["lamp", "table lamp", "floor lamp", "art nouveau lamp",
+                      "leaded glass lamp", "slag glass lamp"],
+        "chandeliers": ["chandelier", "hanging light", "pendant light",
+                        "gas chandelier"],
+        "sconces":   ["sconce", "wall sconce", "candle sconce", "wall bracket"],
+    },
+}
+
+
+def _extract_sub_category(category: str, text: str) -> str | None:
+    """
+    Return the most specific sub-category slug for a listing given its main
+    category and the lowercased title+description text.
+    Returns None if no sub-category keyword matches.
+    """
+    sub_map = _SUB_CATEGORY_KEYWORDS.get(category)
+    if not sub_map:
+        return None
+    for sub_slug, keywords in sub_map.items():
+        for kw in keywords:
+            if kw in text:
+                return sub_slug
+    return None
+
+
 # ── Watch brands ───────────────────────────────────────────────────────────────
 # Ordered from most specific/prestigious to most generic.
 # Keys become the normalized maker slug.
@@ -1168,6 +1400,7 @@ def enrich(
         "collaboration_brands": [],
         "period": None,
         "country_of_origin": None,
+        "sub_category": None,
         "attributes": {},
     }
 
@@ -1175,6 +1408,8 @@ def enrich(
     result["period"] = _extract_period(text)
     result["country_of_origin"] = _extract_country(text)
     result["collaboration_brands"] = _extract_collaboration(text)
+    if category:
+        result["sub_category"] = _extract_sub_category(category, text)
 
     attrs: dict[str, Any] = {}
 
