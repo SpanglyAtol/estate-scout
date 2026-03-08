@@ -33,6 +33,7 @@ Options:
                             et=ebth         – Everything But The House estate items
                             iv=invaluable   – Invaluable auction aggregator
                             az=auctionzip   – AuctionZip local auctioneer directory
+                            dc=discovery    – regional/local sites (Handbid, AuctionFlex, NAA directory, DDG search)
 
 Notes:
   - LiveAuctioneers now uses a 3-layer fallback (JSON API → HTML → sitemap).
@@ -73,6 +74,7 @@ from scrapers.sources.onedibs import OneDibsScraper
 from scrapers.sources.ebth import EbthScraper
 from scrapers.sources.invaluable import InvaluableScraper
 from scrapers.sources.auctionzip import AuctionZipScraper
+from scrapers.sources.discovery import DiscoveryScraper
 from scrapers.base import ScrapedListing
 from scrapers.geocoder import geocode_listings
 from scrapers.enricher import enrich, auto_categorize, CATEGORY_KEYWORDS
@@ -167,7 +169,50 @@ PLATFORM_META = {
         "base_url": "https://www.auctionzip.com",
         "logo_url": None,
     },
+    "discovery": {
+        "id": 12,
+        "name": "discovery",
+        "display_name": "Regional Auction (Discovered)",
+        "base_url": "",
+        "logo_url": None,
+    },
 }
+
+
+def _get_platform_meta(platform_slug: str, site_url: str = "") -> dict:
+    """
+    Resolve platform metadata for a given slug.
+
+    Known platforms return their static PLATFORM_META entry.
+    Dynamically discovered sites (platform_slug starts with 'discovery_')
+    have their metadata constructed on the fly from the slug so the frontend
+    always has a valid display_name / base_url.
+    """
+    if platform_slug in PLATFORM_META:
+        return PLATFORM_META[platform_slug]
+    if platform_slug.startswith("discovery_"):
+        # discovery_grafeauction_com → "Grafeauction Com"
+        domain_label = (
+            platform_slug
+            .replace("discovery_", "", 1)
+            .replace("_", " ")
+            .replace("-", " ")
+            .title()
+        )
+        return {
+            "id": abs(hash(platform_slug)) % 9000 + 1000,
+            "name": platform_slug,
+            "display_name": domain_label,
+            "base_url": site_url or "",
+            "logo_url": None,
+        }
+    return {
+        "id": 99,
+        "name": platform_slug,
+        "display_name": platform_slug,
+        "base_url": "",
+        "logo_url": None,
+    }
 
 _listing_id_counter = 1
 
@@ -268,13 +313,7 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
             return value.isoformat()
         return str(value)
 
-    platform = PLATFORM_META.get(scraped.platform_slug, {
-        "id": 99,
-        "name": scraped.platform_slug,
-        "display_name": scraped.platform_slug,
-        "base_url": "",
-        "logo_url": None,
-    })
+    platform = _get_platform_meta(scraped.platform_slug, scraped.external_url)
 
     price = scraped.current_price
     premium_pct = scraped.buyers_premium_pct
@@ -439,11 +478,12 @@ async def hydrate(args):
         "et": (EbthScraper,              {}),                  # EBTH estate sale items
         "iv": (InvaluableScraper,        {}),                  # Invaluable auction aggregator
         "az": (AuctionZipScraper,        {}),                  # AuctionZip local auctioneer directory
+        "dc": (DiscoveryScraper,         {}),                  # discovery: regional/local auction sites
     }
 
     chosen = [t.strip() for t in args.targets.split(",") if t.strip() in target_map]
     if not chosen:
-        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d,et,iv,az")
+        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d,et,iv,az,dc")
         sys.exit(1)
 
     # ── Parallel execution ────────────────────────────────────────────────────
@@ -519,7 +559,7 @@ def main():
 
     # --national shortcut: all public scrapers with no state filter
     if args.national:
-        args.targets = "bs,hi,es,ms,eb,pb,et,iv,az"
+        args.targets = "bs,hi,es,ms,eb,pb,et,iv,az,dc"
         args.state = ""
 
     asyncio.run(hydrate(args))
