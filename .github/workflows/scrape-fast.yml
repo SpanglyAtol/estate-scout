@@ -24,9 +24,11 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli
+        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
       - name: Scrape BidSpotter + HiBid (all US, 17 pages each)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python backend/scrapers/hydrate.py \
             --targets bs,hi \

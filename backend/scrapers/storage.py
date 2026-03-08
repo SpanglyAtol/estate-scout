@@ -30,11 +30,30 @@ class ScraperStorage:
             success = True
         return success
 
-    async def _upsert_to_db(self, listing: ScrapedListing) -> bool:
+    async def batch_upsert(self, listings: list[ScrapedListing]) -> int:
+        """
+        Upsert a batch of listings with a single commit at the end.
+        Much faster than calling upsert() per-record over a remote connection.
+        Returns count of successfully staged records.
+        """
+        if not self.db or not listings:
+            return 0
+        ok = 0
+        for listing in listings:
+            if await self._upsert_to_db(listing, commit=False):
+                ok += 1
+        try:
+            await self.db.commit()
+        except Exception as e:
+            logger.error(f"Batch commit failed: {e}")
+            await self.db.rollback()
+            return 0
+        return ok
+
+    async def _upsert_to_db(self, listing: ScrapedListing, commit: bool = True) -> bool:
         from sqlalchemy import text
 
         try:
-            # Look up platform ID
             result = await self.db.execute(
                 text("SELECT id FROM platforms WHERE name = :slug"),
                 {"slug": listing.platform_slug},
@@ -53,7 +72,9 @@ class ScraperStorage:
                         pickup_only, ships_nationally, shipping_estimate,
                         city, state, zip_code, country, latitude, longitude,
                         sale_starts_at, sale_ends_at,
-                        primary_image_url, image_urls, raw_data
+                        primary_image_url, image_urls,
+                        maker, brand, collaboration_brands, period, country_of_origin,
+                        attributes, raw_data
                     ) VALUES (
                         :platform_id, :external_id, :external_url, :title, :description,
                         :category, :condition, :current_price, :start_price, :buy_now_price,
@@ -61,7 +82,9 @@ class ScraperStorage:
                         :pickup_only, :ships_nationally, :shipping_estimate,
                         :city, :state, :zip_code, :country, :latitude, :longitude,
                         :sale_starts_at, :sale_ends_at,
-                        :primary_image_url, :image_urls, :raw_data
+                        :primary_image_url, :image_urls,
+                        :maker, :brand, :collaboration_brands, :period, :country_of_origin,
+                        CAST(:attributes AS jsonb), CAST(:raw_data AS jsonb)
                     )
                     ON CONFLICT (platform_id, external_id)
                     DO UPDATE SET
@@ -73,6 +96,12 @@ class ScraperStorage:
                         sale_ends_at = EXCLUDED.sale_ends_at,
                         primary_image_url = EXCLUDED.primary_image_url,
                         image_urls = EXCLUDED.image_urls,
+                        maker = EXCLUDED.maker,
+                        brand = EXCLUDED.brand,
+                        collaboration_brands = EXCLUDED.collaboration_brands,
+                        period = EXCLUDED.period,
+                        country_of_origin = EXCLUDED.country_of_origin,
+                        attributes = EXCLUDED.attributes,
                         raw_data = EXCLUDED.raw_data,
                         updated_at = NOW()
                 """),
@@ -104,10 +133,17 @@ class ScraperStorage:
                     "sale_ends_at": listing.sale_ends_at,
                     "primary_image_url": listing.primary_image_url,
                     "image_urls": listing.image_urls,
-                    "raw_data": json.dumps(listing.raw_data),
+                    "maker": listing.maker,
+                    "brand": listing.brand,
+                    "collaboration_brands": listing.collaboration_brands or [],
+                    "period": listing.period,
+                    "country_of_origin": listing.country_of_origin,
+                    "attributes": json.dumps(listing.attributes or {}),
+                    "raw_data": json.dumps(listing.raw_data or {}),
                 },
             )
-            await self.db.commit()
+            if commit:
+                await self.db.commit()
             return True
         except Exception as e:
             logger.error(f"DB upsert failed for {listing.platform_slug}/{listing.external_id}: {e}")
@@ -116,7 +152,6 @@ class ScraperStorage:
 
     def _append_to_jsonl(self, listing: ScrapedListing):
         record = asdict(listing)
-        # Convert datetimes to ISO strings for JSON serialization
         for key in ("sale_starts_at", "sale_ends_at"):
             if isinstance(record.get(key), datetime):
                 record[key] = record[key].isoformat()

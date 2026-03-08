@@ -45,6 +45,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from dataclasses import asdict
 from datetime import datetime, date
@@ -370,6 +371,16 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
             "attributes": scraped.attributes,
         }
 
+    # Write enrichment + category back onto the ScrapedListing so the DB write
+    # (which works from the raw object) gets the fully-enriched version.
+    scraped.category = category
+    scraped.maker = enriched.get("maker") or scraped.maker
+    scraped.brand = enriched.get("brand") or scraped.brand
+    scraped.period = enriched.get("period") or scraped.period
+    scraped.country_of_origin = enriched.get("country_of_origin") or scraped.country_of_origin
+    scraped.collaboration_brands = enriched.get("collaboration_brands") or scraped.collaboration_brands or []
+    scraped.attributes = enriched.get("attributes") or scraped.attributes or {}
+
     mock: dict = {
         "id": _listing_id_counter,
         "platform": platform,
@@ -432,18 +443,20 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
     return mock
 
 
-async def run_scraper(scraper_cls, rate_limiter, max_pages: int, **kwargs) -> list[dict]:
-    """Run one scraper and return a list of MockListing dicts."""
+async def run_scraper(scraper_cls, rate_limiter, max_pages: int, **kwargs) -> tuple[list[ScrapedListing], list[dict]]:
+    """Run one scraper; returns (raw ScrapedListing objects, MockListing dicts)."""
+    raw: list[ScrapedListing] = []
     results: list[dict] = []
     scraper = scraper_cls(rate_limiter=rate_limiter)
     try:
         async with scraper:
             async for listing in scraper.scrape_listings(max_pages=max_pages, **kwargs):
                 if listing.title and listing.external_url:
-                    results.append(_to_mock_listing(listing))
+                    raw.append(listing)
+                    results.append(_to_mock_listing(listing))  # also enriches listing in-place
     except Exception as exc:
         logger.warning(f"{scraper_cls.__name__} failed: {exc}")
-    return results
+    return raw, results
 
 
 async def run_scraper_with_label(
@@ -451,14 +464,41 @@ async def run_scraper_with_label(
     rate_limiter: TokenBucketRateLimiter,
     max_pages: int,
     **kwargs,
-) -> tuple[str, list[dict]]:
-    """Run one scraper concurrently; returns (label, results)."""
+) -> tuple[str, list[ScrapedListing], list[dict]]:
+    """Run one scraper concurrently; returns (label, raw listings, dicts)."""
     label = scraper_cls.__name__.replace("Scraper", "")
     logger.info(f"▶ Starting {label} …")
-    results = await run_scraper(scraper_cls, rate_limiter, max_pages, **kwargs)
+    raw, results = await run_scraper(scraper_cls, rate_limiter, max_pages, **kwargs)
     icon = "✓" if results else "✗"
     logger.info(f"  {icon} {label}: {len(results)} listings")
-    return label, results
+    return label, raw, results
+
+
+async def _write_to_db(database_url: str, listings: list[ScrapedListing]) -> None:
+    """Batch-upsert scraped listings into Supabase / PostgreSQL."""
+    try:
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+        from sqlalchemy.pool import NullPool
+        from scrapers.storage import ScraperStorage
+    except ImportError:
+        logger.warning("DB deps not installed (asyncpg/sqlalchemy) — skipping DB write")
+        return
+
+    connect_args: dict = {}
+    if "supabase.co" in database_url:
+        connect_args["ssl"] = "require"
+
+    engine = create_async_engine(database_url, connect_args=connect_args, poolclass=NullPool)
+    SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with SessionLocal() as session:
+            storage = ScraperStorage(db_session=session)
+            ok = await storage.batch_upsert(listings)
+            logger.info(f"DB: upserted {ok}/{len(listings)} listings → Supabase")
+    except Exception as e:
+        logger.error(f"DB write failed: {e}")
+    finally:
+        await engine.dispose()
 
 
 async def hydrate(args):
@@ -504,12 +544,14 @@ async def hydrate(args):
     ]
 
     # Return results as they finish (gather preserves task order)
-    reports: list[tuple[str, list[dict]]] = await asyncio.gather(*tasks)
+    reports: list[tuple[str, list[ScrapedListing], list[dict]]] = await asyncio.gather(*tasks)
 
+    all_raw: list[ScrapedListing] = []
     all_listings: list[dict] = []
     summary: list[str] = []
-    for label, results in reports:
+    for label, raw, results in reports:
         count = len(results)
+        all_raw.extend(raw)
         all_listings.extend(results)
         icon = "✓" if count > 0 else "✗"
         summary.append(f"  {icon}  {label}: {count} listings")
@@ -524,6 +566,13 @@ async def hydrate(args):
     filtered_out = before_filter - len(all_listings)
     if filtered_out:
         logger.info(f"Relevance filter: removed {filtered_out} off-topic/non-US listings")
+
+    # Write to Supabase if DATABASE_URL is configured
+    database_url = os.environ.get("DATABASE_URL", "")
+    if database_url:
+        await _write_to_db(database_url, all_raw)
+    else:
+        logger.info("DATABASE_URL not set — skipping DB write (JSON only)")
 
     # Write output
     out_path = Path(args.out)

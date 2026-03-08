@@ -25,9 +25,11 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli
+        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
       - name: Run national hydration (BidSpotter + HiBid + EstateSales + MaxSold + Proxibid)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python backend/scrapers/hydrate.py --national --max-pages 17
 
       - name: Commit if changed
