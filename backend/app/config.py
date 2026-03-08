@@ -46,8 +46,9 @@ class Settings(BaseSettings):
     stripe_pro_price_id: str = ""   # e.g. price_1Abc123...
     web_url: str = "http://localhost:3000"  # used for Stripe redirect URLs
 
-    # Email (optional)
-    sendgrid_api_key: str = ""
+    # Email (optional) — configure either Resend or SendGrid
+    resend_api_key: str = ""        # preferred: https://resend.com
+    sendgrid_api_key: str = ""      # fallback: https://sendgrid.com
     from_email: str = "noreply@estatescout.app"
 
     # Admin (optional — leave blank to disable admin endpoints)
