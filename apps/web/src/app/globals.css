@@ -91,6 +91,14 @@ h1, h2, h3, h4, h5, h6,
     text-wrap: balance;
   }
 
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .antique-card {
     background-color: var(--bg-surface);
     border: 1px solid var(--border);

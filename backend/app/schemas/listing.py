@@ -38,6 +38,13 @@ class ListingOut(BaseModel):
     primary_image_url: str | None
     image_urls: list[str]
     scraped_at: datetime
+    # Enriched structured fields (populated by enricher.py at ingest time)
+    maker: str | None = None
+    brand: str | None = None
+    period: str | None = None
+    country_of_origin: str | None = None
+    sub_category: str | None = None
+    attributes: dict = Field(default_factory=dict)
     # computed
     distance_miles: float | None = None
     is_sponsored: bool = False

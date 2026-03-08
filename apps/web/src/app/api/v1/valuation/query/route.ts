@@ -1,86 +1,150 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
+import {
+  parseQuery,
+  computePriceStats,
+  getConfidenceLevel,
+  buildSpreadBuckets,
+  type ParsedQuery,
+} from "@/lib/query-parser";
+import type { MockListing } from "@/app/api/v1/_mock-data";
 
-// Stop words to filter from keyword extraction — avoids matching on
-// common descriptors that appear in almost every listing
-const STOP_WORDS = new Set([
-  "the", "and", "for", "with", "this", "that", "from", "circa", "piece",
-  "item", "very", "good", "fine", "rare", "nice", "old", "new", "set",
-  "pair", "lot", "one", "two", "has", "not", "are", "was", "its", "all",
-  "any", "our", "can", "but", "have", "been", "some", "made", "will",
-  "signed", "original", "antique", "vintage", "estate", "auction", "sale",
-  "condition", "excellent", "mint", "used", "marks", "marked", "base",
-  "height", "inches", "diameter", "width", "length", "weight", "grams",
-]);
+// ── Scoring weights ────────────────────────────────────────────────────────────
+const POINTS = {
+  EXACT_MAKER_MATCH:   20,
+  CATEGORY_MATCH:       5,
+  PERIOD_MATCH:         3,
+  KEYWORD_IN_TITLE:     2,
+  KEYWORD_IN_DESC:      1,
+  KEYWORD_IN_CATEGORY:  1,
+} as const;
 
-function extractKeywords(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+interface ScoredListing {
+  listing: MockListing;
+  score: number;
+  makerMatched: boolean;
+}
+
+function scoreListing(listing: MockListing, parsed: ParsedQuery): ScoredListing | null {
+  let score = 0;
+  const title = (listing.title ?? "").toLowerCase();
+  const desc  = (listing.description ?? "").toLowerCase();
+  const cat   = (listing.category ?? "").toLowerCase();
+  const lx    = listing as unknown as Record<string, unknown>;
+
+  let makerMatched = false;
+  if (parsed.makerSlug) {
+    const lMaker = ((lx.maker as string) ?? "").toLowerCase();
+    const lBrand = ((lx.brand as string) ?? "").toLowerCase();
+    if (lMaker === parsed.makerSlug || lBrand === parsed.makerSlug) {
+      score += POINTS.EXACT_MAKER_MATCH;
+      makerMatched = true;
+    } else if (!parsed.keywords.some((kw) => title.includes(kw))) {
+      // Maker specified but not present in title either — hard exclude
+      return null;
+    }
+  }
+
+  if (parsed.category && cat === parsed.category) score += POINTS.CATEGORY_MATCH;
+  if (parsed.period && (lx.period as string ?? "") === parsed.period) score += POINTS.PERIOD_MATCH;
+
+  for (const kw of parsed.keywords) {
+    if (title.includes(kw)) score += POINTS.KEYWORD_IN_TITLE;
+    if (desc.includes(kw))  score += POINTS.KEYWORD_IN_DESC;
+    if (cat.includes(kw))   score += POINTS.KEYWORD_IN_CATEGORY;
+  }
+
+  if (score === 0) return null;
+  return { listing, score, makerMatched };
+}
+
+function buildNarrative(
+  queryText: string,
+  parsed: ParsedQuery,
+  compCount: number,
+  confidenceLevel: string,
+  confidenceReason: string,
+  low: number, mid: number, high: number,
+): string {
+  if (compCount === 0) {
+    const tip = parsed.clarifyingPrompts.length > 0
+      ? `\n\nTry adding more detail: ${parsed.clarifyingPrompts[0].toLowerCase()}.`
+      : "";
+    return `No close matches found for **${queryText}** in our current database. This may be a specialty item or a category we haven't indexed yet.${tip}\n\nFor the most accurate valuation, check completed auctions on LiveAuctioneers, Heritage Auctions, or Invaluable.`;
+  }
+  const ctx = parsed.makerLabel
+    ? ` from ${parsed.makerLabel}`
+    : parsed.category ? ` in the ${parsed.category.replace(/_/g, " ")} category` : "";
+  const conf =
+    confidenceLevel === "high"   ? "The results are consistent — this is a reliable estimate." :
+    confidenceLevel === "medium" ? "Prices vary somewhat — condition and specific details matter." :
+    `**Significant price variation** in these results. ${confidenceReason}`;
+  return [
+    `Based on **${compCount}** comparable listing${compCount > 1 ? "s" : ""}${ctx}, prices range from **$${low.toLocaleString()}** to **$${high.toLocaleString()}**, with a median around **$${mid.toLocaleString()}**.`,
+    `\n\n${conf}`,
+    `\n\nBuyers' premiums (typically 15–25%), condition, and provenance affect final realized prices. Click any comparable to view the original listing.`,
+  ].join("");
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const queryText: string = body.query_text ?? "";
+  const queryText: string = (body.query_text ?? "").trim();
+  if (!queryText) return NextResponse.json({ error: "query_text is required" }, { status: 400 });
 
-  const keywords = extractKeywords(queryText);
-  const listings = getListings();
-  // If hydrate.py has been run we'll have many more than 24 mock items
-  const usingRealData = listings.length > 24;
+  const parsed = parseQuery(queryText);
+  const allListings = getListings();
 
-  // Score each listing by how many query keywords appear in its searchable text
-  const scored = listings
-    .map((l) => {
-      const haystack = [l.title, l.category ?? "", l.description ?? ""]
-        .join(" ")
-        .toLowerCase();
-      const score = keywords.reduce(
-        (acc, kw) => acc + (haystack.includes(kw) ? 1 : 0),
-        0
-      );
-      return { score, listing: l };
+  const scored: ScoredListing[] = [];
+  for (const listing of allListings) {
+    const r = scoreListing(listing, parsed);
+    if (r) scored.push(r);
+  }
+  scored.sort((a, b) => b.score - a.score);
+
+  const makerMatched = scored.filter((s) => s.makerMatched);
+  const top = makerMatched.length >= 2 ? makerMatched.slice(0, 8) : scored.slice(0, 6);
+
+  const comps = top
+    .map(({ listing: l, score }) => {
+      const lx = l as unknown as Record<string, unknown>;
+      const price = (l.final_price ?? l.current_price ?? (lx.total_cost_estimate as number) ?? 0);
+      return {
+        listing_id: l.id,
+        title: l.title,
+        final_price: price,
+        sale_date: l.sale_ends_at,
+        platform_display_name: l.platform.display_name,
+        external_url: l.external_url,
+        primary_image_url: l.primary_image_url,
+        condition: l.condition ?? null,
+        similarity_score: Math.min(1, score / Math.max(
+          POINTS.EXACT_MAKER_MATCH + POINTS.CATEGORY_MATCH + parsed.keywords.length * POINTS.KEYWORD_IN_TITLE, 1
+        )),
+      };
     })
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score);
+    .filter((c) => c.final_price > 0);
 
-  const top = scored.slice(0, 5);
+  const prices     = comps.map((c) => c.final_price);
+  const stats      = computePriceStats(prices);
+  const confidence = getConfidenceLevel(stats, parsed, comps.length);
+  const spread     = buildSpreadBuckets(prices);
 
-  const comps = top.map(({ listing: l, score }) => ({
-    listing_id: l.id,
-    title: l.title,
-    final_price: l.current_price ?? l.total_cost_estimate ?? 350,
-    sale_date: l.sale_ends_at,
-    platform_display_name: l.platform.display_name,
-    external_url: l.external_url,
-    primary_image_url: l.primary_image_url,
-    similarity_score: Math.min(1, score / Math.max(keywords.length, 1)),
-  }));
-
-  // Price range: ±20% band around the min/max of comparable prices
-  const prices = comps.map((c) => c.final_price).filter((p) => p > 0);
-  const low  = prices.length ? Math.round(Math.min(...prices) * 0.8) : 200;
-  const mid  = prices.length
-    ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
-    : 450;
-  const high = prices.length ? Math.round(Math.max(...prices) * 1.2) : 800;
-
-  const dataLabel = usingRealData
-    ? "current live listings across LiveAuctioneers, EstateSales.NET, HiBid, and MaxSold"
-    : "our current listing database";
-
-  const narrative =
-    comps.length > 0
-      ? `Based on **${comps.length}** comparable listing${comps.length > 1 ? "s" : ""} found in ${dataLabel}, **${queryText}** items are currently priced in the range of **$${low.toLocaleString()}–$${high.toLocaleString()}**, with an average around **$${mid.toLocaleString()}**.\n\nThe comparable listings below were scored by keyword similarity to your query. Condition, provenance, maker marks, and buyers' premiums significantly affect final realized prices. Click any comparable listing to view it directly on its source platform.`
-      : `We didn't find close matches for **${queryText}** in our current database. This may be a specialty item or category we haven't indexed yet. Estimated range: **$${low.toLocaleString()}–$${high.toLocaleString()}** based on broad category data.\n\nFor the most accurate valuation, check completed auctions on LiveAuctioneers, Heritage Auctions, or Invaluable — or consult a specialist appraiser.`;
+  const low  = stats ? Math.round(stats.trimmedLow)  : 0;
+  const mid  = stats ? Math.round(stats.trimmedMid)  : 0;
+  const high = stats ? Math.round(stats.trimmedHigh) : 0;
 
   return NextResponse.json({
-    query: queryText,
-    price_range: { low, mid, high, count: comps.length, currency: "USD" },
+    query:            queryText,
+    price_range:      { low: comps.length ? low : null, mid: comps.length ? mid : null, high: comps.length ? high : null, count: comps.length, currency: "USD" },
     comparable_sales: comps,
-    narrative,
-    data_source: comps.length > 0 ? "comps_only" : "no_data",
-    cached: false,
+    narrative:        buildNarrative(queryText, parsed, comps.length, confidence.level, confidence.reason, low, mid, high),
+    data_source:      comps.length > 0 ? "comps_only" : "no_data",
+    cached:           false,
+    confidence_level:   confidence.level,
+    confidence_reason:  confidence.reason,
+    price_spread:       spread,
+    clarifying_prompts: parsed.clarifyingPrompts,
+    detection_summary:  parsed.detectionSummary,
+    is_high_ambiguity:  parsed.isHighAmbiguity,
   });
 }

@@ -24,12 +24,16 @@ Options:
   --targets bs,hi,es,ms  Comma-separated scrapers (default: bs,hi,es,ms)
                             ms=maxsold      – HTML scraper, WA only
                             bs=bidspotter   – JSON API, all US
-                            hi=hibid        – GraphQL API, all US
+                            hi=hibid        – GraphQL API, all US (now with lot items)
                             es=estatesales  – JSON-LD, all US (~3/page)
                             la=liveauctioneers – 3-layer anti-403 strategy
                             eb=ebay         – sold listings price comps
                             pb=proxibid     – auction calendar events
                             1d=1stdibs      – premium antiques asking prices
+                            et=ebth         – Everything But The House estate items
+                            iv=invaluable   – Invaluable auction aggregator
+                            az=auctionzip   – AuctionZip local auctioneer directory
+                            dc=discovery    – regional/local sites (Handbid, AuctionFlex, NAA directory, DDG search)
 
 Notes:
   - LiveAuctioneers now uses a 3-layer fallback (JSON API → HTML → sitemap).
@@ -41,6 +45,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from dataclasses import asdict
 from datetime import datetime, date
@@ -67,8 +72,13 @@ from scrapers.sources.bidspotter import BidSpotterScraper
 from scrapers.sources.ebay import EbaySoldListingsScraper
 from scrapers.sources.proxibid import ProxibidScraper
 from scrapers.sources.onedibs import OneDibsScraper
+from scrapers.sources.ebth import EbthScraper
+from scrapers.sources.invaluable import InvaluableScraper
+from scrapers.sources.auctionzip import AuctionZipScraper
+from scrapers.sources.discovery import DiscoveryScraper
 from scrapers.base import ScrapedListing
 from scrapers.geocoder import geocode_listings
+from scrapers.enricher import enrich, auto_categorize, CATEGORY_KEYWORDS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -139,7 +149,71 @@ PLATFORM_META = {
         "base_url": "https://www.1stdibs.com",
         "logo_url": None,
     },
+    "ebth": {
+        "id": 9,
+        "name": "ebth",
+        "display_name": "EBTH",
+        "base_url": "https://www.ebth.com",
+        "logo_url": None,
+    },
+    "invaluable": {
+        "id": 10,
+        "name": "invaluable",
+        "display_name": "Invaluable",
+        "base_url": "https://www.invaluable.com",
+        "logo_url": None,
+    },
+    "auctionzip": {
+        "id": 11,
+        "name": "auctionzip",
+        "display_name": "AuctionZip",
+        "base_url": "https://www.auctionzip.com",
+        "logo_url": None,
+    },
+    "discovery": {
+        "id": 12,
+        "name": "discovery",
+        "display_name": "Regional Auction (Discovered)",
+        "base_url": "",
+        "logo_url": None,
+    },
 }
+
+
+def _get_platform_meta(platform_slug: str, site_url: str = "") -> dict:
+    """
+    Resolve platform metadata for a given slug.
+
+    Known platforms return their static PLATFORM_META entry.
+    Dynamically discovered sites (platform_slug starts with 'discovery_')
+    have their metadata constructed on the fly from the slug so the frontend
+    always has a valid display_name / base_url.
+    """
+    if platform_slug in PLATFORM_META:
+        return PLATFORM_META[platform_slug]
+    if platform_slug.startswith("discovery_"):
+        # discovery_grafeauction_com → "Grafeauction Com"
+        domain_label = (
+            platform_slug
+            .replace("discovery_", "", 1)
+            .replace("_", " ")
+            .replace("-", " ")
+            .title()
+        )
+        return {
+            "id": abs(hash(platform_slug)) % 9000 + 1000,
+            "name": platform_slug,
+            "display_name": domain_label,
+            "base_url": site_url or "",
+            "logo_url": None,
+        }
+    return {
+        "id": 99,
+        "name": platform_slug,
+        "display_name": platform_slug,
+        "base_url": "",
+        "logo_url": None,
+    }
 
 _listing_id_counter = 1
 
@@ -204,80 +278,8 @@ def _is_relevant(listing: dict) -> bool:
     return True
 
 
-# ── Auto-categorization ───────────────────────────────────────────────────────
-# Maps our standard category slugs to keyword lists.
-# Keywords are matched (case-insensitive substring) against title + description.
-_CATEGORY_KEYWORDS: dict[str, list[str]] = {
-    "furniture": [
-        "furniture", "chair", "sofa", "couch", " table", "desk", "dresser",
-        "cabinet", "bookcase", "armchair", "ottoman", "sideboard", "credenza",
-        "wardrobe", "hutch", "buffet", "chest of drawers", "nightstand",
-        "headboard", "recliner", "loveseat", "chaise", "settee",
-    ],
-    "jewelry": [
-        "jewelry", "jewellery", " ring", "necklace", "bracelet", "earring",
-        "pendant", "diamond", "sapphire", "ruby", "emerald", "pearl",
-        "brooch", " watch", " chain", "locket", "cufflink", "gemstone",
-        "opal", "amethyst", "turquoise",
-    ],
-    "art": [
-        "painting", "watercolor", "lithograph", "etching", "sculpture",
-        " print", "artwork", "portrait", "canvas", "oil on", "gouache",
-        "pastel", "acrylic", "framed art",
-    ],
-    "ceramics": [
-        "ceramic", "pottery", "vase", "porcelain", "stoneware", "earthenware",
-        "majolica", "wedgwood", "meissen", "imari", "figurine", "platter",
-        "teapot", "gravy boat",
-    ],
-    "glass": [
-        " glass", "crystal", "stemware", "decanter", "art glass",
-        "blown glass", "pressed glass",
-    ],
-    "silver": [
-        "silver", "sterling", "silverware", "flatware", "candlestick",
-        "tea set", "coffee set", "epns",
-    ],
-    "collectibles": [
-        "collectible", "vintage", "antique", " coin", "stamp", "memorabilia",
-        "comic", "trading card", "baseball card", "sports card", "action figure",
-        "model train", "die-cast", "cast iron bank",
-    ],
-    "books": [
-        " book", "encyclopedia", "manuscript", "magazine", "library",
-        "first edition", "hardcover", "paperback",
-    ],
-    "clothing": [
-        "clothing", "apparel", " dress", "jacket", "coat", "handbag",
-        " purse", " shoes", "boots", "hat", "scarf", "fur coat",
-    ],
-    "tools": [
-        "tool", "drill", "lathe", " saw", "wrench", "workbench",
-        "grinder", "welder", "compressor", "router",
-    ],
-    "electronics": [
-        "camera", "laptop", "computer", "television", "stereo",
-        " audio", "speaker", "amplifier", "turntable",
-    ],
-    "toys": [
-        " toy", "lego", "board game", "puzzle", "train set", "teddy bear",
-    ],
-}
-
-
-def _auto_categorize(title: str, description: str | None) -> str | None:
-    """
-    Keyword-match a listing's title + description to a standard category slug.
-    Returns None if no category can be inferred.
-    """
-    text = (title or "").lower()
-    if description:
-        text += " " + description[:400].lower()
-    for category, keywords in _CATEGORY_KEYWORDS.items():
-        for kw in keywords:
-            if kw in text:
-                return category
-    return None
+# _CATEGORY_KEYWORDS and _auto_categorize have been replaced by enricher.py.
+# Import CATEGORY_KEYWORDS and auto_categorize from there if needed for reference.
 
 
 def _compute_status(scraped: ScrapedListing) -> str:
@@ -312,13 +314,7 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
             return value.isoformat()
         return str(value)
 
-    platform = PLATFORM_META.get(scraped.platform_slug, {
-        "id": 99,
-        "name": scraped.platform_slug,
-        "display_name": scraped.platform_slug,
-        "base_url": "",
-        "logo_url": None,
-    })
+    platform = _get_platform_meta(scraped.platform_slug, scraped.external_url)
 
     price = scraped.current_price
     premium_pct = scraped.buyers_premium_pct
@@ -358,7 +354,32 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         item_type = "individual_item"
 
     # Use scraped category if present, otherwise auto-detect from title/description
-    category = scraped.category or _auto_categorize(scraped.title, scraped.description)
+    category = scraped.category or auto_categorize(scraped.title, scraped.description)
+
+    # Enrich with structured attributes (maker, brand, period, etc.)
+    # If the ScrapedListing was already enriched at scrape time, these fields
+    # will be set; otherwise we run enrichment here.
+    if not scraped.maker and not scraped.attributes:
+        enriched = enrich(scraped.title, scraped.description, category)
+    else:
+        enriched = {
+            "maker": scraped.maker,
+            "brand": scraped.brand,
+            "collaboration_brands": scraped.collaboration_brands,
+            "period": scraped.period,
+            "country_of_origin": scraped.country_of_origin,
+            "attributes": scraped.attributes,
+        }
+
+    # Write enrichment + category back onto the ScrapedListing so the DB write
+    # (which works from the raw object) gets the fully-enriched version.
+    scraped.category = category
+    scraped.maker = enriched.get("maker") or scraped.maker
+    scraped.brand = enriched.get("brand") or scraped.brand
+    scraped.period = enriched.get("period") or scraped.period
+    scraped.country_of_origin = enriched.get("country_of_origin") or scraped.country_of_origin
+    scraped.collaboration_brands = enriched.get("collaboration_brands") or scraped.collaboration_brands or []
+    scraped.attributes = enriched.get("attributes") or scraped.attributes or {}
 
     mock: dict = {
         "id": _listing_id_counter,
@@ -393,6 +414,14 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "longitude": scraped.longitude,
         "scraped_at": datetime.utcnow().isoformat(),
         "is_sponsored": False,
+        # ── Enriched structured fields ─────────────────────────────────────────
+        "maker": enriched.get("maker"),
+        "brand": enriched.get("brand"),
+        "collaboration_brands": enriched.get("collaboration_brands") or [],
+        "period": enriched.get("period"),
+        "country_of_origin": enriched.get("country_of_origin"),
+        "sub_category": enriched.get("sub_category"),
+        "attributes": enriched.get("attributes") or {},
         "items": [
             {
                 "title": item.title,
@@ -414,18 +443,20 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
     return mock
 
 
-async def run_scraper(scraper_cls, rate_limiter, max_pages: int, **kwargs) -> list[dict]:
-    """Run one scraper and return a list of MockListing dicts."""
+async def run_scraper(scraper_cls, rate_limiter, max_pages: int, **kwargs) -> tuple[list[ScrapedListing], list[dict]]:
+    """Run one scraper; returns (raw ScrapedListing objects, MockListing dicts)."""
+    raw: list[ScrapedListing] = []
     results: list[dict] = []
     scraper = scraper_cls(rate_limiter=rate_limiter)
     try:
         async with scraper:
             async for listing in scraper.scrape_listings(max_pages=max_pages, **kwargs):
                 if listing.title and listing.external_url:
-                    results.append(_to_mock_listing(listing))
+                    raw.append(listing)
+                    results.append(_to_mock_listing(listing))  # also enriches listing in-place
     except Exception as exc:
         logger.warning(f"{scraper_cls.__name__} failed: {exc}")
-    return results
+    return raw, results
 
 
 async def run_scraper_with_label(
@@ -433,14 +464,41 @@ async def run_scraper_with_label(
     rate_limiter: TokenBucketRateLimiter,
     max_pages: int,
     **kwargs,
-) -> tuple[str, list[dict]]:
-    """Run one scraper concurrently; returns (label, results)."""
+) -> tuple[str, list[ScrapedListing], list[dict]]:
+    """Run one scraper concurrently; returns (label, raw listings, dicts)."""
     label = scraper_cls.__name__.replace("Scraper", "")
     logger.info(f"▶ Starting {label} …")
-    results = await run_scraper(scraper_cls, rate_limiter, max_pages, **kwargs)
+    raw, results = await run_scraper(scraper_cls, rate_limiter, max_pages, **kwargs)
     icon = "✓" if results else "✗"
     logger.info(f"  {icon} {label}: {len(results)} listings")
-    return label, results
+    return label, raw, results
+
+
+async def _write_to_db(database_url: str, listings: list[ScrapedListing]) -> None:
+    """Batch-upsert scraped listings into Supabase / PostgreSQL."""
+    try:
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+        from sqlalchemy.pool import NullPool
+        from scrapers.storage import ScraperStorage
+    except ImportError:
+        logger.warning("DB deps not installed (asyncpg/sqlalchemy) — skipping DB write")
+        return
+
+    connect_args: dict = {}
+    if "supabase.co" in database_url:
+        connect_args["ssl"] = "require"
+
+    engine = create_async_engine(database_url, connect_args=connect_args, poolclass=NullPool)
+    SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with SessionLocal() as session:
+            storage = ScraperStorage(db_session=session)
+            ok = await storage.batch_upsert(listings)
+            logger.info(f"DB: upserted {ok}/{len(listings)} listings → Supabase")
+    except Exception as e:
+        logger.error(f"DB write failed: {e}")
+    finally:
+        await engine.dispose()
 
 
 async def hydrate(args):
@@ -458,11 +516,15 @@ async def hydrate(args):
         "eb": (EbaySoldListingsScraper,  {}),                  # eBay sold comps (all antique cats)
         "pb": (ProxibidScraper,          {"state": ""}),       # all US auction events
         "1d": (OneDibsScraper,           {}),                  # 1stDibs premium asking prices
+        "et": (EbthScraper,              {}),                  # EBTH estate sale items
+        "iv": (InvaluableScraper,        {}),                  # Invaluable auction aggregator
+        "az": (AuctionZipScraper,        {}),                  # AuctionZip local auctioneer directory
+        "dc": (DiscoveryScraper,         {}),                  # discovery: regional/local auction sites
     }
 
     chosen = [t.strip() for t in args.targets.split(",") if t.strip() in target_map]
     if not chosen:
-        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d")
+        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d,et,iv,az,dc")
         sys.exit(1)
 
     # ── Parallel execution ────────────────────────────────────────────────────
@@ -482,12 +544,14 @@ async def hydrate(args):
     ]
 
     # Return results as they finish (gather preserves task order)
-    reports: list[tuple[str, list[dict]]] = await asyncio.gather(*tasks)
+    reports: list[tuple[str, list[ScrapedListing], list[dict]]] = await asyncio.gather(*tasks)
 
+    all_raw: list[ScrapedListing] = []
     all_listings: list[dict] = []
     summary: list[str] = []
-    for label, results in reports:
+    for label, raw, results in reports:
         count = len(results)
+        all_raw.extend(raw)
         all_listings.extend(results)
         icon = "✓" if count > 0 else "✗"
         summary.append(f"  {icon}  {label}: {count} listings")
@@ -502,6 +566,13 @@ async def hydrate(args):
     filtered_out = before_filter - len(all_listings)
     if filtered_out:
         logger.info(f"Relevance filter: removed {filtered_out} off-topic/non-US listings")
+
+    # Write to Supabase if DATABASE_URL is configured
+    database_url = os.environ.get("DATABASE_URL", "")
+    if database_url:
+        await _write_to_db(database_url, all_raw)
+    else:
+        logger.info("DATABASE_URL not set — skipping DB write (JSON only)")
 
     # Write output
     out_path = Path(args.out)
@@ -538,7 +609,7 @@ def main():
 
     # --national shortcut: all public scrapers with no state filter
     if args.national:
-        args.targets = "bs,hi,es,ms,eb,pb"
+        args.targets = "bs,hi,es,ms,eb,pb,et,iv,az,dc"
         args.state = ""
 
     asyncio.run(hydrate(args))

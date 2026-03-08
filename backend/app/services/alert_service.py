@@ -26,72 +26,110 @@ logger = logging.getLogger(__name__)
 
 # ── Email sending ─────────────────────────────────────────────────────────────
 
+def _build_alert_html(alert_name: str, matches: list[dict]) -> tuple[str, str]:
+    """Return (subject, html) for an alert notification email."""
+    count = len(matches)
+    subject = f"Estate Scout: {count} new match{'es' if count != 1 else ''} for '{alert_name}'"
+
+    items_html = "\n".join(
+        f"""
+        <tr>
+          <td style="padding:10px 0; border-bottom:1px solid #DDD0B8;">
+            <a href="{m['url']}" style="color:#8B6914; font-weight:600; text-decoration:none; font-family:Georgia,serif;">
+              {m['title']}
+            </a><br>
+            <small style="color:#6B4F3A; font-size:12px;">
+              {m['platform']}
+              {' · <strong>${:,.0f}</strong>'.format(m['price']) if m['price'] else ' · No bids yet'}
+              {' · +{}% buyer&rsquo;s premium'.format(m['buyers_premium']) if m.get('buyers_premium') else ''}
+            </small>
+          </td>
+        </tr>
+        """
+        for m in matches[:5]
+    )
+
+    html = f"""
+    <div style="font-family:Georgia,serif; max-width:560px; margin:0 auto; background:#FDFAF4; padding:32px; border-radius:8px; color:#2C1810;">
+      <h2 style="margin:0 0 8px; color:#8B6914; font-size:22px; letter-spacing:0.02em;">
+        Estate Scout Alert
+      </h2>
+      <p style="margin:0 0 20px; color:#6B4F3A; font-size:14px; border-bottom:1px solid #DDD0B8; padding-bottom:16px;">
+        <strong>{alert_name}</strong> &mdash;
+        {count} new listing{'s' if count != 1 else ''} found
+      </p>
+      <table style="width:100%; border-collapse:collapse;">
+        {items_html}
+      </table>
+      <p style="margin:24px 0 0;">
+        <a href="https://estatescout.app/search?q={alert_name}"
+           style="display:inline-block; background:#8B6914; color:#FDFAF4; padding:12px 24px; border-radius:6px;
+                  text-decoration:none; font-weight:600; font-size:14px; letter-spacing:0.03em;">
+          View All Matches &rarr;
+        </a>
+      </p>
+      <p style="color:#9ca3af; font-size:11px; margin-top:32px; border-top:1px solid #DDD0B8; padding-top:16px;">
+        You&apos;re receiving this because you set up an alert on Estate Scout. &nbsp;
+        <a href="https://estatescout.app/saved" style="color:#8B6914;">Manage alerts</a>
+      </p>
+    </div>
+    """
+    return subject, html
+
+
 async def send_alert_email(
     to_email: str,
     alert_name: str,
     matches: list[dict],
 ) -> bool:
     """
-    Send alert notification via SendGrid.
-    Returns True on success, False if SendGrid is not configured or send fails.
+    Send alert notification email.
+    Tries Resend first (if configured), then falls back to SendGrid.
+    Returns True on success, False if neither provider is configured or send fails.
     """
-    if not settings.sendgrid_api_key:
-        logger.debug("SendGrid not configured — skipping alert email")
-        return False
+    subject, html = _build_alert_html(alert_name, matches)
 
-    try:
-        import sendgrid
-        from sendgrid.helpers.mail import Mail
+    # ── Resend (preferred) ────────────────────────────────────────────────────
+    if settings.resend_api_key:
+        try:
+            import resend  # type: ignore[import-untyped]
 
-        items_html = "\n".join(
-            f"""
-            <tr>
-              <td style="padding:8px 0; border-bottom:1px solid #eee;">
-                <a href="{m['url']}" style="color:#2563eb; font-weight:600; text-decoration:none;">
-                  {m['title']}
-                </a><br>
-                <small style="color:#6b7280;">
-                  {m['platform']} · {'${:,.0f}'.format(m['price']) if m['price'] else 'No bids'}
-                  {' · +{}% BP'.format(m['buyers_premium']) if m.get('buyers_premium') else ''}
-                </small>
-              </td>
-            </tr>
-            """
-            for m in matches[:5]  # cap at 5 listings per email
-        )
+            resend.api_key = settings.resend_api_key
+            params: resend.Emails.SendParams = {
+                "from": f"Estate Scout <{settings.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html,
+            }
+            resp = resend.Emails.send(params)
+            logger.info(f"Alert email sent via Resend to {to_email} (id={resp.get('id')})")
+            return True
+        except Exception as e:
+            logger.error(f"Resend send failed for {to_email}: {e}")
+            return False
 
-        html = f"""
-        <div style="font-family: sans-serif; max-width: 540px; margin: 0 auto; color: #111827;">
-          <h2 style="color: #2563eb;">Estate Scout Alert: {alert_name}</h2>
-          <p>We found {len(matches)} new listing{'s' if len(matches) != 1 else ''} matching your alert.</p>
-          <table style="width:100%; border-collapse:collapse;">
-            {items_html}
-          </table>
-          <p style="margin-top:16px;">
-            <a href="https://estatescout.app/search?q={alert_name}" style="background:#2563eb; color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600;">
-              View All Matches
-            </a>
-          </p>
-          <p style="color:#9ca3af; font-size:12px; margin-top:24px;">
-            You&apos;re receiving this because you set up an alert on Estate Scout.
-            <a href="https://estatescout.app/saved" style="color:#9ca3af;">Manage alerts</a>
-          </p>
-        </div>
-        """
+    # ── SendGrid (fallback) ───────────────────────────────────────────────────
+    if settings.sendgrid_api_key:
+        try:
+            import sendgrid  # type: ignore[import-untyped]
+            from sendgrid.helpers.mail import Mail
 
-        sg = sendgrid.SendGridAPIClient(api_key=settings.sendgrid_api_key)
-        message = Mail(
-            from_email=settings.from_email,
-            to_emails=to_email,
-            subject=f"Estate Scout: {len(matches)} new match{'es' if len(matches) != 1 else ''} for '{alert_name}'",
-            html_content=html,
-        )
-        response = sg.send(message)
-        logger.info(f"Alert email sent to {to_email} (status {response.status_code})")
-        return response.status_code < 300
-    except Exception as e:
-        logger.error(f"Failed to send alert email to {to_email}: {e}")
-        return False
+            sg = sendgrid.SendGridAPIClient(api_key=settings.sendgrid_api_key)
+            message = Mail(
+                from_email=settings.from_email,
+                to_emails=to_email,
+                subject=subject,
+                html_content=html,
+            )
+            response = sg.send(message)
+            logger.info(f"Alert email sent via SendGrid to {to_email} (status {response.status_code})")
+            return response.status_code < 300
+        except Exception as e:
+            logger.error(f"SendGrid send failed for {to_email}: {e}")
+            return False
+
+    logger.debug("No email provider configured (RESEND_API_KEY / SENDGRID_API_KEY not set) — skipping alert email")
+    return False
 
 
 # ── Alert matching ────────────────────────────────────────────────────────────

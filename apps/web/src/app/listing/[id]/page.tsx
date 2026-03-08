@@ -229,6 +229,53 @@ export default async function ListingPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Enriched attributes panel */}
+          {(() => {
+            const rows: { label: string; value: string }[] = [];
+            if (listing.sub_category) rows.push({ label: "Type", value: listing.sub_category.replace(/_/g, " ") });
+            if (listing.maker) rows.push({ label: "Maker", value: listing.maker.replace(/_/g, " ") });
+            if (listing.brand && listing.brand !== listing.maker) rows.push({ label: "Brand", value: listing.brand.replace(/_/g, " ") });
+            if (listing.period) rows.push({ label: "Period", value: listing.period.replace(/_/g, " ") });
+            if (listing.country_of_origin) rows.push({ label: "Origin", value: listing.country_of_origin.replace(/_/g, " ") });
+            if (listing.attributes) {
+              const attrLabels: Record<string, string> = {
+                movement: "Movement", case_material: "Case", case_size_mm: "Case size",
+                complications: "Complications", has_box: "Box", has_papers: "Papers",
+                is_vintage: "Vintage", year_approx: "Approx. year",
+                metal: "Metal", primary_stone: "Stone", carat_weight: "Carat weight",
+                is_signed: "Signed", piece_count: "Pieces", purity: "Purity",
+                weight_oz: "Weight (oz)", pattern_name: "Pattern",
+                medium: "Medium", is_framed: "Framed", edition_number: "Edition",
+                style: "Style", material: "Material", denomination: "Denomination",
+                grade: "Grade", grading_service: "Grader",
+              };
+              for (const [k, label] of Object.entries(attrLabels)) {
+                const v = (listing.attributes as Record<string, unknown>)[k];
+                if (v !== undefined && v !== null && v !== false) {
+                  if (typeof v === "boolean") rows.push({ label, value: "Yes" });
+                  else if (Array.isArray(v)) rows.push({ label, value: v.join(", ") });
+                  else rows.push({ label, value: String(v) });
+                }
+              }
+            }
+            if (rows.length === 0) return null;
+            return (
+              <div className="border border-antique-border rounded-xl overflow-hidden">
+                <div className="bg-antique-muted px-4 py-2.5 text-xs font-semibold text-antique-text-sec uppercase tracking-wide">
+                  Item Details
+                </div>
+                <dl className="divide-y divide-antique-border">
+                  {rows.map(({ label, value }) => (
+                    <div key={label} className="flex justify-between items-baseline px-4 py-2.5 text-sm">
+                      <dt className="text-antique-text-mute">{label}</dt>
+                      <dd className="text-antique-text font-medium capitalize text-right max-w-[60%]">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            );
+          })()}
+
           {/* Amazon Associates — contextual supply links */}
           <AmazonAssociates category={listing.category} />
         </div>

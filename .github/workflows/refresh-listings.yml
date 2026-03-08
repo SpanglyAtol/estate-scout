@@ -25,9 +25,11 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli
+        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
       - name: Run national hydration (BidSpotter + HiBid + EstateSales + MaxSold + Proxibid)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python backend/scrapers/hydrate.py --national --max-pages 17
 
       - name: Commit if changed
@@ -39,4 +41,5 @@ jobs:
                   apps/web/src/data/scraped-listings-estate.json \
                   apps/web/src/data/scraped-listings-ebay.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "chore: full national listings refresh [skip ci]"
-          git push
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin ${{ github.ref_name }}

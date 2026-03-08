@@ -46,6 +46,13 @@ export async function GET(req: NextRequest) {
     results = results.filter((l) => l.category?.toLowerCase().includes(category));
   }
 
+  const subCategory = searchParams.get("sub_category")?.toLowerCase() ?? "";
+  if (subCategory) {
+    results = results.filter(
+      (l) => (l as unknown as { sub_category?: string | null }).sub_category?.toLowerCase() === subCategory
+    );
+  }
+
   if (minPrice > 0) {
     results = results.filter((l) => l.current_price !== null && l.current_price >= minPrice);
   }

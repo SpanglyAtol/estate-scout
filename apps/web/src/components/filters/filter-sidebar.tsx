@@ -3,21 +3,7 @@
 import { useState } from "react";
 import { SlidersHorizontal, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { SearchFilters } from "@/types";
-
-const CATEGORIES = [
-  "ceramics",
-  "furniture",
-  "jewelry",
-  "art",
-  "silver",
-  "glass",
-  "collectibles",
-  "books",
-  "clothing",
-  "tools",
-  "electronics",
-  "toys",
-];
+import { CATEGORIES as CATEGORY_META } from "@/lib/category-meta";
 
 const PLATFORMS = [
   { id: 1, label: "LiveAuctioneers" },
@@ -151,17 +137,18 @@ export function FilterSidebar({ filters, onChange }: FilterSidebarProps) {
       {/* Category */}
       <Section title="Category">
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((cat) => (
+          {CATEGORY_META.map((cat) => (
             <button
-              key={cat}
-              onClick={() => update({ category: filters.category === cat ? undefined : cat })}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
-                filters.category === cat
+              key={cat.slug}
+              onClick={() => update({ category: filters.category === cat.slug ? undefined : cat.slug })}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                filters.category === cat.slug
                   ? "bg-antique-accent text-white border-antique-accent"
                   : "bg-antique-surface text-antique-text-sec border-antique-border hover:border-antique-accent"
               }`}
+              title={cat.description}
             >
-              {cat}
+              {cat.icon} {cat.shortLabel}
             </button>
           ))}
         </div>

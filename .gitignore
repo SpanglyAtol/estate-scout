@@ -50,6 +50,12 @@ Thumbs.db
 # Scraped data staging
 backend/scrapers/staging/*.jsonl
 
+# Discovery scraper cache (auto-generated, local only — not committed)
+backend/scrapers/discovered_sites.json
+
+# Geocoder coordinate cache (auto-generated, large, not committed)
+backend/scrapers/_city_coords_cache.json
+
 # Windows reserved device name created by some tools
 apps/web/nul
 

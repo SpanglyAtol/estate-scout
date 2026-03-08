@@ -15,8 +15,10 @@
  *  3. Platform avg price comparison
  *  4. Recent sold prices table (eBay data)
  */
-import { TrendingUp, DollarSign, BarChart3, Tag, ShoppingBag } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, DollarSign, BarChart3, Tag, ShoppingBag, ArrowLeft, ExternalLink } from "lucide-react";
 import { getListings } from "@/lib/scraped-data";
+import { CATEGORY_MAP } from "@/lib/category-meta";
 import type { MockListing } from "@/app/api/v1/_mock-data";
 
 export const dynamic = "force-dynamic";
@@ -186,7 +188,11 @@ function StatCard({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function PricesPage() {
+type Props = { searchParams: Promise<{ category?: string }> };
+
+export default async function PricesPage({ searchParams }: Props) {
+  const { category: focusSlug } = await searchParams;
+  const focusMeta = focusSlug ? CATEGORY_MAP[focusSlug] : null;
   const all: MockListing[] = getListings();
 
   // Separate sold (eBay/completed) from live listings
@@ -321,6 +327,90 @@ export default function PricesPage() {
         )}
       </div>
 
+      {/* ── Focused category spotlight (when ?category=slug is set) ── */}
+      {focusMeta && (() => {
+        const focused = catStats.find(
+          (c) => c.name.toLowerCase() === focusSlug!.toLowerCase()
+        );
+        const focusPrices = withPrice
+          .filter((l) => (l.category ?? "").toLowerCase() === focusSlug!.toLowerCase())
+          .map((l) => (l.final_price ?? l.current_price)!);
+        const focusBuckets = priceBuckets(focusPrices, 8);
+
+        return (
+          <div className="antique-card p-6 mb-8 border-antique-accent/30 bg-antique-accent-lt/20">
+            {/* Back link */}
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <Link
+                href={`/categories/${focusSlug}`}
+                className="inline-flex items-center gap-1.5 text-xs text-antique-text-mute hover:text-antique-accent transition-colors"
+              >
+                <ArrowLeft className="w-3 h-3" /> Browse {focusMeta.label} listings
+              </Link>
+              <Link
+                href="/prices"
+                className="text-xs text-antique-text-mute hover:text-antique-accent transition-colors"
+              >
+                View all categories
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-3xl">{focusMeta.icon}</span>
+              <div>
+                <h2 className="font-display text-lg font-bold text-antique-text">
+                  {focusMeta.label} — Market Data
+                </h2>
+                <p className="text-xs text-antique-text-mute">{focusMeta.description}</p>
+              </div>
+            </div>
+
+            {focused ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <StatCard label="Listing Count" value={String(focused.count)} />
+                  <StatCard label="Median Price" value={formatPrice(focused.median)} />
+                  <StatCard label="Avg Price" value={formatPrice(focused.avg)} />
+                  <StatCard
+                    label="Price Range"
+                    value={`${formatPrice(focused.min)} – ${formatPrice(focused.max)}`}
+                  />
+                </div>
+
+                {focusBuckets.length > 0 && (
+                  <>
+                    <p className="text-xs font-medium text-antique-text-mute mb-2">
+                      Price distribution
+                    </p>
+                    <div className="h-28">
+                      <BarChart
+                        bars={focusBuckets.map(({ label, count: c }) => ({ label, value: c }))}
+                        colour={HEX_COLOURS[0]}
+                        height={100}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-antique-text-mute py-4 text-center">
+                No price data yet for {focusMeta.label}. Check back after more listings are scraped.
+              </p>
+            )}
+
+            <div className="mt-4 pt-4 border-t border-antique-border/50 text-center">
+              <Link
+                href={`/categories/${focusSlug}`}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-antique-accent hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Browse all {focusMeta.label} listings
+              </Link>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
@@ -328,21 +418,39 @@ export default function PricesPage() {
         <div className="antique-card p-6">
           <SectionTitle icon={Tag}>Median Price by Category</SectionTitle>
           <div className="space-y-4">
-            {catStats.map(({ name, median: med, count }, i) => (
-              <div key={name}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="capitalize font-medium text-antique-text">{name}</span>
-                  <span className="tabular-nums text-antique-text-mute text-xs">
-                    {formatPrice(med)}{" "}
-                    <span className="opacity-60">({count} listings)</span>
-                  </span>
+            {catStats.map(({ name, median: med, count }, i) => {
+              const slug = name.toLowerCase();
+              const catMeta = CATEGORY_MAP[slug];
+              return (
+                <div key={name}>
+                  <div className="flex items-center justify-between text-sm">
+                    <Link
+                      href={catMeta ? `/categories/${slug}` : `/search?category=${slug}`}
+                      className="capitalize font-medium text-antique-text hover:text-antique-accent transition-colors"
+                    >
+                      {catMeta ? `${catMeta.icon} ${catMeta.label}` : name}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <span className="tabular-nums text-antique-text-mute text-xs">
+                        {formatPrice(med)}{" "}
+                        <span className="opacity-60">({count})</span>
+                      </span>
+                      <Link
+                        href={`/prices?category=${slug}`}
+                        className="text-antique-text-mute hover:text-antique-accent transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                        title="Focus this category"
+                      >
+                        ↗
+                      </Link>
+                    </div>
+                  </div>
+                  <HBar
+                    pct={Math.round((med / maxMedian) * 100)}
+                    colour={HEX_COLOURS[i % HEX_COLOURS.length]}
+                  />
                 </div>
-                <HBar
-                  pct={Math.round((med / maxMedian) * 100)}
-                  colour={HEX_COLOURS[i % HEX_COLOURS.length]}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -403,12 +511,25 @@ export default function PricesPage() {
                 .filter((l) => (l.category || "Uncategorised") === name)
                 .map((l) => (l.final_price ?? l.current_price)!);
               const buckets = priceBuckets(catPrices, 6);
+              const slug = name.toLowerCase();
+              const catMeta = CATEGORY_MAP[slug];
 
               return (
                 <div key={name} className="antique-card p-4">
-                  <h3 className="font-display text-sm font-semibold text-antique-text capitalize mb-1">
-                    {name}
-                  </h3>
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className="font-display text-sm font-semibold text-antique-text capitalize">
+                      {catMeta ? `${catMeta.icon} ${catMeta.label}` : name}
+                    </h3>
+                    {catMeta && (
+                      <Link
+                        href={`/categories/${slug}`}
+                        className="text-xs text-antique-accent hover:underline ml-2 flex-shrink-0"
+                        title={`Browse ${catMeta.label} listings`}
+                      >
+                        Browse →
+                      </Link>
+                    )}
+                  </div>
                   <p className="text-xs text-antique-text-mute mb-3">
                     {count} listings · median {formatPrice(catMed)}
                   </p>
