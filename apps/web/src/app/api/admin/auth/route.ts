@@ -13,6 +13,16 @@ async function computeToken(password: string): Promise<string> {
     .join("");
 }
 
+// GET /api/admin/auth — check if current session cookie is valid
+export async function GET(req: NextRequest) {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) return NextResponse.json({ isAdmin: false });
+  const cookie = req.cookies.get(COOKIE_NAME);
+  if (!cookie?.value) return NextResponse.json({ isAdmin: false });
+  const expected = await computeToken(adminPassword);
+  return NextResponse.json({ isAdmin: cookie.value === expected });
+}
+
 // POST /api/admin/auth — verify password and set session cookie
 export async function POST(req: NextRequest) {
   const adminPassword = process.env.ADMIN_PASSWORD;

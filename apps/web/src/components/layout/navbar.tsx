@@ -14,6 +14,7 @@ export function Navbar() {
   const [loggedIn, setLoggedIn]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [connectedCount, setConnectedCount] = useState(0);
+  const [isAdmin, setIsAdmin]       = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -22,6 +23,11 @@ export function Navbar() {
     };
     check();
     window.addEventListener("focus", check);
+    // Check admin session cookie (httpOnly — must go via API)
+    fetch("/api/admin/auth")
+      .then((r) => r.json())
+      .then((d: { isAdmin?: boolean }) => setIsAdmin(Boolean(d.isAdmin)))
+      .catch(() => {});
     return () => window.removeEventListener("focus", check);
   }, []);
 
@@ -34,7 +40,7 @@ export function Navbar() {
     { href: "/prices",       label: "Market Prices", icon: <TrendingUp    className="w-4 h-4" /> },
     { href: "/saved",        label: "Saved",         icon: <BookMarked    className="w-4 h-4" /> },
     ...(loggedIn ? [{ href: "/catalog", label: "My Catalog", icon: <BookOpen className="w-4 h-4" /> }] : []),
-    { href: "/admin",        label: "Admin",         icon: <BarChart3     className="w-4 h-4" /> },
+    ...(isAdmin  ? [{ href: "/admin",   label: "Admin",      icon: <BarChart3 className="w-4 h-4" /> }] : []),
   ];
 
   return (
