@@ -58,6 +58,13 @@ export interface MockListing {
   scraped_at: string;
   is_sponsored?: boolean;
   items?: MockItem[];
+  // Enriched fields (populated by enricher.py when running hydrate.py)
+  maker?: string | null;
+  brand?: string | null;
+  period?: string | null;
+  country_of_origin?: string | null;
+  sub_category?: string | null;
+  attributes?: Record<string, string | number | boolean | string[] | undefined>;
 }
 
 export const PLATFORMS: MockPlatform[] = [

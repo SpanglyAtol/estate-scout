@@ -87,6 +87,8 @@ export interface Listing {
   country_of_origin?: string | null;
   /** Category-specific structured data — see ListingAttributes JSDoc above */
   attributes?: ListingAttributes;
+  /** Sub-category slug, e.g. "art_pottery", "oil_painting", "pocket_watches" */
+  sub_category?: string | null;
 }
 
 export interface SearchFilters {

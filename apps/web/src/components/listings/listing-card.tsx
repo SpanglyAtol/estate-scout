@@ -217,6 +217,13 @@ export function ListingCard({ listing, className }: ListingCardProps) {
             </span>
           )}
 
+          {/* Sub-category */}
+          {listing.sub_category && (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-antique-subtle text-antique-text-sec capitalize">
+              {listing.sub_category.replace(/_/g, " ")}
+            </span>
+          )}
+
           {/* Platform */}
           <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", platformColor)}>
             {listing.platform.display_name}
