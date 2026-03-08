@@ -409,6 +409,7 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "collaboration_brands": enriched.get("collaboration_brands") or [],
         "period": enriched.get("period"),
         "country_of_origin": enriched.get("country_of_origin"),
+        "sub_category": enriched.get("sub_category"),
         "attributes": enriched.get("attributes") or {},
         "items": [
             {
