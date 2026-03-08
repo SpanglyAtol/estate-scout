@@ -24,12 +24,15 @@ Options:
   --targets bs,hi,es,ms  Comma-separated scrapers (default: bs,hi,es,ms)
                             ms=maxsold      – HTML scraper, WA only
                             bs=bidspotter   – JSON API, all US
-                            hi=hibid        – GraphQL API, all US
+                            hi=hibid        – GraphQL API, all US (now with lot items)
                             es=estatesales  – JSON-LD, all US (~3/page)
                             la=liveauctioneers – 3-layer anti-403 strategy
                             eb=ebay         – sold listings price comps
                             pb=proxibid     – auction calendar events
                             1d=1stdibs      – premium antiques asking prices
+                            et=ebth         – Everything But The House estate items
+                            iv=invaluable   – Invaluable auction aggregator
+                            az=auctionzip   – AuctionZip local auctioneer directory
 
 Notes:
   - LiveAuctioneers now uses a 3-layer fallback (JSON API → HTML → sitemap).
@@ -67,6 +70,9 @@ from scrapers.sources.bidspotter import BidSpotterScraper
 from scrapers.sources.ebay import EbaySoldListingsScraper
 from scrapers.sources.proxibid import ProxibidScraper
 from scrapers.sources.onedibs import OneDibsScraper
+from scrapers.sources.ebth import EbthScraper
+from scrapers.sources.invaluable import InvaluableScraper
+from scrapers.sources.auctionzip import AuctionZipScraper
 from scrapers.base import ScrapedListing
 from scrapers.geocoder import geocode_listings
 from scrapers.enricher import enrich, auto_categorize, CATEGORY_KEYWORDS
@@ -138,6 +144,27 @@ PLATFORM_META = {
         "name": "1stdibs",
         "display_name": "1stDibs",
         "base_url": "https://www.1stdibs.com",
+        "logo_url": None,
+    },
+    "ebth": {
+        "id": 9,
+        "name": "ebth",
+        "display_name": "EBTH",
+        "base_url": "https://www.ebth.com",
+        "logo_url": None,
+    },
+    "invaluable": {
+        "id": 10,
+        "name": "invaluable",
+        "display_name": "Invaluable",
+        "base_url": "https://www.invaluable.com",
+        "logo_url": None,
+    },
+    "auctionzip": {
+        "id": 11,
+        "name": "auctionzip",
+        "display_name": "AuctionZip",
+        "base_url": "https://www.auctionzip.com",
         "logo_url": None,
     },
 }
@@ -409,11 +436,14 @@ async def hydrate(args):
         "eb": (EbaySoldListingsScraper,  {}),                  # eBay sold comps (all antique cats)
         "pb": (ProxibidScraper,          {"state": ""}),       # all US auction events
         "1d": (OneDibsScraper,           {}),                  # 1stDibs premium asking prices
+        "et": (EbthScraper,              {}),                  # EBTH estate sale items
+        "iv": (InvaluableScraper,        {}),                  # Invaluable auction aggregator
+        "az": (AuctionZipScraper,        {}),                  # AuctionZip local auctioneer directory
     }
 
     chosen = [t.strip() for t in args.targets.split(",") if t.strip() in target_map]
     if not chosen:
-        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d")
+        logger.error(f"No valid targets in '{args.targets}'. Use: la,es,hi,ms,bs,eb,pb,1d,et,iv,az")
         sys.exit(1)
 
     # ── Parallel execution ────────────────────────────────────────────────────
@@ -489,7 +519,7 @@ def main():
 
     # --national shortcut: all public scrapers with no state filter
     if args.national:
-        args.targets = "bs,hi,es,ms,eb,pb"
+        args.targets = "bs,hi,es,ms,eb,pb,et,iv,az"
         args.state = ""
 
     asyncio.run(hydrate(args))
