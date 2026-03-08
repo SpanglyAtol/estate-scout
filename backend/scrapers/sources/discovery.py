@@ -37,7 +37,7 @@ from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
-from scrapers.base import BaseScraper, ScrapedItem, ScrapedListing
+from scrapers.base import BaseScraper, ScrapedListing
 
 
 # ── Persistent cache ──────────────────────────────────────────────────────────
@@ -46,15 +46,248 @@ CACHE_FILE = Path(__file__).resolve().parent.parent / "discovered_sites.json"
 # How many days before we re-validate a known site (30 days)
 _REVALIDATE_DAYS = 30
 
+# ── Seed sites — pre-verified regional auctioneers ────────────────────────────
+# Written to the cache on first run so the scraper has immediate harvest targets.
+# Each entry mirrors the discovered_sites.json site-meta format.
+# validated_at is set far in the past so they get re-validated after 30 days.
+_SEED_SITES: dict[str, dict] = {
+    "https://www.grafeauction.com": {
+        "url": "https://www.grafeauction.com",
+        "name": "Grafe Auction Company",
+        "platform_type": "unknown",
+        "listing_page": "https://www.grafeauction.com/auctions",
+        "location": {"city": "Buffalo", "state": "MN"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.appletreeauction.com": {
+        "url": "https://www.appletreeauction.com",
+        "name": "Apple Tree Auction Center",
+        "platform_type": "unknown",
+        "listing_page": "https://www.appletreeauction.com/auctions",
+        "location": {"city": "Canal Winchester", "state": "OH"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.caseantiques.com": {
+        "url": "https://www.caseantiques.com",
+        "name": "Case Antiques",
+        "platform_type": "unknown",
+        "listing_page": "https://www.caseantiques.com/auction/",
+        "location": {"city": "Knoxville", "state": "TN"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.alexcooper.com": {
+        "url": "https://www.alexcooper.com",
+        "name": "Alex Cooper Auctioneers",
+        "platform_type": "unknown",
+        "listing_page": "https://www.alexcooper.com/auctions/",
+        "location": {"city": "Towson", "state": "MD"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.dumouchelles.com": {
+        "url": "https://www.dumouchelles.com",
+        "name": "DuMouchelle Art Galleries",
+        "platform_type": "unknown",
+        "listing_page": "https://www.dumouchelles.com/auctions/",
+        "location": {"city": "Detroit", "state": "MI"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.thomastonplace.com": {
+        "url": "https://www.thomastonplace.com",
+        "name": "Thomaston Place Auction Galleries",
+        "platform_type": "unknown",
+        "listing_page": "https://www.thomastonplace.com/auctions/",
+        "location": {"city": "Thomaston", "state": "ME"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.clars.com": {
+        "url": "https://www.clars.com",
+        "name": "Clars Auction Gallery",
+        "platform_type": "unknown",
+        "listing_page": "https://www.clars.com/auctions/",
+        "location": {"city": "Oakland", "state": "CA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.austinauction.com": {
+        "url": "https://www.austinauction.com",
+        "name": "Austin Auction Gallery",
+        "platform_type": "unknown",
+        "listing_page": "https://www.austinauction.com/auctions/",
+        "location": {"city": "Austin", "state": "TX"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.kamelotauctions.com": {
+        "url": "https://www.kamelotauctions.com",
+        "name": "Kamelot Auctions",
+        "platform_type": "unknown",
+        "listing_page": "https://www.kamelotauctions.com/auctions/",
+        "location": {"city": "Philadelphia", "state": "PA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.litchfieldcountyauctions.com": {
+        "url": "https://www.litchfieldcountyauctions.com",
+        "name": "Litchfield County Auctions",
+        "platform_type": "unknown",
+        "listing_page": "https://www.litchfieldcountyauctions.com/auctions/",
+        "location": {"city": "Milton", "state": "CT"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.crescentcityauctiongallery.com": {
+        "url": "https://www.crescentcityauctiongallery.com",
+        "name": "Crescent City Auction Gallery",
+        "platform_type": "unknown",
+        "listing_page": "https://www.crescentcityauctiongallery.com/auctions/",
+        "location": {"city": "New Orleans", "state": "LA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.amesonline.com": {
+        "url": "https://www.amesonline.com",
+        "name": "Ames Auction",
+        "platform_type": "unknown",
+        "listing_page": "https://www.amesonline.com/current-auctions/",
+        "location": {"city": "Windham", "state": "NH"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.freemansauction.com": {
+        "url": "https://www.freemansauction.com",
+        "name": "Freeman's Auction",
+        "platform_type": "unknown",
+        "listing_page": "https://www.freemansauction.com/auctions/",
+        "location": {"city": "Philadelphia", "state": "PA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.bruunrasmussen.dk": {
+        "url": "https://www.treadwaygallery.com",
+        "name": "Treadway Gallery",
+        "platform_type": "unknown",
+        "listing_page": "https://www.treadwaygallery.com/auctions/",
+        "location": {"city": "Cincinnati", "state": "OH"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.kaminskiauctions.com": {
+        "url": "https://www.kaminskiauctions.com",
+        "name": "Kaminski Auctions",
+        "platform_type": "unknown",
+        "listing_page": "https://www.kaminskiauctions.com/auctions/",
+        "location": {"city": "Beverly", "state": "MA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.pookandpook.com": {
+        "url": "https://www.pookandpook.com",
+        "name": "Pook & Pook",
+        "platform_type": "unknown",
+        "listing_page": "https://www.pookandpook.com/auctions/",
+        "location": {"city": "Downingtown", "state": "PA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.skinnerinc.com": {
+        "url": "https://www.skinnerinc.com",
+        "name": "Skinner Auctioneers",
+        "platform_type": "unknown",
+        "listing_page": "https://www.skinnerinc.com/auctions/",
+        "location": {"city": "Marlborough", "state": "MA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.burchardsauctions.com": {
+        "url": "https://www.burchardsauctions.com",
+        "name": "Burchards Auction & Estate Services",
+        "platform_type": "unknown",
+        "listing_page": "https://www.burchardsauctions.com/auctions/",
+        "location": {"city": "Saint Petersburg", "state": "FL"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.cowansauctions.com": {
+        "url": "https://www.cowansauctions.com",
+        "name": "Cowan's Auctions",
+        "platform_type": "unknown",
+        "listing_page": "https://www.cowansauctions.com/auctions/",
+        "location": {"city": "Cincinnati", "state": "OH"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.michaans.com": {
+        "url": "https://www.michaans.com",
+        "name": "Michaan's Auctions",
+        "platform_type": "unknown",
+        "listing_page": "https://www.michaans.com/auctions/",
+        "location": {"city": "Alameda", "state": "CA"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.mortonauction.com": {
+        "url": "https://www.mortonauction.com",
+        "name": "Morton Auction",
+        "platform_type": "unknown",
+        "listing_page": "https://www.mortonauction.com/auctions/",
+        "location": {"city": "Chicago", "state": "IL"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.hartzells.com": {
+        "url": "https://www.hartzells.com",
+        "name": "Hartzell's Auction Gallery",
+        "platform_type": "unknown",
+        "listing_page": "https://www.hartzells.com/auctions/",
+        "location": {"city": "Sunbury", "state": "PA"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.brunkauctions.com": {
+        "url": "https://www.brunkauctions.com",
+        "name": "Brunk Auctions",
+        "platform_type": "unknown",
+        "listing_page": "https://www.brunkauctions.com/upcoming-auctions/",
+        "location": {"city": "Asheville", "state": "NC"},
+        "strong_signals": 5,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+    "https://www.stampone.com": {
+        "url": "https://www.stampone.com",
+        "name": "Stamp One Auction",
+        "platform_type": "unknown",
+        "listing_page": "https://www.stampone.com/auctions/",
+        "location": {"city": "Hamilton", "state": "NJ"},
+        "strong_signals": 4,
+        "validated_at": "2026-01-01T00:00:00",
+    },
+}
+
 
 def _load_cache() -> dict:
-    """Load the persistent discovered-sites cache."""
+    """
+    Load the persistent discovered-sites cache.
+    On first run (missing or empty cache), seeds SEED_SITES so the scraper
+    has verified regional sites to harvest immediately without re-validating.
+    """
     if CACHE_FILE.exists():
         try:
-            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            data = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            if data.get("sites"):
+                return data
         except Exception:
             pass
-    return {"sites": {}, "blacklist": []}
+    # First run — bootstrap with hardcoded seeds
+    cache: dict = {"sites": {}, "blacklist": []}
+    for url, meta in _SEED_SITES.items():
+        cache["sites"][url] = meta
+    return cache
 
 
 def _save_cache(cache: dict) -> None:
@@ -100,16 +333,39 @@ _KNOWN_SMALL_PLATFORMS: list[tuple[str, str, str]] = [
     # Clars Auction Gallery — California estate/antiques
     ("clars",          "https://www.clars.com/auctions/",         "clars.com"),
     # Case Antiques — Appalachian/Southern estate / folk art
-    ("caseantiques",   "https://www.caseantiques.com/auctions/",  "caseantiques.com"),
+    ("caseantiques",   "https://www.caseantiques.com/auction/",   "caseantiques.com"),
     # Austin Auction Gallery — Texas estate
     ("austinauction",  "https://www.austinauction.com/auctions/", "austinauction.com"),
     # Litchfield County Auctions — CT/Northeast estate
     ("litchfieldco",   "https://www.litchfieldcountyauctions.com/auctions/", "litchfieldcountyauctions.com"),
-    # Heritage Auctions is large, but their regional estate lots are underrepresented
     # Kamelot Auctions — Philadelphia estate
     ("kamelot",        "https://www.kamelotauctions.com/auctions/", "kamelotauctions.com"),
     # Apple Tree Auction Center — Ohio estate
     ("appletree",      "https://www.appletreeauction.com/auctions/", "appletreeauction.com"),
+    # Freeman's Auction — Philadelphia fine art & antiques (regional, not on all aggregators)
+    ("freemans",       "https://www.freemansauction.com/auctions/",  "freemansauction.com"),
+    # Skinner Auctioneers — Boston/New England estate & decorative arts
+    ("skinner",        "https://www.skinnerinc.com/auctions/",    "skinnerinc.com"),
+    # Pook & Pook — Pennsylvania Americana / decorative arts
+    ("pookandpook",    "https://www.pookandpook.com/auctions/",   "pookandpook.com"),
+    # Cowan's Auctions — Cincinnati / Midwest Americana
+    ("cowans",         "https://www.cowansauctions.com/auctions/", "cowansauctions.com"),
+    # Kaminski Auctions — Beverly MA / New England estate
+    ("kaminski",       "https://www.kaminskiauctions.com/auctions/", "kaminskiauctions.com"),
+    # Michaan's Auctions — Bay Area estate / antiques
+    ("michaans",       "https://www.michaans.com/auctions/",      "michaans.com"),
+    # Brunk Auctions — Asheville NC / Southern folk art & antiques
+    ("brunk",          "https://www.brunkauctions.com/upcoming-auctions/", "brunkauctions.com"),
+    # Morton Auction — Chicago / Midwest antiques
+    ("morton",         "https://www.mortonauction.com/auctions/", "mortonauction.com"),
+    # Hartzell's Auction Gallery — Central PA estate lots
+    ("hartzells",      "https://www.hartzells.com/auctions/",     "hartzells.com"),
+    # Burchard's Auction — St. Petersburg FL estate
+    ("burchards",      "https://www.burchardsauctions.com/",      "burchardsauctions.com"),
+    # AuctionNinja — regional auctioneer platform (many small houses)
+    ("auctionninja",   "https://www.auctionninja.com/",           "auctionninja.com"),
+    # BidSpotter white-label mini-pages (individual auctioneer sub-sites)
+    ("bs_miniauctions", "https://www.bidspotter.com/en-us/auctioneers", "bidspotter.com/en-us/auctioneers"),
 ]
 
 # ── Directory seeds — sites that list regional auctioneer URLs ────────────────
@@ -398,13 +654,6 @@ class DiscoveryScraper(BaseScraper):
             for template in _DDG_QUERY_TEMPLATES[:2]:  # First 2 query types
                 query = template.format(region=region)
                 try:
-                    response = await self._fetch(
-                        ddg_url,
-                        headers={
-                            **self._browser_headers(referer="https://duckduckgo.com/"),
-                            "Accept": "text/html",
-                        },
-                    )
                     # DuckDuckGo HTML search requires a POST
                     if self.rate_limiter:
                         await self.rate_limiter.acquire("duckduckgo")
@@ -583,15 +832,41 @@ class DiscoveryScraper(BaseScraper):
         site_url: str,
         site_meta: dict,
         max_listings: int,
+        max_pages: int = 5,
     ) -> AsyncIterator[ScrapedListing]:
         """
         Extract listings from a validated site using multiple strategies.
-        Tries each strategy in order until one produces results.
+        Tries strategies in order; once one succeeds it follows pagination
+        up to max_pages to fill the listing quota.
+
+        Strategy order:
+          1. XML Sitemap  — cleanest; grabs all lot URLs from /sitemap.xml
+          2. RSS/Atom feed — if the site advertises a feed in <head>
+          3. JSON-LD      — schema.org AuctionEvent / Product / ItemList
+          4. Platform-specific extractors (AuctionFlex, WordPress plugin)
+          5. Heuristic card parser — generic CSS cascade fallback
         """
         listing_url = site_meta.get("listing_page") or site_url
         platform_type = site_meta.get("platform_type", "unknown")
         location = site_meta.get("location", {})
+        domain = urlparse(site_url).netloc
+        seen_ids: set[str] = set()
+        yielded = 0
 
+        # ── Strategy 1: XML Sitemap ───────────────────────────────────────────
+        sitemap_listings = await self._extract_from_sitemap(
+            site_url, domain, location, max_listings
+        )
+        if sitemap_listings:
+            self.logger.info(f"Discovery sitemap: {len(sitemap_listings)} from {domain}")
+            for listing in sitemap_listings:
+                if listing.external_id not in seen_ids and yielded < max_listings:
+                    seen_ids.add(listing.external_id)
+                    yield listing
+                    yielded += 1
+            return
+
+        # ── Fetch the listing page (needed for strategies 2–5) ───────────────
         try:
             response = await self._fetch(
                 listing_url,
@@ -603,35 +878,350 @@ class DiscoveryScraper(BaseScraper):
 
         html = response.text
         soup = BeautifulSoup(html, "lxml")
-        domain = urlparse(site_url).netloc
+        current_url = listing_url
 
-        listings: list[ScrapedListing] = []
-
-        # Strategy 1: JSON-LD structured data (best quality)
-        listings = self._extract_json_ld(soup, site_url, domain, location)
-        if listings:
-            self.logger.info(f"Discovery JSON-LD: {len(listings)} from {domain}")
-
-        # Strategy 2: Platform-specific extractors
-        if not listings:
-            listings = self._extract_by_platform(
-                platform_type, soup, html, site_url, domain, location
+        # ── Strategy 2: RSS/Atom feed ─────────────────────────────────────────
+        feed_url = self._detect_feed_url(soup, site_url)
+        if feed_url:
+            feed_listings = await self._extract_from_feed(
+                feed_url, site_url, domain, location
             )
-            if listings:
-                self.logger.info(
-                    f"Discovery {platform_type}: {len(listings)} from {domain}"
-                )
+            if feed_listings:
+                self.logger.info(f"Discovery feed: {len(feed_listings)} from {domain}")
+                for listing in feed_listings:
+                    if listing.external_id not in seen_ids and yielded < max_listings:
+                        seen_ids.add(listing.external_id)
+                        yield listing
+                        yielded += 1
+                if yielded >= max_listings:
+                    return
 
-        # Strategy 3: Generic heuristic card parser
-        if not listings:
-            listings = self._extract_generic_cards(soup, site_url, domain, location)
-            if listings:
-                self.logger.info(
-                    f"Discovery heuristic: {len(listings)} from {domain}"
-                )
+        # ── Strategies 3–5 with pagination ───────────────────────────────────
+        page = 0
+        while page < max_pages and yielded < max_listings:
+            page_listings: list[ScrapedListing] = []
 
-        for listing in listings[:max_listings]:
-            yield listing
+            # Strategy 3: JSON-LD
+            page_listings = self._extract_json_ld(soup, current_url, domain, location)
+            if page_listings:
+                if page == 0:
+                    self.logger.info(f"Discovery JSON-LD: results from {domain}")
+
+            # Strategy 4: Platform-specific
+            if not page_listings:
+                page_listings = self._extract_by_platform(
+                    platform_type, soup, html, current_url, domain, location
+                )
+                if page_listings and page == 0:
+                    self.logger.info(f"Discovery {platform_type}: results from {domain}")
+
+            # Strategy 5: Heuristic card parser
+            if not page_listings:
+                page_listings = self._extract_generic_cards(
+                    soup, current_url, domain, location
+                )
+                if page_listings and page == 0:
+                    self.logger.info(f"Discovery heuristic: results from {domain}")
+
+            if not page_listings:
+                break  # Nothing extracted — stop paginating
+
+            for listing in page_listings:
+                if listing.external_id not in seen_ids and yielded < max_listings:
+                    seen_ids.add(listing.external_id)
+                    yield listing
+                    yielded += 1
+
+            # Try to find the next page
+            if yielded < max_listings and page + 1 < max_pages:
+                next_url = self._find_next_page(soup, current_url)
+                if not next_url or next_url == current_url:
+                    break
+                try:
+                    response = await self._fetch(
+                        next_url,
+                        headers=self._browser_headers(referer=current_url),
+                    )
+                    html = response.text
+                    soup = BeautifulSoup(html, "lxml")
+                    current_url = next_url
+                    page += 1
+                except Exception:
+                    break
+            else:
+                break
+
+    # ── Sitemap extraction ────────────────────────────────────────────────────
+
+    async def _extract_from_sitemap(
+        self,
+        site_url: str,
+        domain: str,
+        location: dict,
+        max_listings: int,
+    ) -> list[ScrapedListing]:
+        """
+        Try /sitemap.xml and /sitemap_index.xml. Filter URLs that look like
+        individual auction lot pages, then fetch and parse up to max_listings.
+        """
+        sitemap_candidates = [
+            urljoin(site_url, "/sitemap.xml"),
+            urljoin(site_url, "/sitemap_index.xml"),
+            urljoin(site_url, "/sitemap/sitemap.xml"),
+        ]
+        # Patterns that strongly suggest a lot/item page
+        lot_url_patterns = re.compile(
+            r"/(lot|lots|item|auction|catalog|lot-\d|item-\d|\d{4,})[/-]",
+            re.IGNORECASE,
+        )
+
+        for sitemap_url in sitemap_candidates:
+            try:
+                response = await self._fetch(
+                    sitemap_url,
+                    headers=self._browser_headers(referer=site_url),
+                )
+                if "xml" not in response.headers.get("content-type", ""):
+                    continue
+
+                root = ET.fromstring(response.text)
+                ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+                # Sitemap index — recurse one level
+                sub_sitemaps = root.findall("sm:sitemap/sm:loc", ns)
+                if sub_sitemaps:
+                    lot_urls: list[str] = []
+                    for sub in sub_sitemaps[:5]:  # Max 5 sub-sitemaps
+                        try:
+                            sub_url = sub.text or ""
+                            if not sub_url:
+                                continue
+                            sub_resp = await self._fetch(
+                                sub_url,
+                                headers=self._browser_headers(referer=site_url),
+                            )
+                            sub_root = ET.fromstring(sub_resp.text)
+                            for url_el in sub_root.findall("sm:url/sm:loc", ns):
+                                if url_el.text and lot_url_patterns.search(url_el.text):
+                                    lot_urls.append(url_el.text)
+                        except Exception:
+                            continue
+                else:
+                    # Plain sitemap
+                    lot_urls = [
+                        el.text
+                        for el in root.findall("sm:url/sm:loc", ns)
+                        if el.text and lot_url_patterns.search(el.text)
+                    ]
+
+                if not lot_urls:
+                    continue
+
+                # Fetch individual lot pages and extract JSON-LD or meta
+                results: list[ScrapedListing] = []
+                for lot_url in lot_urls[:max_listings]:
+                    try:
+                        lot_resp = await self._fetch(
+                            lot_url,
+                            headers=self._browser_headers(referer=site_url),
+                        )
+                        lot_soup = BeautifulSoup(lot_resp.text, "lxml")
+                        items = self._extract_json_ld(lot_soup, lot_url, domain, location)
+                        if items:
+                            results.extend(items)
+                        else:
+                            # Fallback: og:title + og:image
+                            item = self._extract_og_meta(lot_soup, lot_url, domain, location)
+                            if item:
+                                results.append(item)
+                    except Exception:
+                        continue
+                if results:
+                    return results
+
+            except Exception:
+                continue
+
+        return []
+
+    # ── RSS/Atom feed extraction ──────────────────────────────────────────────
+
+    @staticmethod
+    def _detect_feed_url(soup: BeautifulSoup, base_url: str) -> str | None:
+        """Find the site's RSS or Atom feed URL from <link rel="alternate">."""
+        for link in soup.find_all("link", rel=True):
+            rels = link.get("rel") or []
+            if isinstance(rels, str):
+                rels = [rels]
+            if "alternate" in rels:
+                feed_type = link.get("type", "")
+                if "rss" in feed_type or "atom" in feed_type:
+                    href = link.get("href") or ""
+                    if href:
+                        return urljoin(base_url, href)
+        return None
+
+    async def _extract_from_feed(
+        self,
+        feed_url: str,
+        site_url: str,
+        domain: str,
+        location: dict,
+    ) -> list[ScrapedListing]:
+        """Parse an RSS/Atom feed for auction lot entries."""
+        try:
+            response = await self._fetch(
+                feed_url,
+                headers=self._browser_headers(referer=site_url),
+            )
+            root = ET.fromstring(response.text)
+        except Exception:
+            return []
+
+        results: list[ScrapedListing] = []
+        platform_slug = f"discovery_{domain.replace('.', '_').replace('-', '_')}"
+
+        # RSS 2.0: <item> elements
+        items = root.findall(".//item")
+        # Atom: <entry> elements
+        if not items:
+            items = root.findall(".//{http://www.w3.org/2005/Atom}entry")
+
+        for item in items:
+            try:
+                def _txt(tag: str) -> str:
+                    el = item.find(tag) or item.find(f"{{http://www.w3.org/2005/Atom}}{tag}")
+                    return (el.text or "").strip() if el is not None else ""
+
+                title = _txt("title")
+                link = _txt("link") or _txt("url")
+                description = _txt("description") or _txt("summary") or _txt("content")
+                pub_date = _txt("pubDate") or _txt("published") or _txt("updated")
+
+                if not title or not link:
+                    continue
+
+                # Find image in description HTML
+                img_url = ""
+                if description:
+                    img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', description)
+                    if img_match:
+                        img_url = img_match.group(1)
+                        if not img_url.startswith("http"):
+                            img_url = urljoin(site_url, img_url)
+
+                item_id = re.sub(r"[^\w]", "_", link.replace(site_url, ""))[:80] or f"{domain}_{len(results)}"
+
+                results.append(ScrapedListing(
+                    platform_slug=platform_slug,
+                    external_id=item_id,
+                    external_url=link,
+                    title=title,
+                    description=re.sub(r"<[^>]+>", " ", description).strip() or None,
+                    city=location.get("city"),
+                    state=location.get("state"),
+                    sale_ends_at=self._parse_dt(pub_date),
+                    primary_image_url=img_url or None,
+                    image_urls=[img_url] if img_url else [],
+                    listing_type="auction",
+                    raw_data={"source": "rss_feed", "domain": domain},
+                ))
+            except Exception:
+                continue
+
+        return results
+
+    # ── Open Graph meta fallback ──────────────────────────────────────────────
+
+    def _extract_og_meta(
+        self,
+        soup: BeautifulSoup,
+        page_url: str,
+        domain: str,
+        location: dict,
+    ) -> ScrapedListing | None:
+        """
+        Extract a single listing from Open Graph / Twitter Card meta tags.
+        Used as a fallback when JSON-LD is absent on individual lot pages
+        fetched via sitemap.
+        """
+        def _meta(prop: str) -> str:
+            el = soup.find("meta", property=prop) or soup.find("meta", attrs={"name": prop})
+            return (el.get("content") or "").strip() if el else ""
+
+        title = _meta("og:title") or _meta("twitter:title")
+        if not title:
+            return None
+
+        description = _meta("og:description") or _meta("twitter:description") or ""
+        img = _meta("og:image") or _meta("twitter:image") or ""
+        price_str = _meta("product:price:amount") or _meta("og:price:amount") or ""
+
+        item_id = re.sub(r"[^\w]", "_", page_url.replace(f"https://{domain}", ""))[:80]
+        platform_slug = f"discovery_{domain.replace('.', '_').replace('-', '_')}"
+
+        return ScrapedListing(
+            platform_slug=platform_slug,
+            external_id=item_id or domain,
+            external_url=page_url,
+            title=title,
+            description=description or None,
+            current_price=self._parse_price(price_str),
+            city=location.get("city"),
+            state=location.get("state"),
+            primary_image_url=img or None,
+            image_urls=[img] if img else [],
+            listing_type="auction",
+            raw_data={"source": "og_meta", "domain": domain},
+        )
+
+    # ── Pagination helper ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def _find_next_page(soup: BeautifulSoup, current_url: str) -> str | None:
+        """
+        Locate the URL for the next page of listings using common pagination
+        patterns. Returns None if this is the last page.
+        """
+        # 1. <link rel="next"> in <head> — most reliable
+        link_next = soup.find("link", rel="next")
+        if link_next and link_next.get("href"):
+            return urljoin(current_url, link_next["href"])
+
+        # 2. <a rel="next">
+        a_next = soup.find("a", rel="next")
+        if a_next and a_next.get("href"):
+            return urljoin(current_url, a_next["href"])
+
+        # 3. Common "Next" button / link patterns
+        next_selectors = [
+            "a.next", "a.next-page", "[aria-label='Next']", "[aria-label='next']",
+            ".pagination a[aria-label*='Next']", ".pagination .next a",
+            "a[class*=next]", "a[title='Next']", "a[title='Next Page']",
+            ".pager-next a", "#next-page",
+        ]
+        for sel in next_selectors:
+            el = soup.select_one(sel)
+            if el and el.get("href"):
+                href = el["href"]
+                if href and href not in ("#", "javascript:void(0)", ""):
+                    return urljoin(current_url, href)
+
+        # 4. ?page=N or ?p=N URL pattern — find current page number and increment
+        parsed = urlparse(current_url)
+        query = parsed.query or ""
+        for param in ("page", "p", "pg", "pn"):
+            match = re.search(rf"(^|&){param}=(\d+)", query)
+            if match:
+                current_page = int(match.group(2))
+                new_query = re.sub(
+                    rf"(^|&){param}=\d+",
+                    lambda m: m.group(1) + f"{param}={current_page + 1}",
+                    query,
+                )
+                return parsed._replace(query=new_query).geturl()
+
+        return None
 
     # ── Extraction strategies ─────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@ import { Search, Clock, Calendar, TrendingUp, Package, MapPin } from "lucide-rea
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { CuratedPicks } from "@/components/home/curated-picks";
 import { getStats, searchListings } from "@/lib/api-client";
+import { CATEGORIES } from "@/lib/category-meta";
 import type { StatsResult } from "@/lib/api-client";
 import type { Listing } from "@/types";
 
@@ -63,18 +64,20 @@ export default async function HomePage() {
           </span>
         </Link>
 
-        {/* Quick browse */}
+        {/* Quick browse pills → category pages */}
         <div className="flex flex-wrap justify-center gap-2 mt-6 text-sm">
           {[
-            { label: "Ceramics & Porcelain", q: "ceramics porcelain" },
-            { label: "Silver & Jewelry",     q: "silver jewelry" },
-            { label: "Furniture",            q: "antique furniture" },
-            { label: "Art & Paintings",      q: "oil painting art" },
-            { label: "Near Me",              href: "/map" },
+            { label: "Ceramics",   href: "/categories/ceramics"    },
+            { label: "Silver",     href: "/categories/silver"      },
+            { label: "Jewelry",    href: "/categories/jewelry"     },
+            { label: "Furniture",  href: "/categories/furniture"   },
+            { label: "Art",        href: "/categories/art"         },
+            { label: "All categories", href: "/categories"         },
+            { label: "Near Me",    href: "/map"                    },
           ].map((item) => (
             <Link
               key={item.label}
-              href={"href" in item ? item.href! : `/search?q=${encodeURIComponent(item.q!)}`}
+              href={item.href}
               className="px-3 py-1.5 rounded-full border border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent transition-colors text-xs"
             >
               {item.label}
@@ -100,6 +103,35 @@ export default async function HomePage() {
           ))}
         </section>
       )}
+
+      {/* ── Browse by Category ────────────────────────────────────────────────── */}
+      <section className="mb-14">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl font-semibold text-antique-text">
+            Browse by Category
+          </h2>
+          <Link
+            href="/categories"
+            className="text-xs text-antique-accent hover:underline"
+          >
+            View all →
+          </Link>
+        </div>
+
+        {/* Horizontally scrollable row of category pills */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat.slug}
+              href={`/categories/${cat.slug}`}
+              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-antique-border bg-antique-surface text-antique-text-sec hover:border-antique-accent hover:text-antique-accent transition-colors text-sm whitespace-nowrap"
+            >
+              <span>{cat.icon}</span>
+              <span>{cat.shortLabel}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* ── Curator's Picks (AI-powered, client-side hydrated) ────────────────── */}
       <CuratedPicks />
