@@ -4,7 +4,7 @@
  * Serves as the owner's command centre: live data stats, phased setup
  * checklist, and quick links to every external service.
  *
- * Navigate to /admin to view. No authentication yet — keep URL private.
+ * Protected by middleware — requires ADMIN_PASSWORD env var and login at /admin/login.
  */
 import Link from "next/link";
 import {
@@ -14,6 +14,7 @@ import {
   GitBranch, Server, Bot, CreditCard, Megaphone,
 } from "lucide-react";
 import { getListings } from "@/lib/scraped-data";
+import { AdminLogoutButton } from "./logout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -204,6 +205,7 @@ export default function AdminPage() {
             <ExternalLink className="w-4 h-4 text-antique-text-sec" />
             Vercel
           </a>
+          <AdminLogoutButton />
         </div>
       </div>
 

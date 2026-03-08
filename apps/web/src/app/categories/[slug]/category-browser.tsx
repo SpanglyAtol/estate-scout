@@ -34,6 +34,7 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
     page:      1,
     page_size: PAGE_SIZE,
   });
+  const [activeSubCat, setActiveSubCat] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
 
   useEffect(() => {
@@ -69,14 +70,29 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
     setFilters((f) => ({ ...f, page_size: (f.page_size ?? PAGE_SIZE) + PAGE_SIZE }));
   }
 
-  const { data: listings = [], isLoading, isFetching } = useQuery({
+  const { data: allListings = [], isLoading, isFetching } = useQuery({
     queryKey: ["category", slug, filters],
     queryFn:  () => searchListings(filters),
   });
 
+  // Derive available sub-categories from fetched results and filter client-side
+  const availableSubCats: string[] = Array.from(
+    new Set(
+      allListings
+        .map((l) => (l as unknown as { sub_category?: string | null }).sub_category)
+        .filter((s): s is string => !!s)
+    )
+  ).sort();
+
+  const listings = activeSubCat
+    ? allListings.filter(
+        (l) => (l as unknown as { sub_category?: string | null }).sub_category === activeSubCat
+      )
+    : allListings;
+
   const currentPageSize = filters.page_size ?? PAGE_SIZE;
-  const hasMore         = listings.length >= currentPageSize;
-  const isLoadingMore   = isFetching && listings.length > 0;
+  const hasMore         = allListings.length >= currentPageSize;
+  const isLoadingMore   = isFetching && allListings.length > 0;
 
   if (!meta) {
     return (
@@ -143,6 +159,37 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
             </div>
           ) : (
             <>
+              {/* Sub-category pills */}
+              {availableSubCats.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button
+                    onClick={() => setActiveSubCat(null)}
+                    className={cn(
+                      "text-xs px-3 py-1 rounded-full border transition-colors font-medium",
+                      activeSubCat === null
+                        ? "bg-antique-accent text-white border-antique-accent"
+                        : "bg-antique-surface border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent"
+                    )}
+                  >
+                    All
+                  </button>
+                  {availableSubCats.map((sc) => (
+                    <button
+                      key={sc}
+                      onClick={() => setActiveSubCat(activeSubCat === sc ? null : sc)}
+                      className={cn(
+                        "text-xs px-3 py-1 rounded-full border transition-colors font-medium capitalize",
+                        activeSubCat === sc
+                          ? "bg-antique-accent text-white border-antique-accent"
+                          : "bg-antique-surface border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent"
+                      )}
+                    >
+                      {sc.replace(/_/g, " ")}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                 <p className="text-sm text-antique-text-mute">
                   {listings.length > 0

@@ -119,6 +119,8 @@ export interface SearchFilters {
   country_of_origin?: string;
   /** Filter to items that include this brand in a collaboration */
   collaboration?: string;
+  /** Filter by sub-category slug, e.g. "art_pottery", "oil_painting" */
+  sub_category?: string;
 }
 
 export interface CompSale {
