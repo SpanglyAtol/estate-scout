@@ -4,7 +4,7 @@ import { ExternalLink, MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { AmazonAssociates } from "@/components/ads/amazon-associates";
-import { ListingImages } from "@/components/listings/listing-images";
+import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
 
 // Always fetch fresh scraped data on each visit
@@ -84,8 +84,8 @@ export default async function ListingPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Images — client component handles onError fallback + thumbnail strip */}
-        <ListingImages
+        {/* 3D Rotational Viewer + Lens Panel */}
+        <SphericalViewer
           primaryImageUrl={listing.primary_image_url}
           imageUrls={listing.image_urls}
           title={listing.title}
