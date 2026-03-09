@@ -16,11 +16,13 @@ interface ItemViewer3DProps {
   title: string;
   /** Extra images added by the user (camera/upload) — prepended to gallery */
   userImages?: string[];
+  /** Called whenever the front-facing panel changes (index into allImages) */
+  onActiveIndexChange?: (idx: number) => void;
 }
 
 const MIN_IMAGES = 1;
 
-export function ItemViewer3D({ images, title, userImages = [] }: ItemViewer3DProps) {
+export function ItemViewer3D({ images, title, userImages = [], onActiveIndexChange }: ItemViewer3DProps) {
   const allImages = [...userImages, ...images].filter(Boolean);
   const count = Math.max(allImages.length, MIN_IMAGES);
 
@@ -46,6 +48,11 @@ export function ItemViewer3D({ images, title, userImages = [] }: ItemViewer3DPro
         return diff < bestDiff ? i : best;
       }, 0)
     : 0;
+
+  // Notify parent whenever the front-facing panel changes
+  useEffect(() => {
+    onActiveIndexChange?.(activeIdx);
+  }, [activeIdx, onActiveIndexChange]);
 
   // ── pointer / touch drag handlers ─────────────────────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent) => {

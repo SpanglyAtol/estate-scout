@@ -14,11 +14,14 @@ interface SphericalViewerProps {
   primaryImageUrl: string | null | undefined;
   imageUrls: string[];
   title: string;
+  /** Called when the user adds photos via camera/upload (data URLs or HTTPS) */
+  onPhotosAdded?: (newUrls: string[]) => void;
 }
 
-export function SphericalViewer({ primaryImageUrl, imageUrls, title }: SphericalViewerProps) {
+export function SphericalViewer({ primaryImageUrl, imageUrls, title, onPhotosAdded }: SphericalViewerProps) {
   const [userImages, setUserImages] = useState<string[]>([]);
   const [mode, setMode] = useState<"3d" | "gallery">("3d");
+  const [activeIdx, setActiveIdx] = useState(0);
 
   const allImages = [
     ...userImages,
@@ -26,13 +29,12 @@ export function SphericalViewer({ primaryImageUrl, imageUrls, title }: Spherical
     ...imageUrls.filter((u) => u && u !== primaryImageUrl),
   ].filter(Boolean);
 
-  // Track which panel is visible to pass to LensPanel (for lens operations)
-  // We approximate this with a simple index — ItemViewer3D controls its own rotation
-  // so we just use the primary image as the default for external lenses.
-  const activeImageUrl = allImages[0] ?? null;
+  // Derive the URL of whichever panel is currently facing front in the 3D view
+  const activeImageUrl = allImages[activeIdx] ?? allImages[0] ?? null;
 
   const handleImagesAdded = (newUrls: string[]) => {
     setUserImages((prev) => [...newUrls, ...prev]);
+    onPhotosAdded?.(newUrls);
   };
 
   return (
@@ -56,7 +58,12 @@ export function SphericalViewer({ primaryImageUrl, imageUrls, title }: Spherical
       </div>
 
       {mode === "3d" ? (
-        <ItemViewer3D images={allImages.slice(userImages.length)} title={title} userImages={userImages} />
+        <ItemViewer3D
+          images={allImages.slice(userImages.length)}
+          title={title}
+          userImages={userImages}
+          onActiveIndexChange={setActiveIdx}
+        />
       ) : (
         <GalleryView images={allImages} title={title} />
       )}
