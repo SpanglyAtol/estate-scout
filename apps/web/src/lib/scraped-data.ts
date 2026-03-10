@@ -27,13 +27,36 @@ const GARBAGE_CITY_RE =
   /see description|check description|call for|tbd|t\.b\.d|varies|multiple locations|various locations|see listing|see details|nationwide|pick up only|no location|not specified|please read|see auction|location tba/i;
 
 // Off-topic titles that slipped through the scraper-level filter.
+// BidSpotter/HiBid list ALL auction types — these patterns catch commercial/industrial junk.
 const GARBAGE_TITLE_RE =
-  /\b(van clearance|site closure|site clearance|liquidation sale|clearance auction|vehicle auction|car auction|truck auction|fleet auction|auto auction|plant hire|pallet lot|truckload)\b/i;
+  /\b(van clearance|site closure|site clearance|liquidation sale|clearance auction|vehicle auction|car auction|truck auction|fleet auction|auto auction|plant hire|pallet lot|truckload|cnc machin|machining|fabricat|welding|manufacturing|facility closure|plant closure|surplus to (?:the )?ongoing operation|warehouse auction|surplus assets|MRO surplus|gov.t (?:surplus|fleet)|dealer auction ring|training auction|ecom authority|ironring|invest in land|beverage.*canning|garment printing|apparel manufactur|knife mf|restaurant.*equipment|medical equipment auction|office furniture liquidat|forklift|industrial equipment|heavy equipment|construction equipment)\b/i;
+
+// Keywords that signal an antique/collectible/estate-relevant listing.
+// BidSpotter/HiBid general auction items must have at least one of these signals
+// unless they come from estate-specific scrapers (es, ms, pb, et, la, dc).
+const ANTIQUE_SIGNAL_RE =
+  /\b(antique|vintage|collectible|estate|heirloom|art\b|jewelry|jewellery|silver|porcelain|ceramic|pottery|furniture|victorian|edwardian|art deco|mid.century|retro|memorabilia|coin|stamp|watch|clock|glass|crystal|bronze|painting|sculpture|print|rug|carpet|textile|folk art|americana|primitive|oriental|chinese|japanese|french|english|danish|scandinavian|sterling|hallmark|auction house|fine art|signed|numbered|limited edition|provenance|circa\b|\bc\.\s*\d{4}|18th century|19th century|20th century|pre.war|signed by|by the artist|oil on canvas|watercolor|gouache|lithograph|etching|engraving|daguerreotype|tintype|photograph|ephemera|postcard|book|manuscript|map|globe|barometer|sextant|compass|telescope|microscope|inkwell|inkstand|writing|desk|secretary|armoire|buffet|hutch|sideboard|highboy|lowboy|bureau|commode|vanity|wardrobe|chiffonier|étagère|whatnot|vitrine|credenza|settee|chaise|fainting couch|loveseat|parlor|parlour|wing chair|bergere|fauteuil|tabouret|ottoman|footstool|hassock|candelabra|chandelier|girandole|sconce|lantern|lamp|fixture|cachepot|jardiniere|vase|urn|tureen|compote|epergne|plateau|salver|tray|creamer|sugar|butter|sauce|gravy|cruet|decanter|stopper|carafe|pitcher|ewer|tankard|stein|flagon|beaker|goblet|chalice|coupe|rummer|ratafia|cordial|dram|shot|snifter|tumbler|highball|lowball|cocktail|champagne|flute|coupe|saucer|teacup|demitasse|saucer|plate|platter|charger|bowl|basin|foot bath|spittoon|cuspidor|chamber pot|warming pan|bed warmer|footwarmer|hot water bottle|chafing dish|double boiler|bain marie|skillet|spider|trivet|crane|trammel|andiron|fire dog|fender|fire screen|bellows|tongs|poker|shovel|coal scuttle|hod|kettle|cauldron|crock|jug|jar|canister|tin|box|casket|coffer|chest|trunk|portmanteau|valise|hatbox|bandbox|parasol|fan|glove|button|buckle|clasp|brooch|pin|ring|necklace|bracelet|earring|pendant|locket|cameo|miniature|silhouette|portrait|genre|still life|landscape|seascape|cityscape|trompe l'oeil|grisaille|en grisaille)\b/i;
+
+// Platforms that are already estate/antique specific — no positive signal needed
+const ESTATE_PLATFORMS = new Set(["estatesales_net", "maxsold", "proxibid", "ebth", "liveauctioneers", "1stdibs", "invaluable"]);
 
 function isMeaningful(listing: MockListing): boolean {
   if (!listing.external_url?.startsWith("http")) return false;
   if (!listing.title?.trim()) return false;
   if (GARBAGE_TITLE_RE.test(listing.title)) return false;
+
+  // For general auction platforms (BidSpotter, HiBid, AuctionZip, Discovery),
+  // require a positive antique/collectible signal in the title, description,
+  // or category. Estate-specific platforms pass through without this check.
+  const platformName = listing.platform?.name ?? "";
+  const isEstatePlatform = ESTATE_PLATFORMS.has(platformName);
+  if (!isEstatePlatform) {
+    const hasCategory = Boolean(listing.category?.trim());
+    const hasTitleSignal = ANTIQUE_SIGNAL_RE.test(listing.title ?? "");
+    const hasDescSignal = ANTIQUE_SIGNAL_RE.test((listing.description ?? "").slice(0, 300));
+    if (!hasCategory && !hasTitleSignal && !hasDescSignal) return false;
+  }
+
   // Drop auctions that ended > 60 days ago and were never marked completed
   if (listing.sale_ends_at && !listing.is_completed) {
     const ended = new Date(listing.sale_ends_at).getTime();

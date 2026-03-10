@@ -30,7 +30,7 @@ export default async function ListingPage({ params }: PageProps) {
   const lt = listing.listing_type ?? "auction";
   const status = getAuctionStatus(listing);
   const countdown = timeUntil(listing.sale_ends_at);
-  const platform = listing.platform.display_name;
+  const platform = listing.platform?.display_name ?? "Auction Platform";
 
   // CTA configuration based on listing type + status
   let cta: { label: string; className: string };
