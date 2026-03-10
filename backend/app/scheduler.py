@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.config import settings
 from app.services.alert_service import run_alert_checks
+from app.services.market_index_service import refresh_market_index
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,19 @@ async def run_scrapers() -> None:
     logger.info(f"Scrape cycle complete: {total} listings processed")
 
 
+async def run_market_index() -> None:
+    """Nightly: aggregate price_snapshots → market_price_index with trend directions."""
+    logger.info("Scheduler: refreshing market price index")
+    db = await _make_db_session()
+    try:
+        summary = await refresh_market_index(db)
+        logger.info("Market index refresh done: %s", summary)
+    except Exception as e:
+        logger.error("Market index refresh failed: %s", e)
+    finally:
+        await db.close()
+
+
 async def run_alerts() -> None:
     """Check active alerts against newly scraped listings and send emails."""
     logger.info("Scheduler: running alert checks")
@@ -127,6 +141,17 @@ def get_scheduler() -> AsyncIOScheduler:
             id="check_alerts",
             name="Check alert matches",
             misfire_grace_time=120,
+        )
+
+        # Refresh market price index nightly at 02:00 UTC
+        _scheduler.add_job(
+            run_market_index,
+            trigger="cron",
+            hour=2,
+            minute=0,
+            id="refresh_market_index",
+            name="Nightly market price index refresh",
+            misfire_grace_time=3600,
         )
 
     return _scheduler

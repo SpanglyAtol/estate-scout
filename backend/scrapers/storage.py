@@ -9,6 +9,16 @@ from scrapers.base import ScrapedListing
 logger = logging.getLogger(__name__)
 
 
+def _try_import_market_services():
+    """Lazy import so storage.py works even without the full app context."""
+    try:
+        from app.services.price_history_service import snapshot_listing
+        from app.services.item_fingerprint_service import upsert_fingerprint
+        return snapshot_listing, upsert_fingerprint
+    except Exception:
+        return None, None
+
+
 class ScraperStorage:
     """
     Writes ScrapedListing objects to the database (upsert) and/or JSONL staging file.
@@ -142,6 +152,17 @@ class ScraperStorage:
                     "raw_data": json.dumps(listing.raw_data or {}),
                 },
             )
+            # ── Market price hooks ───────────────────────────────────────────
+            # Fetch the listing id that was just inserted / updated.
+            id_result = await self.db.execute(
+                text("SELECT id FROM listings WHERE platform_id = :pid AND external_id = :eid"),
+                {"pid": platform_id, "eid": listing.external_id},
+            )
+            listing_db_id = id_result.scalar_one_or_none()
+
+            if listing_db_id:
+                await self._write_market_hooks(listing, listing_db_id, platform_id)
+
             if commit:
                 await self.db.commit()
             return True
@@ -149,6 +170,74 @@ class ScraperStorage:
             logger.error(f"DB upsert failed for {listing.platform_slug}/{listing.external_id}: {e}")
             await self.db.rollback()
             return False
+
+    async def _write_market_hooks(
+        self,
+        listing: ScrapedListing,
+        listing_db_id: int,
+        platform_id: int,
+    ) -> None:
+        """
+        Write price snapshot and (if eligible) item fingerprint for this listing.
+        Failures here are logged but never propagate — we don't want a market-hook
+        bug to break the core scraping pipeline.
+        """
+        snapshot_fn, fingerprint_fn = _try_import_market_services()
+        if snapshot_fn is None:
+            return
+
+        event = (
+            "completed" if listing.is_completed and listing.final_price
+            else "expired"  if listing.is_completed
+            else "created"
+        )
+
+        listing_data = {
+            "current_price":  listing.current_price,
+            "is_completed":   listing.is_completed,
+            "final_price":    listing.final_price,
+            "estimate_low":   listing.estimate_low,
+            "estimate_high":  listing.estimate_high,
+            "platform_id":    platform_id,
+            "category":       listing.category,
+            "sub_category":   listing.attributes.get("sub_category") if listing.attributes else None,
+            "maker":          listing.maker,
+            "brand":          listing.brand,
+            "period":         listing.period,
+            "condition":      listing.condition,
+        }
+
+        try:
+            await snapshot_fn(
+                db=self.db,
+                listing_id=listing_db_id,
+                event_type=event,
+                listing_data=listing_data,
+            )
+        except Exception as exc:
+            logger.warning("price snapshot failed for listing %s: %s", listing_db_id, exc)
+
+        if listing.is_completed and listing.final_price and fingerprint_fn:
+            try:
+                attrs = listing.attributes or {}
+                await fingerprint_fn(
+                    db=self.db,
+                    listing_id=listing_db_id,
+                    platform_id=platform_id,
+                    title=listing.title,
+                    maker=listing.maker,
+                    category=listing.category,
+                    sub_category=attrs.get("sub_category"),
+                    model=attrs.get("model"),
+                    material=attrs.get("case_material"),
+                    year_approx=attrs.get("year_approx"),
+                    attributes=attrs,
+                    final_price=listing.final_price,
+                    condition=listing.condition,
+                    sale_date=listing.sale_ends_at,
+                )
+            except Exception as exc:
+                logger.warning("fingerprint upsert failed for listing %s: %s", listing_db_id, exc)
 
     def _append_to_jsonl(self, listing: ScrapedListing):
         record = asdict(listing)
