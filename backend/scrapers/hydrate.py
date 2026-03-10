@@ -226,23 +226,51 @@ _US_STATES = {
 }
 
 # ── Relevance filtering ───────────────────────────────────────────────────────
-# Keywords that indicate non-antique / non-estate-sale content to exclude
+# Keywords that indicate non-antique / non-estate-sale content to exclude.
+# Match is on lowercased title — partial substring match.
 _EXCLUDE_TITLE_KEYWORDS = [
-    # Vehicles
+    # Vehicles (broad)
     "pickup truck", "box van", "motorhome", "caravan", "forklift",
     "excavator", "tractor", "crane", "bulldozer", "backhoe",
     "motorcycle", " quad ", "atv ", "snowmobile",
+    "van clearance", "van auction", "car auction", "vehicle auction",
+    "truck auction", "fleet auction", "auto auction",
+    "transit van", "luton van", "panel van", "tipper truck",
     # Heavy industrial
     "cnc machine", "hydraulic press", "metal lathe", " lathe ",
     "compressor", "warehouse equipment", "industrial machinery",
     "pallet rack", "conveyor", "generator set",
+    "diesel generator", "air compressor", "milling machine",
+    "industrial equipment", "factory equipment", "plant equipment",
     # Commercial / restaurant
     "restaurant equipment", "commercial kitchen", "catering equipment",
     "deep fryer", "commercial oven", "walk-in cooler",
-    # Construction
+    # Construction / site
     "scaffolding", "concrete mixer", "power tool lot",
-    # Clearly off-topic UK auction terms in titles
+    "site closure", "site clearance", "plant hire",
+    "closing down sale", "liquidation sale", "clearance auction",
+    "business liquidation", "company liquidation",
+    # Real estate / property
+    "real estate", "land for sale", "acre lot", "building lot",
+    "commercial property", "residential property",
+    # Livestock / agricultural
+    "cattle", "livestock", " hay ", "grain bin", "farm equipment",
+    # Electronics bulk / telecom
+    "pallet of electronics", "bulk phones", "sim cards", "refurbished phones",
+    # Clearly off-topic UK auction terms
     "luton", "pickups, box", "vans, motorhome",
+    # Generic low-value bulk
+    "pallet lot", "truckload", "mixed pallet",
+]
+
+# City / location strings that are NOT real place names — placeholder text that
+# scrapers sometimes copy verbatim from listing descriptions.
+_GARBAGE_CITY_PATTERNS = [
+    "see description", "check description", "call for", "contact us",
+    "tbd", "t.b.d", "varies", "multiple locations", "various locations",
+    "see listing", "see details", "view listing", "refer to",
+    "location tba", "location tbd", "nationwide", "pick up only",
+    "no location", "not specified", "please read", "see auction",
 ]
 
 # Platform-level listing_type overrides (these platforms always produce a
@@ -261,6 +289,23 @@ _LOT_KEYWORDS = [
 ]
 
 
+def _clean_location(city: str | None, state: str | None) -> tuple[str | None, str | None]:
+    """
+    Return (clean_city, clean_state).
+    If city is a garbage placeholder string, returns (None, state) so the
+    listing isn't given a fake location that breaks map / proximity features.
+    """
+    if city:
+        city_lower = city.lower().strip()
+        for pattern in _GARBAGE_CITY_PATTERNS:
+            if pattern in city_lower:
+                return None, state
+        # Also reject very long city strings — real city names are < 40 chars
+        if len(city.strip()) > 40:
+            return None, state
+    return city, state
+
+
 def _is_relevant(listing: dict) -> bool:
     """Return False for listings that are clearly off-topic or non-US."""
     title = (listing.get("title") or "").lower()
@@ -273,6 +318,17 @@ def _is_relevant(listing: dict) -> bool:
     # Reject non-US listings: if state is set it must be a valid US abbreviation
     state = (listing.get("state") or "").strip().upper()
     if state and state not in _US_STATES:
+        return False
+
+    # Reject listings with absolutely no useful data (no image, no price, no description)
+    has_image = bool(listing.get("primary_image_url"))
+    has_price = (
+        listing.get("current_price") is not None
+        or listing.get("estimate_low") is not None
+        or listing.get("buy_now_price") is not None
+    )
+    has_description = bool(listing.get("description") or listing.get("title", "").strip())
+    if not has_image and not has_price and not has_description:
         return False
 
     return True
@@ -403,8 +459,8 @@ def _to_mock_listing(scraped: ScrapedListing) -> dict:
         "auction_status": _compute_status(scraped),
         "pickup_only": scraped.pickup_only,
         "ships_nationally": scraped.ships_nationally,
-        "city": scraped.city,
-        "state": scraped.state,
+        # Clean location: null out garbage placeholder city strings
+        **dict(zip(("city", "state"), _clean_location(scraped.city, scraped.state))),
         "zip_code": scraped.zip_code,
         "sale_ends_at": _dt(scraped.sale_ends_at),
         "sale_starts_at": _dt(scraped.sale_starts_at),

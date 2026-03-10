@@ -30,6 +30,50 @@ const PLATFORM_FILES = [
   "@/data/scraped-listings.json",        // legacy / full-national fallback
 ] as const;
 
+// City-string patterns that are placeholder text, not real place names.
+// Scrapers sometimes copy these verbatim from listing description fields.
+const GARBAGE_CITY_RE = /see description|check description|call for|tbd|t\.b\.d|varies|multiple locations|various locations|see listing|see details|nationwide|pick up only|no location|not specified|please read|see auction|location tba/i;
+
+// Titles that clearly indicate non-antique / non-estate-sale content that
+// slipped past the Python-level filter (e.g. stale JSON from before the fix).
+const GARBAGE_TITLE_RE = /\b(van clearance|site closure|site clearance|liquidation sale|clearance auction|vehicle auction|car auction|truck auction|fleet auction|auto auction|plant hire|pallet lot|truckload)\b/i;
+
+/**
+ * Return true if the listing has enough real data to be worth displaying.
+ * Frontend safety net — the scraper filter handles most cases at generation
+ * time; this catches anything that slipped through in cached/stale JSON.
+ */
+function isMeaningful(listing: MockListing): boolean {
+  // Must have a real destination URL — without it every CTA is broken
+  if (!listing.external_url?.startsWith("http")) return false;
+
+  // Must have a non-empty title
+  if (!listing.title?.trim()) return false;
+
+  // Reject off-topic titles that shouldn't have made it through
+  if (GARBAGE_TITLE_RE.test(listing.title)) return false;
+
+  // Skip listings that ended > 60 days ago and were never marked completed
+  // (stale auction records with no results that will never update)
+  if (listing.sale_ends_at && !listing.is_completed) {
+    const ended = new Date(listing.sale_ends_at).getTime();
+    if (!isNaN(ended) && ended < Date.now() - 60 * 24 * 60 * 60 * 1000) return false;
+  }
+
+  return true;
+}
+
+/**
+ * Nullify known-garbage location strings so they don't reach the map,
+ * proximity filter, or city display.  Real city names won't match.
+ */
+function cleanListing(listing: MockListing): MockListing {
+  if (listing.city && GARBAGE_CITY_RE.test(listing.city)) {
+    return { ...listing, city: null, latitude: null, longitude: null };
+  }
+  return listing;
+}
+
 function loadAllListings(): MockListing[] {
   const raw: MockListing[] = [];
 
@@ -54,11 +98,16 @@ function loadAllListings(): MockListing[] {
   const merged: MockListing[] = [];
   let nextId = 1;
 
-  for (const listing of raw) {
+  for (const raw_listing of raw) {
+    const listing = raw_listing as MockListing;
     const key = `${listing.platform?.name ?? "unknown"}:${listing.external_id ?? listing.id}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    merged.push({ ...listing, id: nextId++ });
+
+    const cleaned = cleanListing(listing);
+    if (!isMeaningful(cleaned)) continue;
+
+    merged.push({ ...cleaned, id: nextId++ });
   }
 
   return merged;
