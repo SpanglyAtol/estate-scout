@@ -4,6 +4,7 @@ import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
+import { PriceCheckerWidget } from "@/components/price-checker/price-checker-widget";
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
 import { TrackedCta } from "@/components/listings/tracked-cta";
@@ -291,18 +292,9 @@ export default async function ListingPage({ params }: PageProps) {
         />
       )}
 
-      {/* Price check CTA */}
-      <div className="mt-10 bg-antique-accent-s border border-antique-accent-lt rounded-2xl p-6 text-center">
-        <h2 className="font-bold text-lg text-antique-text mb-2">Is this a good deal?</h2>
-        <p className="text-antique-text-sec text-sm mb-4">
-          Use our AI price check to see what similar items sold for.
-        </p>
-        <Link
-          href={`/valuation?q=${encodeURIComponent(listing.title)}`}
-          className="inline-block bg-antique-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-antique-accent-h transition-colors"
-        >
-          Check Price
-        </Link>
+      {/* AI Price Checker — inline Claude-powered estimate + asking-price verdict */}
+      <div className="mt-10">
+        <PriceCheckerWidget listing={listing} />
       </div>
     </div>
   );
