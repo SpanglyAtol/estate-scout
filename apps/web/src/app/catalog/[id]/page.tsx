@@ -14,7 +14,6 @@ import { ArrowLeft, Pencil, TrendingUp, X, Loader2, Upload, Plus } from "lucide-
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import {
   loadCatalog,
-  saveCatalog,
   updateCatalogItem,
   updateCatalogItemInApi,
   type CatalogItem,
