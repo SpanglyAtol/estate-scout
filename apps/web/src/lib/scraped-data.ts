@@ -62,12 +62,15 @@ function tryLoad(loader: () => unknown): MockListing[] {
 function loadAllListings(): MockListing[] {
   // Each require() uses a LITERAL string so webpack can statically bundle the files.
   // Do NOT refactor these into a loop with a variable path — that breaks bundling.
-  const raw: MockListing[] = [
-    ...tryLoad(() => require("@/data/scraped-listings-fast.json")),
-    ...tryLoad(() => require("@/data/scraped-listings-estate.json")),
-    ...tryLoad(() => require("@/data/scraped-listings-ebay.json")),
-    ...tryLoad(() => require("@/data/scraped-listings.json")),
-  ];
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fast    = tryLoad(() => require("@/data/scraped-listings-fast.json"));
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const estate  = tryLoad(() => require("@/data/scraped-listings-estate.json"));
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ebay    = tryLoad(() => require("@/data/scraped-listings-ebay.json"));
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const legacy  = tryLoad(() => require("@/data/scraped-listings.json"));
+  const raw: MockListing[] = [...fast, ...estate, ...ebay, ...legacy];
 
   if (raw.length === 0) return MOCK_LISTINGS;
 
