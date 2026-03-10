@@ -39,7 +39,12 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
+    // Server-side default for SSR API calls.
+    // Browser calls use relative URLs (see api-client.ts) so this only
+    // matters for server-rendered pages calling Next.js API routes.
+    // Set NEXT_PUBLIC_API_URL in your environment to point at an external
+    // FastAPI backend; leave unset to use the built-in Next.js API routes.
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
   },
 };
 

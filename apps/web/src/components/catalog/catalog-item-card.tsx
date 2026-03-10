@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Sparkles, Trash2, TrendingUp } from "lucide-react";
 import { type CatalogItem } from "./catalog-types";
 import { AiAnalysisPanel } from "./ai-analysis-panel";
@@ -25,57 +26,62 @@ export function CatalogItemCard({ item, onDeleted, onUpdated }: Props) {
   return (
     <>
       <div className="antique-card flex flex-col overflow-hidden hover:border-antique-accent hover:shadow-md transition-all">
-        {/* Image */}
-        <div className="aspect-[4/3] bg-antique-muted relative overflow-hidden">
-          {thumb ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumb}
-              alt={item.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl text-antique-text-mute">
-              🏺
-            </div>
-          )}
-          {item.imageUrls.length > 1 && (
-            <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-              +{item.imageUrls.length - 1} more
-            </span>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="p-4 flex flex-col flex-1 gap-2">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-antique-accent mb-0.5">
-              {item.category}
-            </p>
-            <h3 className="font-display font-bold text-antique-text text-sm leading-snug line-clamp-2">
-              {item.title}
-            </h3>
-            <p className="text-xs text-antique-text-mute mt-0.5">{item.condition}</p>
+        {/* Clickable area → detail page */}
+        <Link href={`/catalog/${item.id}`} className="block">
+          {/* Image */}
+          <div className="aspect-[4/3] bg-antique-muted relative overflow-hidden">
+            {thumb ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumb}
+                alt={item.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-4xl text-antique-text-mute">
+                🏺
+              </div>
+            )}
+            {item.imageUrls.length > 1 && (
+              <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                +{item.imageUrls.length - 1} more
+              </span>
+            )}
           </div>
 
-          {item.description && (
-            <p className="text-xs text-antique-text-sec leading-relaxed line-clamp-2">
-              {item.description}
-            </p>
-          )}
-
-          {/* Price estimate */}
-          {analysis?.priceMid != null && (
-            <div className="flex items-center gap-1.5 bg-antique-accent-s border border-antique-accent-lt rounded-lg px-3 py-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-antique-accent flex-shrink-0" />
-              <span className="text-xs text-antique-text-sec">Est. value:</span>
-              <span className="text-sm font-bold text-antique-accent ml-auto">
-                ${analysis.priceLow?.toLocaleString() ?? "—"} – ${analysis.priceHigh?.toLocaleString() ?? "—"}
-              </span>
+          {/* Info */}
+          <div className="px-4 pt-4 pb-2 flex flex-col gap-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-antique-accent mb-0.5">
+                {item.category}
+              </p>
+              <h3 className="font-display font-bold text-antique-text text-sm leading-snug line-clamp-2">
+                {item.title}
+              </h3>
+              <p className="text-xs text-antique-text-mute mt-0.5">{item.condition}</p>
             </div>
-          )}
 
-          {/* Actions */}
+            {item.description && (
+              <p className="text-xs text-antique-text-sec leading-relaxed line-clamp-2">
+                {item.description}
+              </p>
+            )}
+
+            {/* Price estimate */}
+            {analysis?.priceMid != null && (
+              <div className="flex items-center gap-1.5 bg-antique-accent-s border border-antique-accent-lt rounded-lg px-3 py-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-antique-accent flex-shrink-0" />
+                <span className="text-xs text-antique-text-sec">Est. value:</span>
+                <span className="text-sm font-bold text-antique-accent ml-auto">
+                  ${analysis.priceLow?.toLocaleString() ?? "—"} – ${analysis.priceHigh?.toLocaleString() ?? "—"}
+                </span>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {/* Actions — outside <Link> to avoid nested interactive elements */}
+        <div className="px-4 pb-4 flex flex-col gap-2 flex-1 justify-end">
           <div className="flex gap-2 mt-auto pt-1">
             <button
               onClick={() => setShowAnalysis(true)}
