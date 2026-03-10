@@ -69,7 +69,7 @@ export function buildSearchKeywords(filters: SearchFilters): AffiliateLink[] {
   if (parts.length === 0 && filters.category) parts.push(humanize(filters.category));
   if (filters.country_of_origin)              parts.push(humanize(filters.country_of_origin));
 
-  const base = [...new Set(parts)].join(" ").trim();
+  const base = Array.from(new Set(parts)).join(" ").trim();
   if (!base) return [];
 
   const price      = filters.max_price ?? filters.min_price ?? 0;
@@ -111,7 +111,7 @@ export function buildListingKeywords(listing: Listing): AffiliateLink[] {
   if (listing.country_of_origin && listing.country_of_origin !== "united_states")
                                                            parts.push(humanize(listing.country_of_origin));
 
-  const base = [...new Set(parts)].join(" ").trim() || listing.title.slice(0, 40);
+  const base = Array.from(new Set(parts)).join(" ").trim() || listing.title.slice(0, 40);
 
   const price      = listing.estimate_high ?? listing.current_price ?? listing.estimate_low ?? 0;
   const isHighValue = price >= HIGH_VALUE;
