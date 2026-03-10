@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
 
+// When BACKEND_API_URL is configured, proxy search to the FastAPI backend which
+// serves 40k+ listings from PostgreSQL. Falls back to bundled JSON files.
+async function tryBackendSearch(req: NextRequest): Promise<NextResponse | null> {
+  const backendUrl = process.env.BACKEND_API_URL;
+  if (!backendUrl) return null;
+  try {
+    const upstream = await fetch(
+      `${backendUrl}/api/v1/search?${req.nextUrl.searchParams.toString()}`,
+      { next: { revalidate: 60 } }
+    );
+    if (upstream.ok) return NextResponse.json(await upstream.json());
+  } catch {
+    // Backend unavailable — fall through to JSON bundle
+  }
+  return null;
+}
+
 // ── Haversine distance (km) between two lat/lon points ────────────────────────
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
@@ -16,6 +33,9 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 export async function GET(req: NextRequest) {
+  const proxied = await tryBackendSearch(req);
+  if (proxied) return proxied;
+
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.toLowerCase() ?? "";
   const category = searchParams.get("category")?.toLowerCase() ?? "";

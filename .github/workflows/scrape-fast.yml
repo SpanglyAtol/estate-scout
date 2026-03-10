@@ -1,7 +1,8 @@
-name: Scrape — Fast (BidSpotter + HiBid)
+name: Scrape — Fast (BidSpotter + HiBid + EBTH + Invaluable)
 
-# BidSpotter and HiBid use direct APIs (JSON/GraphQL) — no rate-limit issues,
-# typically completes in 3-5 minutes.  Runs every 2 hours for near-live data.
+# BidSpotter and HiBid use direct APIs (JSON/GraphQL) — no rate-limit issues.
+# EBTH and Invaluable added for volume. Runs every 2 hours for near-live data.
+# At 60 pages each, targets ~9,600 listings per run (4 scrapers × 60p × ~40 listings/page).
 #
 # Output: apps/web/src/data/scraped-listings-fast.json
 # Vercel redeploys automatically on push via GitHub integration.
@@ -13,6 +14,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
 
@@ -26,14 +28,14 @@ jobs:
       - name: Install dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
-      - name: Scrape BidSpotter + HiBid (all US, 17 pages each)
+      - name: Scrape BidSpotter + HiBid + EBTH + Invaluable (all US, 60 pages each)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python backend/scrapers/hydrate.py \
-            --targets bs,hi \
+            --targets bs,hi,et,iv \
             --state "" \
-            --max-pages 17 \
+            --max-pages 60 \
             --out apps/web/src/data/scraped-listings-fast.json
 
       - name: Commit if changed

@@ -1,21 +1,21 @@
-name: Scrape — Medium (EstateSales + MaxSold + Proxibid + AuctionZip)
+name: Scrape — National (LiveAuctioneers + Discovery)
 
-# HTML scrapers with rate limiting — typically 15-25 minutes at full depth.
-# EstateSales.NET covers 20 US states; MaxSold hits 13 metro geo-searches;
-# Proxibid scrapes the auction calendar; AuctionZip covers local auctioneers.
-# At 50 pages each, targets ~8,000 listings per run. Runs every 8 hours.
+# LiveAuctioneers: highest-volume auction aggregator — 3-layer anti-403 strategy.
+# Discovery: finds and scrapes small regional auction sites not on major platforms.
+# Both are the most thorough (and slowest) scrapers. Runs once daily at 3 AM UTC.
+# At 80 pages, LiveAuctioneers alone targets ~16,000 listings per run.
 #
-# Output: apps/web/src/data/scraped-listings-estate.json
+# Output: apps/web/src/data/scraped-listings.json  (the legacy fallback slot)
 # Vercel redeploys automatically on push via GitHub integration.
 on:
   schedule:
-    - cron: "0 */8 * * *"   # every 8 hours  (00:00, 08:00, 16:00 UTC)
+    - cron: "0 3 * * *"   # 3:00 AM UTC daily (1 hour after slow workflow)
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     permissions:
       contents: write
 
@@ -29,21 +29,21 @@ jobs:
       - name: Install dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
-      - name: Scrape EstateSales.NET + MaxSold + Proxibid + AuctionZip
+      - name: Scrape LiveAuctioneers + regional discovery sites
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python backend/scrapers/hydrate.py \
-            --targets es,ms,pb,az \
+            --targets la,dc \
             --state "" \
-            --max-pages 50 \
-            --out apps/web/src/data/scraped-listings-estate.json
+            --max-pages 80 \
+            --out apps/web/src/data/scraped-listings.json
 
       - name: Commit if changed
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add apps/web/src/data/scraped-listings-estate.json
-          git diff --staged --quiet || git commit -m "chore: refresh estate listings (es+ms+pb) [skip ci]"
+          git add apps/web/src/data/scraped-listings.json
+          git diff --staged --quiet || git commit -m "chore: refresh national listings (la+dc) [skip ci]"
           git pull --rebase origin ${{ github.ref_name }}
           git push origin ${{ github.ref_name }}
