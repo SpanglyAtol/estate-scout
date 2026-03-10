@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
+import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { AmazonAssociates } from "@/components/ads/amazon-associates";
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
+import { TrackedCta } from "@/components/listings/tracked-cta";
 
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
@@ -176,16 +177,16 @@ export default async function ListingPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* CTA — always goes to source platform */}
-          <a
+          {/* CTA — always goes to source platform, click tracked for ad revenue */}
+          <TrackedCta
             href={listing.external_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            label={cta.label}
             className={cta.className}
-          >
-            {cta.label}
-            <ExternalLink className="w-5 h-5" />
-          </a>
+            listingId={listing.id}
+            platform={listing.platform.name}
+            category={listing.category}
+            listingType={lt}
+          />
 
           {/* Meta */}
           <div className="space-y-2 text-sm">

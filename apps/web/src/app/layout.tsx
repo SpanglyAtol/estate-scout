@@ -35,10 +35,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const adsenseId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_ID;
+  const ga4Id     = process.env.NEXT_PUBLIC_GA4_ID;
 
   return (
     <html lang="en" suppressHydrationWarning className={`${playfair.variable} ${inter.variable}`}>
       <head>
+        {/* Google AdSense */}
         {adsenseId ? (
           <Script
             async
@@ -46,6 +48,20 @@ export default function RootLayout({
             crossOrigin="anonymous"
             strategy="afterInteractive"
           />
+        ) : null}
+
+        {/* Google Analytics 4 */}
+        {ga4Id ? (
+          <>
+            <Script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga4Id}',{send_page_view:true});`}
+            </Script>
+          </>
         ) : null}
       </head>
       <body>

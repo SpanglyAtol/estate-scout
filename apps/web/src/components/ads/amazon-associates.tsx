@@ -1,8 +1,12 @@
+"use client";
+
 /**
  * Amazon Associates contextual product suggestions.
  * Shown on listing detail pages to surface relevant supplies/accessories.
  * Only renders when NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG is configured.
  */
+
+import { trackAffiliateClick } from "@/lib/analytics";
 
 interface AmazonLink {
   label: string;
@@ -55,11 +59,7 @@ const DEFAULT_LINKS: AmazonLink[] = [
 ];
 
 function buildAmazonUrl(keywords: string, tag: string): string {
-  const params = new URLSearchParams({
-    k: keywords,
-    tag,
-    linkCode: "ure",
-  });
+  const params = new URLSearchParams({ k: keywords, tag, linkCode: "ure" });
   return `https://www.amazon.com/s?${params.toString()}`;
 }
 
@@ -84,19 +84,25 @@ export function AmazonAssociates({ category }: AmazonAssociatesProps) {
         <span className="ml-auto text-xs text-antique-text-mute">via Amazon</span>
       </div>
       <ul className="space-y-2">
-        {links.map((link) => (
-          <li key={link.keywords}>
-            <a
-              href={buildAmazonUrl(link.keywords, tag)}
-              target="_blank"
-              rel="noopener noreferrer sponsored"
-              className="flex items-center gap-2 text-sm text-antique-accent hover:text-antique-accent-h hover:underline"
-            >
-              <span className="text-antique-text-mute">→</span>
-              {link.label}
-            </a>
-          </li>
-        ))}
+        {links.map((link) => {
+          const url = buildAmazonUrl(link.keywords, tag);
+          return (
+            <li key={link.keywords}>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                className="flex items-center gap-2 text-sm text-antique-accent hover:text-antique-accent-h hover:underline"
+                onClick={() =>
+                  trackAffiliateClick({ category, keywords: link.keywords, url })
+                }
+              >
+                <span className="text-antique-text-mute">→</span>
+                {link.label}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -149,9 +149,12 @@ export async function GET(req: NextRequest) {
       break;
     case "newest":
       results.sort((a, b) => {
-        const aStart = a.sale_starts_at ? new Date(a.sale_starts_at).getTime() : 0;
-        const bStart = b.sale_starts_at ? new Date(b.sale_starts_at).getTime() : 0;
-        return bStart - aStart;
+        // Prefer scraped_at (always set) over sale_starts_at (often null)
+        const aT = a.scraped_at ? new Date(a.scraped_at).getTime()
+                 : a.sale_starts_at ? new Date(a.sale_starts_at).getTime() : 0;
+        const bT = b.scraped_at ? new Date(b.scraped_at).getTime()
+                 : b.sale_starts_at ? new Date(b.sale_starts_at).getTime() : 0;
+        return bT - aT;
       });
       break;
     // default: preserve scraped order (BidSpotter / HiBid already ordered by
