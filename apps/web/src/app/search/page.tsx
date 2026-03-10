@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Loader2, ArrowUpDown, LayoutGrid, LayoutList } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { FilterSidebar } from "@/components/filters/filter-sidebar";
+import { SearchAffiliateAd } from "@/components/ads/search-affiliate-ad";
 import { searchListings } from "@/lib/api-client";
 import type { SearchFilters } from "@/types";
 import { cn } from "@/lib/cn";
@@ -146,6 +147,9 @@ function SearchPageInner() {
           Search
         </button>
       </form>
+
+      {/* ── Contextual affiliate strip (query/filter-aware) ── */}
+      <SearchAffiliateAd filters={filters} />
 
       {/* ── Sidebar + results ── */}
       <div className="flex gap-8 items-start">

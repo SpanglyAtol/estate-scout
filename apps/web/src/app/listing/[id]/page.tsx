@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
-import { AmazonAssociates } from "@/components/ads/amazon-associates";
+import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
 import { TrackedCta } from "@/components/listings/tracked-cta";
@@ -277,8 +277,8 @@ export default async function ListingPage({ params }: PageProps) {
             );
           })()}
 
-          {/* Amazon Associates — contextual supply links */}
-          <AmazonAssociates category={listing.category} />
+          {/* Contextual affiliate panel — keywords built from all enriched listing fields */}
+          <ContextualAffiliatePanel listing={listing} />
         </div>
       </div>
 

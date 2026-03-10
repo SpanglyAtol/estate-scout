@@ -6,6 +6,20 @@ import {
   Building2, Star, ChevronRight,
 } from "lucide-react";
 import { mockEstateSales, type MockEstateSale } from "@/app/api/v1/_mock-data";
+import { AdUnit } from "@/components/ads/ad-unit";
+import { trackAffiliateClick } from "@/lib/analytics";
+
+const ESTATE_PREP_TAG = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
+const ESTATE_PREP_LINKS = [
+  { label: "Packing & moving supplies", keywords: "moving boxes packing supplies" },
+  { label: "Storage & organization",    keywords: "storage bins closet organizers" },
+  { label: "Cleaning & restoration",    keywords: "cleaning restoration kit antique" },
+];
+
+function buildAmazonUrl(keywords: string): string {
+  if (!ESTATE_PREP_TAG) return "#";
+  return `https://www.amazon.com/s?${new URLSearchParams({ k: keywords, tag: ESTATE_PREP_TAG, linkCode: "ure" })}`;
+}
 
 // ── Platform directory ─────────────────────────────────────────────────────────
 
@@ -152,6 +166,32 @@ export default function EstateSalesPage() {
           />
         </div>
       </div>
+
+      {/* ── Top ad placement: AdSense + estate-prep affiliate strip ── */}
+      <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE ?? ""} format="rectangle" className="mb-6" />
+      {ESTATE_PREP_TAG && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-10 px-4 py-2.5 bg-antique-surface border border-antique-border rounded-xl text-sm">
+          <span className="text-antique-text-mute text-[11px] uppercase tracking-widest shrink-0 font-medium">
+            Sponsored
+          </span>
+          {ESTATE_PREP_LINKS.map((link) => {
+            const url = buildAmazonUrl(link.keywords);
+            return (
+              <a
+                key={link.keywords}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => trackAffiliateClick({ category: "estate_sale", keywords: link.keywords, url })}
+                className="text-antique-accent hover:text-antique-accent-h hover:underline transition-colors font-medium"
+              >
+                {link.label}
+              </a>
+            );
+          })}
+          <span className="ml-auto text-antique-text-mute text-[11px] shrink-0">via Amazon ↗</span>
+        </div>
+      )}
 
       {/* ── Browse by Platform ── */}
       <section className="mb-14">
