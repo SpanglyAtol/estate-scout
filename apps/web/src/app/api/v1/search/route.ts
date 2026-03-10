@@ -33,6 +33,21 @@ export async function GET(req: NextRequest) {
 
   let results = [...getListings()];
 
+  // ── Estate sale separation ─────────────────────────────────────────────────
+  // Full estate sale EVENTS (item_type=estate_sale or listing_type=estate_sale)
+  // belong on the /estate-sales page, not in the main catalog or search.
+  // They are only included when the caller explicitly requests them.
+  const wantsEstateSales =
+    searchParams.get("listing_type") === "estate_sale" ||
+    searchParams.get("item_type") === "estate_sale";
+  if (!wantsEstateSales) {
+    results = results.filter((l) => {
+      const lt = (l.listing_type as string | undefined) ?? "auction";
+      const it = (l as unknown as { item_type?: string }).item_type ?? "";
+      return lt !== "estate_sale" && it !== "estate_sale";
+    });
+  }
+
   if (q) {
     results = results.filter(
       (l) =>

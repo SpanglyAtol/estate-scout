@@ -208,19 +208,19 @@ export default async function HomePage() {
       {/* ── Ornamental divider ────────────────────────────────────────────────── */}
       {estateSales.length > 0 && (
         <div className="ornament-divider mb-12 text-xs text-antique-text-mute tracking-widest uppercase">
-          Estate Sales &amp; Lots
+          Estate Sales
         </div>
       )}
 
-      {/* ── Estate Sales & Lots ───────────────────────────────────────────────── */}
+      {/* ── Estate Sales preview ──────────────────────────────────────────────── */}
       {estateSales.length > 0 && (
         <section className="mb-14">
           <SectionHeader
             icon={<MapPin className="w-5 h-5 text-antique-accent" />}
-            title="Estate Sales &amp; Lots"
-            subtitle="In-person sales and multi-item lot auctions"
-            href="/search?listing_type=estate_sale"
-            linkLabel="Browse estate sales"
+            title="Estate Sales Near You"
+            subtitle="In-person sales — browse all 8 platforms in one place"
+            href="/estate-sales"
+            linkLabel="Find estate sales →"
           />
           <ListingGrid listings={estateSales} showAds={false} />
         </section>
