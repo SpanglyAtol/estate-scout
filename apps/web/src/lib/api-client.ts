@@ -1,11 +1,13 @@
 import type { Listing, SearchFilters, ValuationRequest, ValuationResult } from "../types";
 
-// On Vercel, NEXT_PUBLIC_API_URL is set to the production URL.
-// VERCEL_URL is auto-injected by Vercel on every build as a server-side fallback.
-// Locally, .env.local sets NEXT_PUBLIC_API_URL=http://localhost:3000.
+// API base URL resolution:
+//   Browser  → "" (relative URL — same origin, works locally and on Vercel)
+//   Server   → NEXT_PUBLIC_API_URL if set, otherwise VERCEL_URL or localhost:3000
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  typeof window !== "undefined"
+    ? ""
+    : (process.env.NEXT_PUBLIC_API_URL ??
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"));
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
