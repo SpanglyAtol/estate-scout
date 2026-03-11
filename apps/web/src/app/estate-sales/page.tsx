@@ -1,14 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
-  MapPin, Search, ExternalLink, Calendar,
-  Building2, Navigation, Loader2, ChevronRight,
+  MapPin, Search, ExternalLink, Calendar, Navigation, Loader2,
+  ChevronRight, LayoutGrid, LayoutList, SlidersHorizontal, X,
+  ArrowUpDown, ChevronDown, ChevronUp,
 } from "lucide-react";
 import type { Listing } from "@/types";
 import { formatPrice } from "@/lib/format";
+import { CATEGORIES } from "@/lib/category-meta";
 import { AdUnit } from "@/components/ads/ad-unit";
 import { trackAffiliateClick } from "@/lib/analytics";
+import { cn } from "@/lib/cn";
+
+// ── Amazon affiliate ───────────────────────────────────────────────────────────
 
 const ESTATE_PREP_TAG = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
 const ESTATE_PREP_LINKS = [
@@ -16,74 +23,25 @@ const ESTATE_PREP_LINKS = [
   { label: "Storage & organization",    keywords: "storage bins closet organizers" },
   { label: "Cleaning & restoration",    keywords: "cleaning restoration kit antique" },
 ];
-
-function buildAmazonUrl(keywords: string): string {
+function buildAmazonUrl(k: string) {
   if (!ESTATE_PREP_TAG) return "#";
-  return `https://www.amazon.com/s?${new URLSearchParams({ k: keywords, tag: ESTATE_PREP_TAG, linkCode: "ure" })}`;
+  return `https://www.amazon.com/s?${new URLSearchParams({ k, tag: ESTATE_PREP_TAG, linkCode: "ure" })}`;
 }
 
 // ── Platform directory ─────────────────────────────────────────────────────────
 
 const PLATFORMS = [
-  {
-    name: "EstateSales.NET",
-    description: "Largest US estate sale directory. Browse by city.",
-    url: "https://www.estatesales.net",
-    color: "blue",
-    emoji: "🏡",
-  },
-  {
-    name: "EstateSales.org",
-    description: "Nationwide sale listings with 'near me' search.",
-    url: "https://estatesales.org/estate-sales-near-me",
-    color: "indigo",
-    emoji: "📦",
-  },
-  {
-    name: "gsalr.com",
-    description: "Map-based estate sale finder across the whole US.",
-    url: "https://www.gsalr.com/",
-    color: "violet",
-    emoji: "🗺️",
-  },
-  {
-    name: "Facebook Marketplace",
-    description: "Neighborhood estate and garage sales posted daily.",
-    url: "https://www.facebook.com/marketplace/search/?q=estate+sale",
-    color: "sky",
-    emoji: "👥",
-  },
-  {
-    name: "MaxSold",
-    description: "Online-only estate auctions with local pickup.",
-    url: "https://maxsold.com/auctions",
-    color: "amber",
-    emoji: "🔨",
-  },
-  {
-    name: "HiBid",
-    description: "Live and timed auctions from local auction houses.",
-    url: "https://hibid.com/auctions",
-    color: "orange",
-    emoji: "🏷️",
-  },
-  {
-    name: "Craigslist",
-    description: "Local garage and estate sales posted by owners.",
-    url: "https://www.craigslist.org/search/sss?query=estate+sale",
-    color: "green",
-    emoji: "📋",
-  },
-  {
-    name: "Nextdoor",
-    description: "Hyper-local neighborhood sales posted by neighbors.",
-    url: "https://nextdoor.com/find-nearby/",
-    color: "teal",
-    emoji: "🏘️",
-  },
+  { name: "EstateSales.NET", description: "Largest US estate sale directory. Browse by city.",       url: "https://www.estatesales.net",                                  color: "blue",   emoji: "🏡" },
+  { name: "EstateSales.org", description: "Nationwide sale listings with 'near me' search.",         url: "https://estatesales.org/estate-sales-near-me",                 color: "indigo", emoji: "📦" },
+  { name: "gsalr.com",       description: "Map-based estate sale finder across the whole US.",        url: "https://www.gsalr.com/",                                       color: "violet", emoji: "🗺️" },
+  { name: "Facebook",        description: "Neighborhood estate and garage sales posted daily.",       url: "https://www.facebook.com/marketplace/search/?q=estate+sale",  color: "sky",    emoji: "👥" },
+  { name: "MaxSold",         description: "Online-only estate auctions with local pickup.",           url: "https://maxsold.com/auctions",                                 color: "amber",  emoji: "🔨" },
+  { name: "HiBid",           description: "Live and timed auctions from local auction houses.",       url: "https://hibid.com/auctions",                                   color: "orange", emoji: "🏷️" },
+  { name: "Craigslist",      description: "Local garage and estate sales posted by owners.",          url: "https://www.craigslist.org/search/sss?query=estate+sale",      color: "green",  emoji: "📋" },
+  { name: "Nextdoor",        description: "Hyper-local neighborhood sales posted by neighbors.",      url: "https://nextdoor.com/find-nearby/",                            color: "teal",   emoji: "🏘️" },
 ];
 
-const cardColors: Record<string, { bg: string; border: string; btn: string }> = {
+const CARD_COLORS: Record<string, { bg: string; border: string; btn: string }> = {
   blue:   { bg: "bg-blue-50",   border: "border-blue-100",   btn: "bg-blue-600 hover:bg-blue-700" },
   indigo: { bg: "bg-indigo-50", border: "border-indigo-100", btn: "bg-indigo-600 hover:bg-indigo-700" },
   violet: { bg: "bg-violet-50", border: "border-violet-100", btn: "bg-violet-600 hover:bg-violet-700" },
@@ -94,7 +52,55 @@ const cardColors: Record<string, { bg: string; border: string; btn: string }> = 
   teal:   { bg: "bg-teal-50",   border: "border-teal-100",   btn: "bg-teal-600 hover:bg-teal-700" },
 };
 
-// ── Helpers ─────────────────────────────────────────────────────────────────────
+// ── Filter config ─────────────────────────────────────────────────────────────
+
+const ESTATE_PLATFORMS = [
+  { id: 2, label: "EstateSales.NET" },
+  { id: 4, label: "MaxSold"         },
+  { id: 3, label: "HiBid"           },
+  { id: 5, label: "BidSpotter"      },
+];
+
+const STATUS_OPTIONS = [
+  { label: "All statuses",    value: "" },
+  { label: "Upcoming",        value: "upcoming" },
+  { label: "Active now",      value: "live" },
+  { label: "Ending this week",value: "ending_soon" },
+];
+
+const SORT_OPTIONS = [
+  { label: "Default order",      value: "" },
+  { label: "Starting soonest",   value: "ending_soon" },
+  { label: "Price: Low → High",  value: "price_asc" },
+  { label: "Price: High → Low",  value: "price_desc" },
+  { label: "Newest first",       value: "newest" },
+];
+
+const RADIUS_OPTIONS = [10, 25, 50, 100, 250];
+const PAGE_SIZE = 24;
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface Filters {
+  q: string;
+  status: string;
+  category: string;
+  minPrice: string;
+  maxPrice: string;
+  platformIds: number[];
+  radiusMiles: number;
+  sort: string;
+  page: number;
+}
+
+interface Location { lat: number; lon: number; label: string }
+
+const DEFAULT_FILTERS: Filters = {
+  q: "", status: "", category: "", minPrice: "", maxPrice: "",
+  platformIds: [], radiusMiles: 50, sort: "", page: 1,
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string | null) {
   if (!iso) return "";
@@ -117,156 +123,332 @@ async function zipToCoords(zip: string): Promise<{ lat: number; lon: number } | 
     const place = data.places?.[0];
     if (!place) return null;
     return { lat: parseFloat(place.latitude), lon: parseFloat(place.longitude) };
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-// ── Page ────────────────────────────────────────────────────────────────────────
+function buildApiParams(filters: Filters, loc: Location | null): URLSearchParams {
+  const p = new URLSearchParams({ listing_type: "estate_sale", page_size: String(PAGE_SIZE) });
+  if (filters.q.trim())    p.set("q", filters.q.trim());
+  if (filters.status)      p.set("status", filters.status);
+  if (filters.category)    p.set("category", filters.category);
+  if (filters.minPrice)    p.set("min_price", filters.minPrice);
+  if (filters.maxPrice)    p.set("max_price", filters.maxPrice);
+  if (filters.sort)        p.set("sort", filters.sort);
+  if (filters.page > 1)    p.set("page", String(filters.page));
+  filters.platformIds.forEach((id) => p.append("platform_ids", String(id)));
+  if (loc) {
+    p.set("lat", String(loc.lat));
+    p.set("lon", String(loc.lon));
+    p.set("radius_miles", String(filters.radiusMiles));
+  }
+  return p;
+}
+
+// ── Filter sidebar (estate-sale specific) ─────────────────────────────────────
+
+function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-antique-border pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center justify-between w-full text-sm font-semibold text-antique-text mb-3"
+      >
+        {title}
+        {open ? <ChevronUp className="w-4 h-4 text-antique-text-mute" /> : <ChevronDown className="w-4 h-4 text-antique-text-mute" />}
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+function EstateSaleFilters({
+  filters,
+  hasLocation,
+  onChange,
+}: {
+  filters: Filters;
+  hasLocation: boolean;
+  onChange: (patch: Partial<Filters>) => void;
+}) {
+  const activeCount = [
+    filters.status,
+    filters.category,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.platformIds.length > 0,
+    hasLocation && filters.radiusMiles !== 50,
+  ].filter(Boolean).length;
+
+  return (
+    <div className="space-y-0">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-base font-bold text-antique-text">Filters</h2>
+        {activeCount > 0 && (
+          <button
+            onClick={() => onChange({ status: "", category: "", minPrice: "", maxPrice: "", platformIds: [], radiusMiles: 50 })}
+            className="text-xs text-antique-accent hover:text-antique-accent-h font-medium"
+          >
+            Clear all ({activeCount})
+          </button>
+        )}
+      </div>
+
+      {/* Status */}
+      <FilterSection title="Sale Status">
+        <div className="space-y-1.5">
+          {STATUS_OPTIONS.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+              <input
+                type="radio"
+                name="es_status"
+                checked={filters.status === opt.value}
+                onChange={() => onChange({ status: opt.value, page: 1 })}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
+                {opt.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Category */}
+      <FilterSection title="Category" defaultOpen={false}>
+        <div className="flex flex-wrap gap-1.5">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.slug}
+              onClick={() => onChange({ category: filters.category === cat.slug ? "" : cat.slug, page: 1 })}
+              title={cat.description}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                filters.category === cat.slug
+                  ? "bg-antique-accent text-white border-antique-accent"
+                  : "bg-antique-surface border-antique-border text-antique-text-sec hover:border-antique-accent"
+              )}
+            >
+              {cat.icon} {cat.shortLabel}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Price range */}
+      <FilterSection title="Price Range" defaultOpen={false}>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-xs text-antique-text-mute mb-1 block">Min ($)</label>
+            <input
+              type="number" min={0} placeholder="0"
+              value={filters.minPrice}
+              onChange={(e) => onChange({ minPrice: e.target.value, page: 1 })}
+              className="w-full border border-antique-border bg-antique-surface text-antique-text rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-antique-accent"
+            />
+          </div>
+          <span className="text-antique-text-mute mt-5">—</span>
+          <div className="flex-1">
+            <label className="text-xs text-antique-text-mute mb-1 block">Max ($)</label>
+            <input
+              type="number" min={0} placeholder="Any"
+              value={filters.maxPrice}
+              onChange={(e) => onChange({ maxPrice: e.target.value, page: 1 })}
+              className="w-full border border-antique-border bg-antique-surface text-antique-text rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-antique-accent"
+            />
+          </div>
+        </div>
+      </FilterSection>
+
+      {/* Radius — only meaningful when location is set */}
+      <FilterSection title="Search Radius" defaultOpen={hasLocation}>
+        <div className="flex flex-wrap gap-2">
+          {RADIUS_OPTIONS.map((mi) => (
+            <button
+              key={mi}
+              onClick={() => onChange({ radiusMiles: mi, page: 1 })}
+              className={cn(
+                "text-xs px-3 py-1 rounded-full border transition-colors",
+                filters.radiusMiles === mi
+                  ? "bg-antique-accent text-white border-antique-accent"
+                  : "bg-antique-surface border-antique-border text-antique-text-sec hover:border-antique-accent"
+              )}
+            >
+              {mi} mi
+            </button>
+          ))}
+        </div>
+        {!hasLocation && (
+          <p className="text-xs text-antique-text-mute mt-2">Enter a ZIP or use Near Me to apply radius</p>
+        )}
+      </FilterSection>
+
+      {/* Platform */}
+      <FilterSection title="Platform" defaultOpen={false}>
+        <div className="space-y-1.5">
+          {ESTATE_PLATFORMS.map((p) => {
+            const checked = filters.platformIds.includes(p.id);
+            return (
+              <label key={p.id} className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...filters.platformIds, p.id]
+                      : filters.platformIds.filter((id) => id !== p.id);
+                    onChange({ platformIds: next, page: 1 });
+                  }}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
+                  {p.label}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </FilterSection>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+type ViewMode = "card" | "list";
+const VIEW_KEY = "es_estate_view";
 
 export default function EstateSalesPage() {
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
-  const [zip, setZip] = useState("");
-  const [locationLabel, setLocationLabel] = useState("");
-  const [radius] = useState(50);
+  const [listings, setListings]         = useState<Listing[]>([]);
+  const [loading, setLoading]           = useState(false);
+  const [geoLoading, setGeoLoading]     = useState(false);
+  const [error, setError]               = useState("");
+  const [filters, setFilters]           = useState<Filters>(DEFAULT_FILTERS);
+  const [location, setLocation]         = useState<Location | null>(null);
+  const [zip, setZip]                   = useState("");
+  const [viewMode, setViewMode]         = useState<ViewMode>("card");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [showPlatforms, setShowPlatforms] = useState(false);
+  const [hasMore, setHasMore]           = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const fetchSales = useCallback(async (lat: number, lon: number, label: string) => {
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lon: String(lon),
-      radius_miles: String(radius),
-      listing_type: "estate_sale",
-      page_size: "48",
-    });
-    if (query.trim()) params.set("q", query.trim());
-
-    try {
-      const res = await fetch(`/api/v1/search?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Listing[] = await res.json();
-      setListings(data);
-      setLocationLabel(label);
-      setError("");
-    } catch {
-      setError("Failed to load listings. Please try again.");
-    }
-  }, [radius, query]);
-
-  // Load initial nationwide estate sales on mount
+  // Restore view mode from localStorage
   useEffect(() => {
-    async function loadDefault() {
+    const saved = localStorage.getItem(VIEW_KEY);
+    if (saved === "list" || saved === "card") setViewMode(saved as ViewMode);
+  }, []);
+
+  function changeView(mode: ViewMode) {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_KEY, mode);
+  }
+
+  // Fetch whenever filters or location change
+  useEffect(() => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    async function load() {
       setLoading(true);
+      setError("");
       try {
-        const params = new URLSearchParams({
-          listing_type: "estate_sale",
-          page_size: "48",
-        });
-        const res = await fetch(`/api/v1/search?${params}`);
+        const params = buildApiParams(filters, location);
+        const res = await fetch(`/api/v1/search?${params}`, { signal: ctrl.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: Listing[] = await res.json();
         setListings(data);
-      } catch {
-        // silently fail — will show empty state
+        setHasMore(data.length >= PAGE_SIZE);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") setError("Failed to load listings. Please try again.");
       } finally {
-        setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       }
     }
-    loadDefault();
-  }, []);
+    load();
+  }, [filters, location]);
 
+  function patchFilters(patch: Partial<Filters>) {
+    setFilters((f) => ({ ...f, ...patch }));
+  }
+
+  // ZIP search
   const handleZipSearch = useCallback(async () => {
     const trimmed = zip.trim();
-    if (!/^\d{5}$/.test(trimmed)) {
-      setError("Please enter a valid 5-digit ZIP code.");
-      return;
-    }
-    setLoading(true);
+    if (!/^\d{5}$/.test(trimmed)) { setError("Please enter a valid 5-digit ZIP code."); return; }
     setError("");
     const coords = await zipToCoords(trimmed);
-    if (!coords) {
-      setError(`Couldn't locate ZIP code "${trimmed}".`);
-      setLoading(false);
-      return;
-    }
-    await fetchSales(coords.lat, coords.lon, `ZIP ${trimmed}`);
-    setLoading(false);
-  }, [zip, fetchSales]);
+    if (!coords) { setError(`Couldn't locate ZIP "${trimmed}".`); return; }
+    setLocation({ ...coords, label: `ZIP ${trimmed}` });
+    patchFilters({ page: 1 });
+  }, [zip]);
 
+  // Geolocation
   const handleNearMe = useCallback(() => {
-    if (!navigator.geolocation) {
-      setError("Geolocation not supported by your browser.");
-      return;
-    }
+    if (!navigator.geolocation) { setError("Geolocation not supported."); return; }
     setGeoLoading(true);
     setError("");
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        await fetchSales(pos.coords.latitude, pos.coords.longitude, "your location");
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "your location" });
+        patchFilters({ page: 1 });
         setGeoLoading(false);
       },
       () => {
-        setError("Couldn't access your location. Enter a ZIP code instead.");
+        setError("Couldn't access location. Enter a ZIP instead.");
         setGeoLoading(false);
       }
     );
-  }, [fetchSales]);
+  }, []);
 
-  const handleTextSearch = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const params = new URLSearchParams({ listing_type: "estate_sale", page_size: "48" });
-      if (query.trim()) params.set("q", query.trim());
-      const res = await fetch(`/api/v1/search?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Listing[] = await res.json();
-      setListings(data);
-    } catch {
-      setError("Search failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [query]);
+  function clearLocation() {
+    setLocation(null);
+    setZip("");
+    patchFilters({ page: 1 });
+  }
 
   const isLoading = loading || geoLoading;
+  const activeFilterCount = [
+    filters.status, filters.category, filters.minPrice, filters.maxPrice,
+    filters.platformIds.length > 0,
+  ].filter(Boolean).length;
+
+  const filterPanel = (
+    <EstateSaleFilters
+      filters={filters}
+      hasLocation={!!location}
+      onChange={patchFilters}
+    />
+  );
 
   return (
-    <div className="container mx-auto px-4 py-10 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
 
       {/* ── Hero ── */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 bg-antique-muted text-antique-accent text-sm font-semibold px-4 py-1.5 rounded-full mb-4 border border-antique-border">
-          <MapPin className="w-4 h-4" />
-          Estate Sales Near You
-        </div>
-        <h1 className="font-display text-4xl font-bold text-antique-text mb-3">
+      <div className="mb-8">
+        <h1 className="font-display text-3xl font-bold text-antique-text mb-1">
           Find Local Estate Sales
         </h1>
-        <p className="text-antique-text-sec text-lg max-w-2xl mx-auto mb-8">
-          Browse upcoming estate sales and in-person auctions from EstateSales.net,
-          MaxSold, HiBid, and more — all in one place.
+        <p className="text-antique-text-sec mb-6">
+          Browse upcoming estate sales and online estate auctions across EstateSales.net, MaxSold, HiBid, and more.
         </p>
 
-        {/* Search controls */}
-        <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto">
-          {/* Text search */}
+        {/* Search + location bar */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Keyword search */}
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-text-mute pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-text-mute pointer-events-none" />
             <input
               type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
-              placeholder="Search by keyword, category…"
-              className="w-full pl-10 pr-4 py-2.5 border border-antique-border rounded-xl text-sm bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
+              value={filters.q}
+              onChange={(e) => patchFilters({ q: e.target.value, page: 1 })}
+              onKeyDown={(e) => e.key === "Enter" && patchFilters({ page: 1 })}
+              placeholder="Search estate sales…"
+              className="w-full pl-9 pr-4 py-2.5 border border-antique-border rounded-xl text-sm bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
             />
           </div>
 
-          {/* ZIP input */}
+          {/* ZIP */}
           <div className="relative flex-shrink-0">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-accent pointer-events-none" />
             <input
@@ -276,146 +458,301 @@ export default function EstateSalesPage() {
               onKeyDown={(e) => e.key === "Enter" && handleZipSearch()}
               placeholder="ZIP code"
               maxLength={5}
-              className="pl-9 pr-3 py-2.5 border border-antique-border rounded-xl text-sm w-32 bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
+              className="pl-9 pr-3 py-2.5 border border-antique-border rounded-xl text-sm w-28 bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
             />
           </div>
 
-          {/* Near me */}
+          <button
+            onClick={handleZipSearch}
+            disabled={isLoading || !zip.trim()}
+            className="bg-antique-accent hover:bg-antique-accent-h disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex-shrink-0"
+          >
+            Go
+          </button>
+
           <button
             onClick={handleNearMe}
             disabled={isLoading}
-            className="flex items-center gap-2 border border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent disabled:opacity-50 px-3 py-2.5 rounded-xl text-sm transition-colors bg-antique-surface flex-shrink-0"
+            className="flex items-center gap-1.5 border border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent disabled:opacity-40 px-3 py-2.5 rounded-xl text-sm transition-colors bg-antique-surface flex-shrink-0"
           >
             {geoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-            Near Me
+            <span className="hidden sm:inline">Near Me</span>
           </button>
 
-          {/* Search button */}
+          {/* Active location chip */}
+          {location && (
+            <div className="flex items-center gap-1.5 bg-antique-accent-s border border-antique-accent-lt text-antique-accent text-xs font-medium px-3 py-2 rounded-xl flex-shrink-0">
+              <MapPin className="w-3.5 h-3.5" />
+              {location.label} · {filters.radiusMiles} mi
+              <button onClick={clearLocation} className="ml-1 hover:text-antique-accent-h">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Mobile filter toggle */}
           <button
-            onClick={handleZipSearch}
-            disabled={isLoading}
-            className="flex items-center gap-2 bg-antique-accent hover:bg-antique-accent-h disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors flex-shrink-0"
+            onClick={() => setMobileFiltersOpen(true)}
+            className="lg:hidden flex items-center gap-1.5 border border-antique-border bg-antique-surface text-antique-text-sec rounded-xl px-3 py-2.5 text-sm font-medium hover:border-antique-accent transition-colors flex-shrink-0"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            Search
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="bg-antique-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
 
-        {error && <p className="text-red-600 text-sm mt-3 font-medium">{error}</p>}
+        {error && <p className="text-red-600 text-sm mt-2 font-medium">{error}</p>}
       </div>
 
-      {/* ── Top ad placement ── */}
-      <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE ?? ""} format="rectangle" className="mb-6" />
+      {/* ── Ads + affiliate ── */}
+      <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE ?? ""} format="rectangle" className="mb-4" />
       {ESTATE_PREP_TAG && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-10 px-4 py-2.5 bg-antique-surface border border-antique-border rounded-xl text-sm">
-          <span className="text-antique-text-mute text-[11px] uppercase tracking-widest shrink-0 font-medium">
-            Sponsored
-          </span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-6 px-4 py-2.5 bg-antique-surface border border-antique-border rounded-xl text-sm">
+          <span className="text-antique-text-mute text-[11px] uppercase tracking-widest font-medium">Sponsored</span>
           {ESTATE_PREP_LINKS.map((link) => {
             const url = buildAmazonUrl(link.keywords);
             return (
-              <a
-                key={link.keywords}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
+              <a key={link.keywords} href={url} target="_blank" rel="noopener noreferrer sponsored"
                 onClick={() => trackAffiliateClick({ category: "estate_sale", keywords: link.keywords, url })}
-                className="text-antique-accent hover:text-antique-accent-h hover:underline transition-colors font-medium"
-              >
+                className="text-antique-accent hover:underline transition-colors font-medium">
                 {link.label}
               </a>
             );
           })}
-          <span className="ml-auto text-antique-text-mute text-[11px] shrink-0">via Amazon ↗</span>
+          <span className="ml-auto text-antique-text-mute text-[11px]">via Amazon ↗</span>
         </div>
       )}
 
-      {/* ── Browse by Platform ── */}
-      <section className="mb-14">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-display text-xl font-bold text-antique-text">Browse by Platform</h2>
-          <span className="text-sm text-antique-text-mute hidden sm:block">Opens the source site in a new tab</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {PLATFORMS.map((p) => {
-            const c = cardColors[p.color];
-            return (
-              <a
-                key={p.name}
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${c.bg} ${c.border}`}
-              >
-                <span className="text-2xl" aria-hidden="true">{p.emoji}</span>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900 text-sm leading-tight">{p.name}</p>
-                  <p className="text-xs text-gray-500 mt-1 leading-snug">{p.description}</p>
-                </div>
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg self-start transition-colors ${c.btn}`}>
-                  Browse <ExternalLink className="w-3 h-3" />
-                </span>
-              </a>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Live Estate Sales ── */}
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-display text-xl font-bold text-antique-text">
-            {locationLabel ? `Estate Sales Near ${locationLabel}` : "Upcoming Estate Sales"}
-            {listings.length > 0 && (
-              <span className="ml-2 text-sm font-normal text-antique-text-mute">
-                — {listings.length} result{listings.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </h2>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 text-antique-accent animate-spin" />
-          </div>
-        ) : listings.length === 0 ? (
-          <div className="text-center py-20 text-antique-text-mute">
-            <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="font-semibold text-antique-text-sec">No estate sales found</p>
-            <p className="text-sm mt-1">Try a different location or search term, or browse the platforms above.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {listings.map((listing) => (
-              <EstateSaleCard key={listing.id} listing={listing} />
-            ))}
+      {/* ── Platform directory (collapsible) ── */}
+      <div className="mb-6 border border-antique-border rounded-2xl overflow-hidden bg-antique-surface">
+        <button
+          onClick={() => setShowPlatforms((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-semibold text-antique-text hover:bg-antique-muted transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <span>Browse by Platform</span>
+            <span className="text-xs font-normal text-antique-text-mute">8 sources</span>
+          </span>
+          {showPlatforms ? <ChevronUp className="w-4 h-4 text-antique-text-mute" /> : <ChevronDown className="w-4 h-4 text-antique-text-mute" />}
+        </button>
+        {showPlatforms && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-4 pb-4">
+            {PLATFORMS.map((p) => {
+              const c = CARD_COLORS[p.color];
+              return (
+                <a key={p.name} href={p.url} target="_blank" rel="noopener noreferrer"
+                  className={`rounded-xl border p-3 flex flex-col gap-2 transition-all hover:shadow-md hover:-translate-y-0.5 ${c.bg} ${c.border}`}>
+                  <span className="text-xl">{p.emoji}</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 text-xs">{p.name}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{p.description}</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold text-white px-2 py-1 rounded-md self-start ${c.btn}`}>
+                    Browse <ExternalLink className="w-2.5 h-2.5" />
+                  </span>
+                </a>
+              );
+            })}
           </div>
         )}
-      </section>
+      </div>
+
+      {/* ── Main content (sidebar + results) ── */}
+      <div className="flex gap-6 items-start">
+
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:block w-52 flex-shrink-0">
+          <div className="bg-antique-surface border border-antique-border rounded-2xl p-4 sticky top-4">
+            {filterPanel}
+          </div>
+        </aside>
+
+        {/* Results pane */}
+        <div className="flex-1 min-w-0">
+
+          {/* Toolbar */}
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <p className="text-sm text-antique-text-mute flex-1">
+              {isLoading ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                </span>
+              ) : (
+                <>
+                  <span className="font-semibold text-antique-text">{listings.length}</span>{" "}
+                  estate sale{listings.length !== 1 ? "s" : ""}
+                  {location && <> within <span className="font-medium">{filters.radiusMiles} mi</span> of {location.label}</>}
+                </>
+              )}
+            </p>
+
+            {/* Sort */}
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-antique-text-mute" />
+              <select
+                value={filters.sort}
+                onChange={(e) => patchFilters({ sort: e.target.value, page: 1 })}
+                className="bg-antique-surface border border-antique-border rounded-lg px-2.5 py-1.5 text-sm text-antique-text focus:outline-none focus:ring-2 focus:ring-antique-accent cursor-pointer"
+              >
+                {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            {/* View toggle */}
+            <div className="flex border border-antique-border rounded-lg overflow-hidden">
+              {(["card", "list"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => changeView(mode)}
+                  aria-label={`${mode} view`}
+                  className={cn(
+                    "p-1.5 transition-colors",
+                    viewMode === mode
+                      ? "bg-antique-accent text-white"
+                      : "bg-antique-surface text-antique-text-mute hover:text-antique-text"
+                  )}
+                >
+                  {mode === "card" ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Active filter pills */}
+          {(filters.category || filters.status || filters.minPrice || filters.maxPrice || filters.platformIds.length > 0) && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {filters.status && (
+                <FilterPill label={STATUS_OPTIONS.find((o) => o.value === filters.status)?.label ?? filters.status}
+                  onRemove={() => patchFilters({ status: "", page: 1 })} />
+              )}
+              {filters.category && (
+                <FilterPill label={CATEGORIES.find((c) => c.slug === filters.category)?.label ?? filters.category}
+                  onRemove={() => patchFilters({ category: "", page: 1 })} />
+              )}
+              {(filters.minPrice || filters.maxPrice) && (
+                <FilterPill
+                  label={`$${filters.minPrice || "0"} – $${filters.maxPrice || "any"}`}
+                  onRemove={() => patchFilters({ minPrice: "", maxPrice: "", page: 1 })}
+                />
+              )}
+              {filters.platformIds.map((id) => {
+                const p = ESTATE_PLATFORMS.find((ep) => ep.id === id);
+                return p ? (
+                  <FilterPill key={id} label={p.label}
+                    onRemove={() => patchFilters({ platformIds: filters.platformIds.filter((i) => i !== id), page: 1 })} />
+                ) : null;
+              })}
+            </div>
+          )}
+
+          {/* Results */}
+          {listings.length === 0 && !isLoading ? (
+            <div className="text-center py-20 text-antique-text-mute">
+              <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-semibold text-antique-text-sec">No estate sales found</p>
+              <p className="text-sm mt-1">
+                Try broadening your filters, searching a different area, or browsing a platform directly above.
+              </p>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="mt-4 text-sm text-antique-accent hover:underline"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          ) : viewMode === "card" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {listings.map((listing) => (
+                <EstateSaleCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {listings.map((listing) => (
+                <EstateSaleRow key={listing.id} listing={listing} />
+              ))}
+            </div>
+          )}
+
+          {/* Load more */}
+          {hasMore && !isLoading && listings.length > 0 && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={() => patchFilters({ page: filters.page + 1 })}
+                className="inline-flex items-center gap-2 border border-antique-border text-antique-text-sec bg-antique-surface px-8 py-3 rounded-xl hover:border-antique-accent hover:text-antique-accent transition-all font-medium text-sm"
+              >
+                Load more estate sales
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile filter drawer */}
+      {mobileFiltersOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
+          <div className="relative ml-auto w-80 max-w-full h-full bg-antique-surface shadow-2xl overflow-y-auto p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-antique-text">Filters</h2>
+              <button onClick={() => setMobileFiltersOpen(false)}>
+                <X className="w-5 h-5 text-antique-text-mute" />
+              </button>
+            </div>
+            {filterPanel}
+            <button
+              onClick={() => setMobileFiltersOpen(false)}
+              className="mt-6 w-full bg-antique-accent text-white py-3 rounded-xl font-semibold hover:bg-antique-accent-h transition-colors"
+            >
+              Show Results
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Estate Sale Card ────────────────────────────────────────────────────────────
+// ── Filter pill ───────────────────────────────────────────────────────────────
+
+function FilterPill({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 bg-antique-accent-s border border-antique-accent-lt text-antique-accent text-xs font-medium px-2.5 py-1 rounded-full">
+      {label}
+      <button onClick={onRemove} className="hover:text-antique-accent-h ml-0.5">
+        <X className="w-3 h-3" />
+      </button>
+    </span>
+  );
+}
+
+// ── Card view ─────────────────────────────────────────────────────────────────
 
 function EstateSaleCard({ listing }: { listing: Listing }) {
+  const [imgError, setImgError] = useState(false);
   const startLabel = daysUntil(listing.sale_starts_at as string | null);
   const isSoon = startLabel === "Active" || startLabel === "Tomorrow";
 
   return (
-    <article className="bg-antique-surface border border-antique-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-      {/* Preview image */}
+    <article className="bg-antique-surface border border-antique-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-antique-accent transition-all flex flex-col">
       <div className="relative h-44 bg-antique-muted flex-shrink-0">
-        {listing.primary_image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+        {listing.primary_image_url && !imgError ? (
+          <Image
             src={listing.primary_image_url}
             alt={listing.title}
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            fill
+            unoptimized
+            className="object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">🏺</div>
+          <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">🏡</div>
         )}
         {isSoon && (
           <div className="absolute top-2 right-2 bg-antique-accent text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow">
@@ -429,73 +766,142 @@ function EstateSaleCard({ listing }: { listing: Listing }) {
         )}
       </div>
 
-      {/* Content */}
       <div className="p-4 flex flex-col gap-2 flex-1">
-        {/* Platform */}
         <span className="text-[10px] font-semibold uppercase tracking-wide text-antique-accent">
           {listing.platform?.display_name ?? "Estate Sale"}
         </span>
 
-        {/* Title */}
         <h3 className="font-semibold text-antique-text text-sm leading-snug line-clamp-2">
           {listing.title}
         </h3>
 
-        {/* Location */}
         {(listing.city || listing.state) && (
           <div className="flex items-center gap-1.5 text-xs text-antique-text-sec">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>
-              {[listing.city, listing.state].filter(Boolean).join(", ")}
-              {listing.zip_code && ` ${listing.zip_code}`}
-            </span>
+            {[listing.city, listing.state].filter(Boolean).join(", ")}
+            {listing.zip_code && ` ${listing.zip_code}`}
+            {listing.distance_miles != null && (
+              <span className="text-antique-text-mute ml-1">· {listing.distance_miles.toFixed(1)} mi</span>
+            )}
           </div>
         )}
 
-        {/* Dates */}
         {(listing.sale_starts_at || listing.sale_ends_at) && (
           <div className="flex items-center gap-1.5 text-xs text-antique-text-sec">
             <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+            {startLabel && <span className="font-semibold text-antique-text">{startLabel}</span>}
             <span>
-              {startLabel && <span className="font-semibold text-antique-text mr-1">{startLabel}</span>}
               {fmtDate(listing.sale_starts_at as string | null)}
               {listing.sale_ends_at && ` – ${fmtDate(listing.sale_ends_at as string | null)}`}
             </span>
           </div>
         )}
 
-        {/* Price */}
         {listing.current_price != null && (
-          <div className="flex items-center gap-1.5 text-xs text-antique-text-sec">
-            <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="font-bold text-antique-accent">{formatPrice(listing.current_price)}</span>
-          </div>
-        )}
-
-        {/* Distance */}
-        {listing.distance_miles != null && (
-          <p className="text-xs text-antique-text-mute">
-            📍 {listing.distance_miles.toFixed(1)} mi away
+          <p className="text-xs text-antique-text-sec">
+            Starting at <span className="font-bold text-antique-accent">{formatPrice(listing.current_price)}</span>
           </p>
         )}
 
-        {/* Category tag */}
         {listing.category && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            <span className="text-xs bg-antique-muted text-antique-text-sec px-2 py-0.5 rounded-full border border-antique-border">
-              {listing.category}
-            </span>
-          </div>
+          <span className="text-xs bg-antique-muted text-antique-text-sec px-2 py-0.5 rounded-full border border-antique-border w-fit">
+            {listing.category}
+          </span>
         )}
 
-        {/* View CTA */}
-        <a
+        <Link
           href={`/listing/${listing.id}`}
           className="mt-auto pt-3 flex items-center justify-center gap-1.5 w-full text-sm font-semibold text-antique-accent hover:text-antique-accent-h border border-antique-border hover:border-antique-accent hover:bg-antique-muted rounded-xl py-2.5 transition-colors"
         >
           View Sale <ChevronRight className="w-4 h-4" />
-        </a>
+        </Link>
       </div>
     </article>
+  );
+}
+
+// ── List view row ─────────────────────────────────────────────────────────────
+
+function EstateSaleRow({ listing }: { listing: Listing }) {
+  const [imgError, setImgError] = useState(false);
+  const startLabel = daysUntil(listing.sale_starts_at as string | null);
+  const isSoon = startLabel === "Active" || startLabel === "Tomorrow";
+
+  return (
+    <Link
+      href={`/listing/${listing.id}`}
+      className="group flex items-center gap-4 bg-antique-surface border border-antique-border rounded-xl p-3 hover:border-antique-accent hover:shadow-sm transition-all"
+    >
+      {/* Thumbnail */}
+      <div className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-antique-muted">
+        {listing.primary_image_url && !imgError ? (
+          <Image
+            src={listing.primary_image_url}
+            alt={listing.title}
+            fill
+            unoptimized
+            className="object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-2xl">🏡</div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-antique-accent">
+            {listing.platform?.display_name ?? "Estate Sale"}
+          </span>
+          {isSoon && (
+            <span className="text-[10px] font-bold bg-antique-accent text-white px-2 py-0.5 rounded-full">
+              {startLabel}
+            </span>
+          )}
+          {listing.is_sponsored && (
+            <span className="text-[10px] font-medium border border-antique-border text-antique-text-mute px-2 py-0.5 rounded-full">
+              Sponsored
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm font-medium text-antique-text line-clamp-1 group-hover:text-antique-accent transition-colors">
+          {listing.title}
+        </p>
+
+        <div className="flex items-center gap-3 flex-wrap text-xs text-antique-text-mute">
+          {(listing.city || listing.state) && (
+            <span className="flex items-center gap-0.5">
+              <MapPin className="w-3 h-3" />
+              {[listing.city, listing.state].filter(Boolean).join(", ")}
+              {listing.distance_miles != null && <span className="ml-1">· {listing.distance_miles.toFixed(1)} mi</span>}
+            </span>
+          )}
+          {(listing.sale_starts_at || listing.sale_ends_at) && (
+            <span className="flex items-center gap-0.5">
+              <Calendar className="w-3 h-3" />
+              {fmtDate(listing.sale_starts_at as string | null)}
+              {listing.sale_ends_at && ` – ${fmtDate(listing.sale_ends_at as string | null)}`}
+            </span>
+          )}
+          {listing.category && <span>{listing.category}</span>}
+        </div>
+      </div>
+
+      {/* Price / date — right */}
+      <div className="flex-shrink-0 text-right min-w-[90px] space-y-1">
+        {listing.current_price != null ? (
+          <p className="text-sm font-bold text-antique-accent">{formatPrice(listing.current_price)}</p>
+        ) : listing.sale_starts_at ? (
+          <p className="text-sm font-bold text-antique-accent">{fmtDate(listing.sale_starts_at as string | null)}</p>
+        ) : null}
+        <p className="text-xs text-antique-text-mute">
+          {listing.sale_ends_at
+            ? `Ends ${fmtDate(listing.sale_ends_at as string | null)}`
+            : "Estate Sale"}
+        </p>
+      </div>
+    </Link>
   );
 }
