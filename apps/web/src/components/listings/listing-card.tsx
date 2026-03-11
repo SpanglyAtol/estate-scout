@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MapPin, Clock, Truck, Hammer, Tag, ShoppingBag } from "lucide-react";
 import type { Listing } from "@/types";
 import { formatPrice, timeUntil, formatDistance, getAuctionStatus } from "@/lib/format";
+import { categoryToSlug } from "@/lib/category-meta";
 import { cn } from "@/lib/cn";
 
 interface ListingCardProps {
@@ -256,12 +257,24 @@ export function ListingCard({ listing, className }: ListingCardProps) {
           </span>
         )}
 
-        {/* Estate sale category hint */}
-        {lt === "estate_sale" && listing.category && (
-          <span className="text-xs text-antique-text-mute flex items-center gap-0.5 capitalize">
-            <Tag className="w-3 h-3" /> {listing.category} & more
-          </span>
-        )}
+        {/* Category link — estate sales and all other types */}
+        {listing.category && (() => {
+          const catSlug = categoryToSlug(listing.category);
+          const label = lt === "estate_sale" ? `${listing.category} & more` : listing.category;
+          return catSlug ? (
+            <Link
+              href={`/categories/${catSlug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-antique-text-mute hover:text-antique-accent flex items-center gap-0.5 capitalize transition-colors w-fit"
+            >
+              <Tag className="w-3 h-3" /> {label}
+            </Link>
+          ) : (
+            <span className="text-xs text-antique-text-mute flex items-center gap-0.5 capitalize">
+              <Tag className="w-3 h-3" /> {label}
+            </span>
+          );
+        })()}
 
         {/* Auction countdown (live, not ending soon) */}
         {lt === "auction" && countdown && !isEndingSoon && !isUpcoming && !isEnded && (

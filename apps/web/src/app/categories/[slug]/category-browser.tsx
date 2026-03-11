@@ -136,13 +136,13 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
             </div>
           </div>
 
-          {/* Market prices link */}
+          {/* Price guide link — opens the AI price guide pre-filled for this category */}
           <Link
-            href={`/prices?category=${slug}`}
+            href={`/prices?q=${encodeURIComponent(meta.label)}`}
             className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-antique-text-sec border border-antique-border rounded-lg px-3 py-2 hover:border-antique-accent hover:text-antique-accent transition-colors bg-antique-surface"
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            {meta.shortLabel} market prices
+            {meta.shortLabel} price guide
           </Link>
         </div>
       </div>

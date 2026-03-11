@@ -20,8 +20,10 @@ interface SphericalViewerProps {
 
 export function SphericalViewer({ primaryImageUrl, imageUrls, title, onPhotosAdded }: SphericalViewerProps) {
   const [userImages, setUserImages] = useState<string[]>([]);
-  const [mode, setMode] = useState<"3d" | "gallery">("3d");
   const [activeIdx, setActiveIdx] = useState(0);
+  // Use 3D mode only when there are enough images to make the spin useful
+  const rawCount = (primaryImageUrl ? 1 : 0) + imageUrls.filter((u) => u && u !== primaryImageUrl).length;
+  const [mode, setMode] = useState<"3d" | "gallery">(rawCount >= 3 ? "3d" : "gallery");
 
   const allImages = [
     ...userImages,

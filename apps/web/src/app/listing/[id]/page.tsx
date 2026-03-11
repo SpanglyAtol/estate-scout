@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
+import { categoryToSlug } from "@/lib/category-meta";
 import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
 import { PriceCheckerWidget } from "@/components/price-checker/price-checker-widget";
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
@@ -205,12 +206,24 @@ export default async function ListingPage({ params }: PageProps) {
                   ` · Ends ${formatDate(listing.sale_ends_at)}`}
               </div>
             )}
-            {listing.category && (
-              <div className="flex items-center gap-2 text-antique-text-sec">
-                <Tag className="w-4 h-4 text-antique-text-mute" />
-                {listing.category}
-              </div>
-            )}
+            {listing.category && (() => {
+              const catSlug = categoryToSlug(listing.category);
+              return (
+                <div className="flex items-center gap-2 text-antique-text-sec">
+                  <Tag className="w-4 h-4 text-antique-text-mute" />
+                  {catSlug ? (
+                    <Link
+                      href={`/categories/${catSlug}`}
+                      className="hover:text-antique-accent hover:underline transition-colors"
+                    >
+                      {listing.category}
+                    </Link>
+                  ) : (
+                    listing.category
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Description */}

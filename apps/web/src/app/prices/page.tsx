@@ -1,186 +1,287 @@
 /**
- * Market Prices — Historical Price Charts
- * ─────────────────────────────────────────
- * Aggregates sold + asking prices from the scraped dataset and renders
- * inline SVG charts per category. No external charting library needed.
+ * AI Price Guide — per-item market value lookup.
  *
- * Data sources:
- *  - Listings with is_completed=true + final_price → sold price comps
- *    (populated once the eBay sold listings scraper runs)
- *  - Listings with current_price → live asking price distribution
- *
- * Charts rendered:
- *  1. Category median price bar chart (all categories)
- *  2. Per-category price histogram (price buckets × count)
- *  3. Platform avg price comparison
- *  4. Recent sold prices table (eBay data)
+ * Get an instant market value estimate for any antique or collectible.
+ * Powered by Claude with real comparable auction sale data.
  */
+"use client";
+
+import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { TrendingUp, DollarSign, BarChart3, Tag, ShoppingBag, ArrowLeft, ExternalLink } from "lucide-react";
-import { getListings } from "@/lib/scraped-data";
-import { CATEGORY_MAP } from "@/lib/category-meta";
-import type { MockListing } from "@/app/api/v1/_mock-data";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Search, TrendingUp, Loader2, ArrowRight } from "lucide-react";
+import { CATEGORIES } from "@/lib/category-meta";
 
 export const dynamic = "force-dynamic";
 
-// ── Colour palette ────────────────────────────────────────────────────────────
-const HEX_COLOURS = [
-  "#8B6914", "#60A5FA", "#4ADE80",
-  "#FBBF24", "#A78BFA", "#FB7185",
-  "#2DD4BF", "#FB923C",
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface PriceCheckResult {
+  estimated_low: number | null;
+  estimated_high: number | null;
+  estimated_median: number | null;
+  confidence: "high" | "medium" | "low" | "insufficient_data";
+  data_points_used: number;
+  asking_price: number | null;
+  asking_price_verdict: "fair" | "below_market" | "above_market" | "unknown" | null;
+  asking_price_delta_pct: number | null;
+  reasoning: string;
+  key_value_factors: string[];
+  market_trend_summary: string | null;
+  comparable_sales: Array<{
+    title: string;
+    price: number;
+    sale_date: string | null;
+    platform: string;
+    condition: string | null;
+    url: string | null;
+  }>;
+  data_source: string;
+  cached: boolean;
+}
+
+const fmt = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+const CONFIDENCE_BADGE: Record<string, { label: string; cls: string }> = {
+  high:              { label: "High confidence",   cls: "text-green-700 bg-green-50 border-green-200" },
+  medium:            { label: "Medium confidence", cls: "text-amber-700 bg-amber-50 border-amber-200" },
+  low:               { label: "Low confidence",    cls: "text-orange-700 bg-orange-50 border-orange-200" },
+  insufficient_data: { label: "Insufficient data", cls: "text-gray-500 bg-gray-50 border-gray-200" },
+};
+
+const VERDICT_CFG: Record<string, { label: string; cls: string; icon: string }> = {
+  fair:         { label: "Fair market price",        cls: "text-green-700 bg-green-50",  icon: "✓" },
+  below_market: { label: "Below market — good deal", cls: "text-blue-700 bg-blue-50",    icon: "↓" },
+  above_market: { label: "Above market — negotiate", cls: "text-red-700 bg-red-50",      icon: "↑" },
+  unknown:      { label: "Price verdict unknown",    cls: "text-gray-600 bg-gray-50",    icon: "?" },
+};
+
+const EXAMPLES = [
+  "Tiffany & Co sterling silver candlestick 1900s",
+  "Meissen porcelain figurine 18th century",
+  "Louis Vuitton steamer trunk circa 1920",
+  "Rolex Submariner ref 5512 1965",
+  "Chippendale mahogany highboy 18th century",
+  "Weller Louwelsa vase arts and crafts",
 ];
 
-// ── Data utilities ────────────────────────────────────────────────────────────
+// ── Search + results component ────────────────────────────────────────────────
 
-function median(values: number[]): number {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2
-    ? sorted[mid]
-    : (sorted[mid - 1] + sorted[mid]) / 2;
-}
+function PriceGuideSearch({ initialQuery }: { initialQuery: string }) {
+  const router = useRouter();
+  const [query, setQuery] = useState(initialQuery);
+  const [result, setResult] = useState<PriceCheckResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-function avg(values: number[]): number {
-  if (!values.length) return 0;
-  return values.reduce((s, v) => s + v, 0) / values.length;
-}
+  useEffect(() => {
+    if (initialQuery) runCheck(initialQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-function priceBuckets(
-  prices: number[],
-  bucketCount = 8,
-): { label: string; count: number }[] {
-  if (!prices.length) return [];
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  if (min === max) return [{ label: `$${Math.round(min)}`, count: prices.length }];
-
-  const step = (max - min) / bucketCount;
-  const buckets = Array.from({ length: bucketCount }, (_, i) => ({
-    lo: min + i * step,
-    hi: min + (i + 1) * step,
-    count: 0,
-  }));
-
-  for (const p of prices) {
-    const idx = Math.min(Math.floor((p - min) / step), bucketCount - 1);
-    buckets[idx].count++;
+  async function runCheck(q: string) {
+    if (!q.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    router.replace(`/prices?q=${encodeURIComponent(q.trim())}`, { scroll: false });
+    try {
+      const res = await fetch("/api/v1/price-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: q.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setResult(await res.json());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Request failed — please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  return buckets.map(({ lo, count }) => ({
-    label: lo >= 1000 ? `$${(lo / 1000).toFixed(1)}k` : `$${Math.round(lo)}`,
-    count,
-  }));
-}
-
-function formatPrice(n: number): string {
-  if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`;
-  return `$${Math.round(n).toLocaleString()}`;
-}
-
-// ── SVG Bar Chart ─────────────────────────────────────────────────────────────
-
-function BarChart({
-  bars,
-  colour,
-  height = 120,
-}: {
-  bars: { label: string; value: number }[];
-  colour: string;
-  height?: number;
-}) {
-  if (!bars.length) return null;
-  const maxVal = Math.max(...bars.map((b) => b.value), 1);
-  const w = 100 / bars.length;
-
   return (
-    <svg
-      viewBox={`0 0 100 ${height}`}
-      className="w-full"
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      {bars.map((bar, i) => {
-        const barH = (bar.value / maxVal) * (height - 20);
-        const x = i * w + w * 0.1;
-        const y = height - 16 - barH;
-        return (
-          <g key={i}>
-            <rect
-              x={x}
-              y={y}
-              width={w * 0.8}
-              height={barH}
-              fill={colour}
-              rx="1"
-              opacity={bar.value === 0 ? 0.15 : 0.85}
-            />
-            <text
-              x={x + w * 0.4}
-              y={height - 2}
-              textAnchor="middle"
-              fontSize="4"
-              fill="currentColor"
-              className="text-antique-text-mute"
+    <div className="space-y-8">
+      {/* Search form */}
+      <form onSubmit={(e) => { e.preventDefault(); runCheck(query); }} className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-antique-text-mute pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Describe the item — maker, type, era, condition…"
+            className="w-full pl-12 pr-4 py-3.5 border border-antique-border rounded-xl bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent focus:ring-1 focus:ring-antique-accent transition-colors text-base"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !query.trim()}
+          className="flex items-center gap-2 bg-antique-accent hover:bg-antique-accent-h disabled:opacity-50 text-white px-6 py-3.5 rounded-xl font-semibold transition-colors flex-shrink-0"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+          Check Price
+        </button>
+      </form>
+
+      {/* Example queries */}
+      {!result && !loading && (
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs text-antique-text-mute self-center mr-1">Try:</span>
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => { setQuery(ex); runCheck(ex); }}
+              className="text-xs bg-antique-muted border border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent px-3 py-1.5 rounded-full transition-colors"
             >
-              {bar.label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
 
-// ── Horizontal Bar ────────────────────────────────────────────────────────────
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
 
-function HBar({ pct, colour }: { pct: number; colour: string }) {
-  return (
-    <div className="w-full bg-antique-subtle rounded-full h-2 mt-1.5">
-      <div
-        className="h-2 rounded-full transition-all"
-        style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: colour }}
-      />
-    </div>
-  );
-}
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center gap-3 py-12 justify-center text-antique-text-sec">
+          <Loader2 className="w-6 h-6 animate-spin text-antique-accent" />
+          <span>
+            Analyzing market data for <strong className="text-antique-text">&ldquo;{query}&rdquo;</strong>…
+          </span>
+        </div>
+      )}
 
-// ── Section title ─────────────────────────────────────────────────────────────
+      {/* Result card */}
+      {result && !loading && (
+        <div className="antique-card p-6 space-y-6">
+          {/* Price headline */}
+          <div className="flex flex-wrap items-end gap-4">
+            {result.estimated_median ? (
+              <>
+                <div>
+                  <p className="text-xs text-antique-text-mute uppercase tracking-wide mb-1">Estimated Market Value</p>
+                  <p className="font-display text-4xl font-bold text-antique-text">{fmt(result.estimated_median)}</p>
+                  {result.estimated_low != null && result.estimated_high != null && (
+                    <p className="text-sm text-antique-text-sec mt-1">
+                      Range: {fmt(result.estimated_low)} – {fmt(result.estimated_high)}
+                    </p>
+                  )}
+                </div>
 
-function SectionTitle({
-  icon: Icon,
-  children,
-}: {
-  icon: React.ElementType;
-  children: React.ReactNode;
-}) {
-  return (
-    <h2 className="font-display text-base font-bold text-antique-text mb-5 flex items-center gap-2">
-      <Icon className="w-4 h-4 text-antique-accent" />
-      {children}
-    </h2>
-  );
-}
+                {result.asking_price_verdict && result.asking_price_verdict !== "unknown" && VERDICT_CFG[result.asking_price_verdict] && (
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${VERDICT_CFG[result.asking_price_verdict].cls}`}>
+                    <span className="text-xl leading-none">{VERDICT_CFG[result.asking_price_verdict].icon}</span>
+                    {VERDICT_CFG[result.asking_price_verdict].label}
+                    {result.asking_price_delta_pct != null && (
+                      <span className="text-xs opacity-70 ml-1">
+                        ({result.asking_price_delta_pct > 0 ? "+" : ""}{result.asking_price_delta_pct.toFixed(0)}%)
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-antique-text-sec italic">
+                No estimate available — try adding more detail (maker, era, condition, marks).
+              </p>
+            )}
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
+            {CONFIDENCE_BADGE[result.confidence] && (
+              <span className={`text-xs px-3 py-1.5 rounded-full border font-medium ml-auto ${CONFIDENCE_BADGE[result.confidence].cls}`}>
+                {CONFIDENCE_BADGE[result.confidence].label}
+                {result.data_points_used > 0 && (
+                  <span className="opacity-70"> · {result.data_points_used} comps</span>
+                )}
+              </span>
+            )}
+          </div>
 
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="antique-card p-4 text-center">
-      <div className="font-display text-2xl font-bold text-antique-text tabular-nums">
-        {value}
-      </div>
-      <div className="text-xs text-antique-text-mute mt-0.5">{label}</div>
-      {sub && (
-        <div className="text-xs text-antique-text-mute opacity-70 mt-0.5">{sub}</div>
+          {/* Reasoning */}
+          {result.reasoning && (
+            <div className="bg-antique-muted/60 rounded-xl p-4 border border-antique-border">
+              <p className="text-sm text-antique-text-sec leading-relaxed">{result.reasoning}</p>
+            </div>
+          )}
+
+          {/* Key value factors */}
+          {result.key_value_factors.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-antique-text-mute uppercase tracking-wide mb-3">Key Value Factors</p>
+              <ul className="space-y-1.5">
+                {result.key_value_factors.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-antique-text-sec">
+                    <span className="text-antique-accent mt-0.5 shrink-0">›</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Market trend */}
+          {result.market_trend_summary && (
+            <p className="text-xs text-antique-text-mute italic border-t border-antique-border pt-4">
+              {result.market_trend_summary}
+            </p>
+          )}
+
+          {/* Comparable sales */}
+          {result.comparable_sales.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-antique-text-mute uppercase tracking-wide mb-3">
+                Comparable Sales ({result.comparable_sales.length})
+              </p>
+              <div className="divide-y divide-antique-border">
+                {result.comparable_sales.slice(0, 6).map((c, i) => (
+                  <div key={i} className="py-3 flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-antique-text truncate">{c.title}</p>
+                      <p className="text-xs text-antique-text-mute mt-0.5">
+                        {c.platform}
+                        {c.sale_date ? ` · ${c.sale_date.slice(0, 10)}` : ""}
+                        {c.condition ? ` · ${c.condition}` : ""}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {c.url ? (
+                        <a href={c.url} target="_blank" rel="noopener noreferrer"
+                          className="text-sm font-bold text-antique-accent hover:underline">
+                          {fmt(c.price)}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-bold text-antique-text">{fmt(c.price)}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-2 border-t border-antique-border text-xs text-antique-text-mute">
+            <span>
+              {result.cached ? "Cached result" : "Fresh analysis"} ·{" "}
+              {result.data_source === "claude_with_market_data"
+                ? "AI + market database"
+                : result.data_source === "claude_no_data"
+                ? "AI estimate (no comps)"
+                : "Statistical estimate"}
+            </span>
+            <button onClick={() => runCheck(query)} className="text-antique-accent hover:underline">
+              Re-run
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -188,458 +289,64 @@ function StatCard({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-type Props = { searchParams: Promise<{ category?: string }> };
-
-export default async function PricesPage({ searchParams }: Props) {
-  const { category: focusSlug } = await searchParams;
-  const focusMeta = focusSlug ? CATEGORY_MAP[focusSlug] : null;
-  const all: MockListing[] = getListings();
-
-  // Separate sold (eBay/completed) from live listings
-  const sold = all.filter(
-    (l) => l.is_completed && (l.final_price ?? l.current_price) !== null,
-  );
-  const live = all.filter(
-    (l) => !l.is_completed && l.current_price !== null,
-  );
-  const withPrice = all.filter(
-    (l) => (l.final_price ?? l.current_price) !== null,
-  );
-
-  const allPrices = withPrice.map(
-    (l) => (l.final_price ?? l.current_price)!,
-  );
-
-  // ── Category aggregates ───────────────────────────────────────────────────
-  const catMap: Record<
-    string,
-    { prices: number[]; sold: number[]; count: number }
-  > = {};
-
-  for (const l of withPrice) {
-    const cat = l.category || "Uncategorised";
-    if (!catMap[cat]) catMap[cat] = { prices: [], sold: [], count: 0 };
-    const price = (l.final_price ?? l.current_price)!;
-    catMap[cat].prices.push(price);
-    catMap[cat].count++;
-    if (l.is_completed) catMap[cat].sold.push(price);
-  }
-
-  const catStats = Object.entries(catMap)
-    .map(([name, { prices, sold, count }]) => ({
-      name,
-      count,
-      median:    median(prices),
-      avg:       avg(prices),
-      soldCount: sold.length,
-      soldAvg:   sold.length ? avg(sold) : null,
-      min:       Math.min(...prices),
-      max:       Math.max(...prices),
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 12);
-
-  const maxMedian = Math.max(...catStats.map((c) => c.median), 1);
-
-  // ── Platform price comparison ─────────────────────────────────────────────
-  const platMap: Record<string, number[]> = {};
-  for (const l of withPrice) {
-    const name = l.platform.display_name;
-    if (!platMap[name]) platMap[name] = [];
-    platMap[name].push((l.final_price ?? l.current_price)!);
-  }
-  const platStats = Object.entries(platMap)
-    .map(([name, prices]) => ({ name, avg: avg(prices), count: prices.length }))
-    .sort((a, b) => b.avg - a.avg);
-  const maxPlatAvg = Math.max(...platStats.map((p) => p.avg), 1);
-
-  // ── Global histogram ──────────────────────────────────────────────────────
-  const globalBuckets = priceBuckets(allPrices, 10);
-
-  // ── Recent sold (eBay) ────────────────────────────────────────────────────
-  const recentSold = sold
-    .filter((l) => l.platform.name === "ebay")
-    .sort((a, b) => (b.scraped_at ?? "").localeCompare(a.scraped_at ?? ""))
-    .slice(0, 20);
-
-  const soldPrices = sold.map((l) => (l.final_price ?? l.current_price)!);
-  const livePrices = live.map((l) => l.current_price!);
+function PriceGuidePageInner() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") ?? "";
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-
-      {/* ── Header ── */}
-      <div className="mb-8">
+    <div className="container mx-auto px-4 py-10 max-w-3xl">
+      <div className="mb-10">
         <p className="text-antique-accent font-display text-xs tracking-[0.2em] uppercase mb-1">
-          Market Intelligence
+          AI-Powered
         </p>
-        <h1 className="font-display text-2xl font-bold text-antique-text flex items-center gap-2">
-          <TrendingUp className="w-6 h-6 text-antique-accent" />
-          Market Prices
+        <h1 className="font-display text-3xl font-bold text-antique-text flex items-center gap-3 mb-2">
+          <TrendingUp className="w-7 h-7 text-antique-accent" />
+          Antique Price Guide
         </h1>
-        <p className="text-sm text-antique-text-mute mt-1">
-          Price distribution across {all.length.toLocaleString()} listings from{" "}
-          {Object.keys(platMap).length} platforms.
-          {sold.length > 0 && (
-            <> Includes {sold.length.toLocaleString()} sold price comps.</>
-          )}
+        <p className="text-antique-text-sec">
+          Get an instant market value estimate for any antique, collectible, or estate item.
+          Powered by Claude with real auction comparable sales.
         </p>
       </div>
 
-      {/* ── KPI row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <StatCard
-          label="Median Asking"
-          value={formatPrice(median(livePrices))}
-          sub={`${live.length.toLocaleString()} live listings`}
-        />
-        <StatCard
-          label="Avg Asking"
-          value={formatPrice(avg(livePrices))}
-          sub="current listings"
-        />
-        {soldPrices.length > 0 ? (
-          <>
-            <StatCard
-              label="Median Sold"
-              value={formatPrice(median(soldPrices))}
-              sub={`${sold.length.toLocaleString()} sold comps`}
-            />
-            <StatCard
-              label="Avg Sold"
-              value={formatPrice(avg(soldPrices))}
-              sub="actual sale prices"
-            />
-          </>
-        ) : (
-          <>
-            <StatCard
-              label="Price Range"
-              value={allPrices.length ? `${formatPrice(Math.min(...allPrices))} – ${formatPrice(Math.max(...allPrices))}` : "—"}
-              sub="min → max"
-            />
-            <StatCard
-              label="Categories"
-              value={String(catStats.length)}
-              sub="with price data"
-            />
-          </>
-        )}
-      </div>
+      <PriceGuideSearch initialQuery={initialQuery} />
 
-      {/* ── Focused category spotlight (when ?category=slug is set) ── */}
-      {focusMeta && (() => {
-        const focused = catStats.find(
-          (c) => c.name.toLowerCase() === focusSlug!.toLowerCase()
-        );
-        const focusPrices = withPrice
-          .filter((l) => (l.category ?? "").toLowerCase() === focusSlug!.toLowerCase())
-          .map((l) => (l.final_price ?? l.current_price)!);
-        const focusBuckets = priceBuckets(focusPrices, 8);
-
-        return (
-          <div className="antique-card p-6 mb-8 border-antique-accent/30 bg-antique-accent-lt/20">
-            {/* Back link */}
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <Link
-                href={`/categories/${focusSlug}`}
-                className="inline-flex items-center gap-1.5 text-xs text-antique-text-mute hover:text-antique-accent transition-colors"
-              >
-                <ArrowLeft className="w-3 h-3" /> Browse {focusMeta.label} listings
-              </Link>
-              <Link
-                href="/prices"
-                className="text-xs text-antique-text-mute hover:text-antique-accent transition-colors"
-              >
-                View all categories
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-3xl">{focusMeta.icon}</span>
-              <div>
-                <h2 className="font-display text-lg font-bold text-antique-text">
-                  {focusMeta.label} — Market Data
-                </h2>
-                <p className="text-xs text-antique-text-mute">{focusMeta.description}</p>
+      {/* Category links */}
+      <div className="mt-14">
+        <p className="text-xs font-semibold text-antique-text-mute uppercase tracking-wide mb-4">
+          Browse prices by category
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat.slug}
+              href={`/categories/${cat.slug}`}
+              className="flex items-center gap-3 p-3 rounded-xl border border-antique-border bg-antique-surface hover:border-antique-accent hover:bg-antique-muted transition-colors group"
+            >
+              <span className="text-xl">{cat.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-antique-text group-hover:text-antique-accent transition-colors truncate">
+                  {cat.shortLabel}
+                </p>
+                <p className="text-xs text-antique-text-mute truncate">{cat.description.split(" — ")[0]}</p>
               </div>
-            </div>
-
-            {focused ? (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                  <StatCard label="Listing Count" value={String(focused.count)} />
-                  <StatCard label="Median Price" value={formatPrice(focused.median)} />
-                  <StatCard label="Avg Price" value={formatPrice(focused.avg)} />
-                  <StatCard
-                    label="Price Range"
-                    value={`${formatPrice(focused.min)} – ${formatPrice(focused.max)}`}
-                  />
-                </div>
-
-                {focusBuckets.length > 0 && (
-                  <>
-                    <p className="text-xs font-medium text-antique-text-mute mb-2">
-                      Price distribution
-                    </p>
-                    <div className="h-28">
-                      <BarChart
-                        bars={focusBuckets.map(({ label, count: c }) => ({ label, value: c }))}
-                        colour={HEX_COLOURS[0]}
-                        height={100}
-                      />
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-antique-text-mute py-4 text-center">
-                No price data yet for {focusMeta.label}. Check back after more listings are scraped.
-              </p>
-            )}
-
-            <div className="mt-4 pt-4 border-t border-antique-border/50 text-center">
-              <Link
-                href={`/categories/${focusSlug}`}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-antique-accent hover:underline"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Browse all {focusMeta.label} listings
-              </Link>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── Main grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-        {/* Category median prices */}
-        <div className="antique-card p-6">
-          <SectionTitle icon={Tag}>Median Price by Category</SectionTitle>
-          <div className="space-y-4">
-            {catStats.map(({ name, median: med, count }, i) => {
-              const slug = name.toLowerCase();
-              const catMeta = CATEGORY_MAP[slug];
-              return (
-                <div key={name}>
-                  <div className="flex items-center justify-between text-sm">
-                    <Link
-                      href={catMeta ? `/categories/${slug}` : `/search?category=${slug}`}
-                      className="capitalize font-medium text-antique-text hover:text-antique-accent transition-colors"
-                    >
-                      {catMeta ? `${catMeta.icon} ${catMeta.label}` : name}
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <span className="tabular-nums text-antique-text-mute text-xs">
-                        {formatPrice(med)}{" "}
-                        <span className="opacity-60">({count})</span>
-                      </span>
-                      <Link
-                        href={`/prices?category=${slug}`}
-                        className="text-antique-text-mute hover:text-antique-accent transition-colors opacity-0 group-hover:opacity-100 text-xs"
-                        title="Focus this category"
-                      >
-                        ↗
-                      </Link>
-                    </div>
-                  </div>
-                  <HBar
-                    pct={Math.round((med / maxMedian) * 100)}
-                    colour={HEX_COLOURS[i % HEX_COLOURS.length]}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Platform avg price comparison */}
-        <div className="antique-card p-6">
-          <SectionTitle icon={ShoppingBag}>Avg Price by Platform</SectionTitle>
-          <div className="space-y-4">
-            {platStats.map(({ name, avg: platAvg, count }, i) => (
-              <div key={name}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-antique-text">{name}</span>
-                  <span className="tabular-nums text-antique-text-mute text-xs">
-                    {formatPrice(platAvg)}{" "}
-                    <span className="opacity-60">({count})</span>
-                  </span>
-                </div>
-                <HBar
-                  pct={Math.round((platAvg / maxPlatAvg) * 100)}
-                  colour={HEX_COLOURS[i % HEX_COLOURS.length]}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Global price histogram ── */}
-      <div className="antique-card p-6 mb-6">
-        <SectionTitle icon={BarChart3}>Price Distribution (All Listings)</SectionTitle>
-        {globalBuckets.length > 0 ? (
-          <>
-            <div className="h-32">
-              <BarChart
-                bars={globalBuckets.map(({ label, count }) => ({ label, value: count }))}
-                colour={HEX_COLOURS[0]}
-                height={120}
-              />
-            </div>
-            <p className="text-xs text-antique-text-mute mt-3 text-center">
-              Price bucket → number of listings. Skewed right is typical for antiques markets.
-            </p>
-          </>
-        ) : (
-          <p className="text-sm text-antique-text-mute">No price data available yet.</p>
-        )}
-      </div>
-
-      {/* ── Per-category histograms ── */}
-      {catStats.length > 0 && (
-        <div className="mb-6">
-          <div className="ornament-divider mb-6 text-xs text-antique-text-mute tracking-widest uppercase">
-            Price Distribution by Category
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {catStats.slice(0, 6).map(({ name, median: catMed, min, max, count }, i) => {
-              const catPrices = withPrice
-                .filter((l) => (l.category || "Uncategorised") === name)
-                .map((l) => (l.final_price ?? l.current_price)!);
-              const buckets = priceBuckets(catPrices, 6);
-              const slug = name.toLowerCase();
-              const catMeta = CATEGORY_MAP[slug];
-
-              return (
-                <div key={name} className="antique-card p-4">
-                  <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-display text-sm font-semibold text-antique-text capitalize">
-                      {catMeta ? `${catMeta.icon} ${catMeta.label}` : name}
-                    </h3>
-                    {catMeta && (
-                      <Link
-                        href={`/categories/${slug}`}
-                        className="text-xs text-antique-accent hover:underline ml-2 flex-shrink-0"
-                        title={`Browse ${catMeta.label} listings`}
-                      >
-                        Browse →
-                      </Link>
-                    )}
-                  </div>
-                  <p className="text-xs text-antique-text-mute mb-3">
-                    {count} listings · median {formatPrice(catMed)}
-                  </p>
-                  <div className="h-24">
-                    <BarChart
-                      bars={buckets.map(({ label, count: c }) => ({ label, value: c }))}
-                      colour={HEX_COLOURS[i % HEX_COLOURS.length]}
-                      height={90}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-antique-text-mute mt-2">
-                    <span>Low: {formatPrice(min)}</span>
-                    <span>High: {formatPrice(max)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Sold price comps (eBay) ── */}
-      {recentSold.length > 0 ? (
-        <div className="antique-card p-6 mb-6">
-          <SectionTitle icon={DollarSign}>Recent Sold Prices (eBay)</SectionTitle>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-antique-border text-left text-xs text-antique-text-mute uppercase tracking-wide">
-                  <th className="pb-2 pr-4 font-medium">Item</th>
-                  <th className="pb-2 pr-4 font-medium text-right">Sold For</th>
-                  <th className="pb-2 font-medium">Condition</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-antique-border">
-                {recentSold.map((l) => (
-                  <tr key={l.external_id} className="hover:bg-antique-subtle/50 transition-colors">
-                    <td className="py-2 pr-4">
-                      <a
-                        href={l.external_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-antique-accent hover:underline line-clamp-1 max-w-xs inline-block"
-                      >
-                        {l.title}
-                      </a>
-                    </td>
-                    <td className="py-2 pr-4 text-right font-semibold tabular-nums text-antique-text">
-                      {formatPrice((l.final_price ?? l.current_price)!)}
-                    </td>
-                    <td className="py-2 text-antique-text-mute text-xs">
-                      {l.condition ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="antique-card p-6 mb-6">
-          <SectionTitle icon={DollarSign}>Sold Price Comps</SectionTitle>
-          <div className="text-center py-8 text-antique-text-mute">
-            <DollarSign className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium">No sold price data yet</p>
-            <p className="text-xs mt-1 max-w-sm mx-auto">
-              Sold price comparables will appear here once the eBay sold listings
-              scraper runs. Trigger it from the{" "}
-              <a href="/admin" className="text-antique-accent hover:underline">
-                Admin dashboard
-              </a>
-              .
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── How prices are calculated ── */}
-      <div className="antique-card p-6">
-        <h2 className="font-display text-sm font-bold text-antique-text mb-3">
-          About This Data
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-antique-text-sec leading-relaxed">
-          <div>
-            <p className="font-semibold text-antique-text mb-1">Asking Prices</p>
-            <p>
-              Current bid / list prices from MaxSold, BidSpotter, HiBid, and
-              EstateSales.NET. Refreshed daily. These are what sellers hope to
-              get — actual hammer prices may differ.
-            </p>
-          </div>
-          <div>
-            <p className="font-semibold text-antique-text mb-1">Sold Comps</p>
-            <p>
-              Completed listing prices from eBay Sold Listings and 1stDibs.
-              These are real transactions — the most reliable market-rate
-              signals for AI valuation.
-            </p>
-          </div>
-          <div>
-            <p className="font-semibold text-antique-text mb-1">Methodology</p>
-            <p>
-              Median is preferred over average for skewed antiques pricing. The
-              histogram shows frequency at each price bucket to reveal market
-              clustering.
-            </p>
-          </div>
+              <ArrowRight className="w-3.5 h-3.5 text-antique-text-mute group-hover:text-antique-accent transition-colors flex-shrink-0" />
+            </Link>
+          ))}
         </div>
       </div>
-
     </div>
+  );
+}
+
+export default function PricesPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-20 flex justify-center">
+        <Loader2 className="w-8 h-8 text-antique-accent animate-spin" />
+      </div>
+    }>
+      <PriceGuidePageInner />
+    </Suspense>
   );
 }
