@@ -90,15 +90,13 @@ def upgrade() -> None:
         END
     """)
 
-    # Partial index: archive worker efficiently finds rows that need moving
+    # Partial index: archive worker efficiently finds rows that need moving.
+    # Note: no NOW() in the predicate — partial index predicates must be immutable.
+    # The date cutoff is applied at query time in batch_archive_ended().
     op.execute("""
         CREATE INDEX idx_listings_needs_archive
         ON listings (sale_ends_at, is_completed)
         WHERE archived_at IS NULL
-          AND (
-            is_completed = true
-            OR (sale_ends_at IS NOT NULL AND sale_ends_at < NOW() - INTERVAL '2 days')
-          )
     """)
 
     # Indexes for new columns
