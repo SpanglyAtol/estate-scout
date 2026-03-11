@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  MapPin, Search, ExternalLink, Calendar, Clock,
-  Building2, Star, ChevronRight,
+  MapPin, Search, ExternalLink, Calendar,
+  Building2, Navigation, Loader2, ChevronRight,
 } from "lucide-react";
-import { mockEstateSales, type MockEstateSale } from "@/app/api/v1/_mock-data";
+import type { Listing } from "@/types";
+import { formatPrice } from "@/lib/format";
 import { AdUnit } from "@/components/ads/ad-unit";
 import { trackAffiliateClick } from "@/lib/analytics";
 
@@ -27,7 +28,7 @@ const PLATFORMS = [
   {
     name: "EstateSales.NET",
     description: "Largest US estate sale directory. Browse by city.",
-    url: "https://www.estatesales.net/WA/Seattle",
+    url: "https://www.estatesales.net",
     color: "blue",
     emoji: "🏡",
   },
@@ -69,7 +70,7 @@ const PLATFORMS = [
   {
     name: "Craigslist",
     description: "Local garage and estate sales posted by owners.",
-    url: "https://seattle.craigslist.org/search/sss?query=estate+sale",
+    url: "https://www.craigslist.org/search/sss?query=estate+sale",
     color: "green",
     emoji: "📋",
   },
@@ -82,7 +83,6 @@ const PLATFORMS = [
   },
 ];
 
-// Platform card color scheme
 const cardColors: Record<string, { bg: string; border: string; btn: string }> = {
   blue:   { bg: "bg-blue-50",   border: "border-blue-100",   btn: "bg-blue-600 hover:bg-blue-700" },
   indigo: { bg: "bg-indigo-50", border: "border-indigo-100", btn: "bg-indigo-600 hover:bg-indigo-700" },
@@ -94,80 +94,217 @@ const cardColors: Record<string, { bg: string; border: string; btn: string }> = 
   teal:   { bg: "bg-teal-50",   border: "border-teal-100",   btn: "bg-teal-600 hover:bg-teal-700" },
 };
 
-// Sale card platform badge colors
-const badgeColors: Record<string, { bg: string; text: string }> = {
-  "estatesales.net":  { bg: "bg-blue-100",   text: "text-blue-700" },
-  "estatesales.org":  { bg: "bg-indigo-100", text: "text-indigo-700" },
-  "maxsold":          { bg: "bg-amber-100",  text: "text-amber-700" },
-  "hibid":            { bg: "bg-orange-100", text: "text-orange-700" },
-  "facebook":         { bg: "bg-sky-100",    text: "text-sky-700" },
-  "craigslist":       { bg: "bg-green-100",  text: "text-green-700" },
-  "nextdoor":         { bg: "bg-teal-100",   text: "text-teal-700" },
-  "gsalr":            { bg: "bg-violet-100", text: "text-violet-700" },
-};
+// ── Helpers ─────────────────────────────────────────────────────────────────────
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function fmtDate(iso: string) {
+function fmtDate(iso: string | null) {
+  if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function daysUntil(iso: string): string {
+function daysUntil(iso: string | null): string {
+  if (!iso) return "";
   const diff = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-  if (diff <= 0) return "Today";
+  if (diff <= 0) return "Active";
   if (diff === 1) return "Tomorrow";
   return `In ${diff} days`;
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+async function zipToCoords(zip: string): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const res = await fetch(`https://api.zippopotam.us/us/${zip.trim()}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const place = data.places?.[0];
+    if (!place) return null;
+    return { lat: parseFloat(place.latitude), lon: parseFloat(place.longitude) };
+  } catch {
+    return null;
+  }
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────────
 
 export default function EstateSalesPage() {
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [zip, setZip] = useState("");
+  const [locationLabel, setLocationLabel] = useState("");
+  const [radius] = useState(50);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return mockEstateSales;
-    return mockEstateSales.filter(
-      (s) =>
-        s.city.toLowerCase().includes(q) ||
-        s.neighborhood.toLowerCase().includes(q) ||
-        s.zip_code.includes(q) ||
-        s.state.toLowerCase().includes(q) ||
-        s.title.toLowerCase().includes(q)
+  const fetchSales = useCallback(async (lat: number, lon: number, label: string) => {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+      radius_miles: String(radius),
+      listing_type: "estate_sale",
+      page_size: "48",
+    });
+    if (query.trim()) params.set("q", query.trim());
+
+    try {
+      const res = await fetch(`/api/v1/search?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: Listing[] = await res.json();
+      setListings(data);
+      setLocationLabel(label);
+      setError("");
+    } catch {
+      setError("Failed to load listings. Please try again.");
+    }
+  }, [radius, query]);
+
+  // Load initial nationwide estate sales on mount
+  useEffect(() => {
+    async function loadDefault() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          listing_type: "estate_sale",
+          page_size: "48",
+        });
+        const res = await fetch(`/api/v1/search?${params}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: Listing[] = await res.json();
+        setListings(data);
+      } catch {
+        // silently fail — will show empty state
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDefault();
+  }, []);
+
+  const handleZipSearch = useCallback(async () => {
+    const trimmed = zip.trim();
+    if (!/^\d{5}$/.test(trimmed)) {
+      setError("Please enter a valid 5-digit ZIP code.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const coords = await zipToCoords(trimmed);
+    if (!coords) {
+      setError(`Couldn't locate ZIP code "${trimmed}".`);
+      setLoading(false);
+      return;
+    }
+    await fetchSales(coords.lat, coords.lon, `ZIP ${trimmed}`);
+    setLoading(false);
+  }, [zip, fetchSales]);
+
+  const handleNearMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("Geolocation not supported by your browser.");
+      return;
+    }
+    setGeoLoading(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        await fetchSales(pos.coords.latitude, pos.coords.longitude, "your location");
+        setGeoLoading(false);
+      },
+      () => {
+        setError("Couldn't access your location. Enter a ZIP code instead.");
+        setGeoLoading(false);
+      }
     );
+  }, [fetchSales]);
+
+  const handleTextSearch = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ listing_type: "estate_sale", page_size: "48" });
+      if (query.trim()) params.set("q", query.trim());
+      const res = await fetch(`/api/v1/search?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: Listing[] = await res.json();
+      setListings(data);
+    } catch {
+      setError("Search failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [query]);
+
+  const isLoading = loading || geoLoading;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-6xl">
 
       {/* ── Hero ── */}
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-4">
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 bg-antique-muted text-antique-accent text-sm font-semibold px-4 py-1.5 rounded-full mb-4 border border-antique-border">
           <MapPin className="w-4 h-4" />
-          8 Platforms · One Place
+          Estate Sales Near You
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">
-          Find Local Estate Sales Near You
+        <h1 className="font-display text-4xl font-bold text-antique-text mb-3">
+          Find Local Estate Sales
         </h1>
-        <p className="text-gray-500 text-lg max-w-2xl mx-auto mb-8">
-          Browse upcoming estate sales and in-person auctions across EstateSales.net,
-          MaxSold, HiBid, Facebook Marketplace, Craigslist, Nextdoor, and more — all in one place.
+        <p className="text-antique-text-sec text-lg max-w-2xl mx-auto mb-8">
+          Browse upcoming estate sales and in-person auctions from EstateSales.net,
+          MaxSold, HiBid, and more — all in one place.
         </p>
 
-        {/* Location filter */}
-        <div className="relative max-w-md mx-auto">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by city, zip code, or neighborhood…"
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+        {/* Search controls */}
+        <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl mx-auto">
+          {/* Text search */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-text-mute pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
+              placeholder="Search by keyword, category…"
+              className="w-full pl-10 pr-4 py-2.5 border border-antique-border rounded-xl text-sm bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
+            />
+          </div>
+
+          {/* ZIP input */}
+          <div className="relative flex-shrink-0">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-antique-accent pointer-events-none" />
+            <input
+              type="text"
+              value={zip}
+              onChange={(e) => setZip(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleZipSearch()}
+              placeholder="ZIP code"
+              maxLength={5}
+              className="pl-9 pr-3 py-2.5 border border-antique-border rounded-xl text-sm w-32 bg-antique-surface text-antique-text placeholder:text-antique-text-mute focus:outline-none focus:border-antique-accent transition-colors"
+            />
+          </div>
+
+          {/* Near me */}
+          <button
+            onClick={handleNearMe}
+            disabled={isLoading}
+            className="flex items-center gap-2 border border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent disabled:opacity-50 px-3 py-2.5 rounded-xl text-sm transition-colors bg-antique-surface flex-shrink-0"
+          >
+            {geoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+            Near Me
+          </button>
+
+          {/* Search button */}
+          <button
+            onClick={handleZipSearch}
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-antique-accent hover:bg-antique-accent-h disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors flex-shrink-0"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            Search
+          </button>
         </div>
+
+        {error && <p className="text-red-600 text-sm mt-3 font-medium">{error}</p>}
       </div>
 
-      {/* ── Top ad placement: AdSense + estate-prep affiliate strip ── */}
+      {/* ── Top ad placement ── */}
       <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE ?? ""} format="rectangle" className="mb-6" />
       {ESTATE_PREP_TAG && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-10 px-4 py-2.5 bg-antique-surface border border-antique-border rounded-xl text-sm">
@@ -196,8 +333,8 @@ export default function EstateSalesPage() {
       {/* ── Browse by Platform ── */}
       <section className="mb-14">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-gray-900">Browse by Platform</h2>
-          <span className="text-sm text-gray-400 hidden sm:block">Opens the source site in a new tab</span>
+          <h2 className="font-display text-xl font-bold text-antique-text">Browse by Platform</h2>
+          <span className="text-sm text-antique-text-mute hidden sm:block">Opens the source site in a new tab</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {PLATFORMS.map((p) => {
@@ -215,9 +352,7 @@ export default function EstateSalesPage() {
                   <p className="font-semibold text-gray-900 text-sm leading-tight">{p.name}</p>
                   <p className="text-xs text-gray-500 mt-1 leading-snug">{p.description}</p>
                 </div>
-                <span
-                  className={`inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg self-start transition-colors ${c.btn}`}
-                >
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold text-white px-3 py-1.5 rounded-lg self-start transition-colors ${c.btn}`}>
                   Browse <ExternalLink className="w-3 h-3" />
                 </span>
               </a>
@@ -226,142 +361,139 @@ export default function EstateSalesPage() {
         </div>
       </section>
 
-      {/* ── Upcoming Sales Grid ── */}
+      {/* ── Live Estate Sales ── */}
       <section>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-gray-900">
-            Upcoming Sales
-            {query.trim() && (
-              <span className="ml-2 text-sm font-normal text-gray-400">
-                — {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &ldquo;{query}&rdquo;
+          <h2 className="font-display text-xl font-bold text-antique-text">
+            {locationLabel ? `Estate Sales Near ${locationLabel}` : "Upcoming Estate Sales"}
+            {listings.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-antique-text-mute">
+                — {listings.length} result{listings.length !== 1 ? "s" : ""}
               </span>
             )}
           </h2>
-          <span className="text-sm text-gray-400 hidden sm:block">{mockEstateSales.length} sales loaded</span>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-antique-accent animate-spin" />
+          </div>
+        ) : listings.length === 0 ? (
+          <div className="text-center py-20 text-antique-text-mute">
             <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="font-semibold text-gray-600">No sales found for &ldquo;{query}&rdquo;</p>
-            <p className="text-sm mt-1">Try a different city, zip, or neighborhood</p>
-            <button
-              onClick={() => setQuery("")}
-              className="mt-4 text-sm text-blue-600 hover:underline"
-            >
-              Clear filter
-            </button>
+            <p className="font-semibold text-antique-text-sec">No estate sales found</p>
+            <p className="text-sm mt-1">Try a different location or search term, or browse the platforms above.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((sale) => (
-              <SaleCard key={sale.id} sale={sale} />
+            {listings.map((listing) => (
+              <EstateSaleCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}
       </section>
-
-      {/* ── Footer note ── */}
-      <p className="text-center text-xs text-gray-400 mt-12">
-        Demo data for the Seattle metro area.{" "}
-        <span className="text-gray-500 font-medium">
-          Live nationwide data coming soon — we&apos;re building scrapers for all 8 platforms.
-        </span>
-      </p>
     </div>
   );
 }
 
-// ── Sale Card ──────────────────────────────────────────────────────────────────
+// ── Estate Sale Card ────────────────────────────────────────────────────────────
 
-function SaleCard({ sale }: { sale: MockEstateSale }) {
-  const badge = badgeColors[sale.platform] ?? { bg: "bg-gray-100", text: "text-gray-600" };
-  const startLabel = daysUntil(sale.starts_at);
-  const isSoon = startLabel === "Today" || startLabel === "Tomorrow";
+function EstateSaleCard({ listing }: { listing: Listing }) {
+  const startLabel = daysUntil(listing.sale_starts_at as string | null);
+  const isSoon = startLabel === "Active" || startLabel === "Tomorrow";
 
   return (
-    <article className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+    <article className="bg-antique-surface border border-antique-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
       {/* Preview image */}
-      <div className="relative h-44 bg-gray-100 flex-shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={sale.preview_image_url}
-          alt={sale.title}
-          className="w-full h-full object-cover"
-        />
-        {sale.is_featured && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-400 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full shadow">
-            <Star className="w-3 h-3" /> Featured
-          </div>
+      <div className="relative h-44 bg-antique-muted flex-shrink-0">
+        {listing.primary_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={listing.primary_image_url}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">🏺</div>
         )}
         {isSoon && (
-          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow">
+          <div className="absolute top-2 right-2 bg-antique-accent text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow">
             {startLabel}
+          </div>
+        )}
+        {listing.is_sponsored && (
+          <div className="absolute top-2 left-2 bg-antique-muted border border-antique-border text-antique-text-mute text-[10px] font-medium px-2 py-0.5 rounded-full">
+            Sponsored
           </div>
         )}
       </div>
 
       {/* Content */}
       <div className="p-4 flex flex-col gap-2 flex-1">
-        {/* Platform + item count */}
-        <div className="flex items-center justify-between">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
-            {sale.platform_display}
-          </span>
-          <span className="text-xs text-gray-400">{sale.item_count_est.toLocaleString()}+ items</span>
-        </div>
+        {/* Platform */}
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-antique-accent">
+          {listing.platform?.display_name ?? "Estate Sale"}
+        </span>
 
         {/* Title */}
-        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">
-          {sale.title}
+        <h3 className="font-semibold text-antique-text text-sm leading-snug line-clamp-2">
+          {listing.title}
         </h3>
 
-        {/* Company */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-          <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="line-clamp-1">{sale.company}</span>
-        </div>
-
         {/* Location */}
-        <div className="flex items-start gap-1.5 text-xs text-gray-500">
-          <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-          <span>{sale.neighborhood} · {sale.city}, {sale.state} {sale.zip_code}</span>
-        </div>
+        {(listing.city || listing.state) && (
+          <div className="flex items-center gap-1.5 text-xs text-antique-text-sec">
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>
+              {[listing.city, listing.state].filter(Boolean).join(", ")}
+              {listing.zip_code && ` ${listing.zip_code}`}
+            </span>
+          </div>
+        )}
 
         {/* Dates */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-          <span className="font-semibold text-gray-700">{startLabel}</span>
-          <span className="text-gray-300">·</span>
-          <span className="text-gray-500">{fmtDate(sale.starts_at)}–{fmtDate(sale.ends_at)}</span>
-        </div>
-
-        {/* Hours */}
-        <div className="flex items-start gap-1.5 text-xs text-gray-400">
-          <Clock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-          <span>{sale.hours}</span>
-        </div>
-
-        {/* Category tags */}
-        <div className="flex flex-wrap gap-1 mt-1">
-          {sale.categories.slice(0, 4).map((cat) => (
-            <span
-              key={cat}
-              className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full"
-            >
-              {cat}
+        {(listing.sale_starts_at || listing.sale_ends_at) && (
+          <div className="flex items-center gap-1.5 text-xs text-antique-text-sec">
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>
+              {startLabel && <span className="font-semibold text-antique-text mr-1">{startLabel}</span>}
+              {fmtDate(listing.sale_starts_at as string | null)}
+              {listing.sale_ends_at && ` – ${fmtDate(listing.sale_ends_at as string | null)}`}
             </span>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {/* Price */}
+        {listing.current_price != null && (
+          <div className="flex items-center gap-1.5 text-xs text-antique-text-sec">
+            <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-bold text-antique-accent">{formatPrice(listing.current_price)}</span>
+          </div>
+        )}
+
+        {/* Distance */}
+        {listing.distance_miles != null && (
+          <p className="text-xs text-antique-text-mute">
+            📍 {listing.distance_miles.toFixed(1)} mi away
+          </p>
+        )}
+
+        {/* Category tag */}
+        {listing.category && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            <span className="text-xs bg-antique-muted text-antique-text-sec px-2 py-0.5 rounded-full border border-antique-border">
+              {listing.category}
+            </span>
+          </div>
+        )}
 
         {/* View CTA */}
         <a
-          href={sale.platform_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-auto pt-3 flex items-center justify-center gap-1.5 w-full text-sm font-semibold text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 hover:bg-blue-50 rounded-xl py-2.5 transition-colors"
+          href={`/listing/${listing.id}`}
+          className="mt-auto pt-3 flex items-center justify-center gap-1.5 w-full text-sm font-semibold text-antique-accent hover:text-antique-accent-h border border-antique-border hover:border-antique-accent hover:bg-antique-muted rounded-xl py-2.5 transition-colors"
         >
-          View Full Sale <ChevronRight className="w-4 h-4" />
+          View Sale <ChevronRight className="w-4 h-4" />
         </a>
       </div>
     </article>
