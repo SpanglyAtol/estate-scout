@@ -73,7 +73,7 @@ class ScraperStorage:
                 logger.warning(f"Unknown platform slug: {listing.platform_slug}")
                 return False
 
-            await self.db.execute(
+            id_result = await self.db.execute(
                 text("""
                     INSERT INTO listings (
                         platform_id, external_id, external_url, title, description,
@@ -114,6 +114,7 @@ class ScraperStorage:
                         attributes = EXCLUDED.attributes,
                         raw_data = EXCLUDED.raw_data,
                         updated_at = NOW()
+                    RETURNING id
                 """),
                 {
                     "platform_id": platform_id,
@@ -153,11 +154,7 @@ class ScraperStorage:
                 },
             )
             # ── Market price hooks ───────────────────────────────────────────
-            # Fetch the listing id that was just inserted / updated.
-            id_result = await self.db.execute(
-                text("SELECT id FROM listings WHERE platform_id = :pid AND external_id = :eid"),
-                {"pid": platform_id, "eid": listing.external_id},
-            )
+            # RETURNING id from the upsert avoids a second SELECT round-trip.
             listing_db_id = id_result.scalar_one_or_none()
 
             if listing_db_id:

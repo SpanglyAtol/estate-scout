@@ -216,8 +216,13 @@ class EstateSalesNetScraper(BaseScraper):
             return None
 
     async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
-        """Fetch the detail page for a single estate sale for enriched data."""
-        url = f"{self.base_url}/estate-sales/{external_id}"
+        """Fetch the detail page for a single estate sale for enriched data.
+
+        EstateSales.NET sale URLs embed state/city in the path which we don't
+        retain at list time.  The ``/estate-sale/{id}`` shortlink redirects to
+        the full canonical URL (follow_redirects=True handles this automatically).
+        """
+        url = f"{self.base_url}/estate-sale/{external_id}"
         try:
             response = await self._fetch(url)
             soup = BeautifulSoup(response.text, "lxml")

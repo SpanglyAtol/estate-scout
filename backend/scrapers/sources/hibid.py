@@ -19,6 +19,7 @@ Lot-level items are fetched via a separate lotSearch() GQL query,
 keyed on the auction's numeric catalog ID.
 """
 
+import asyncio
 import json
 import re
 from datetime import datetime
@@ -164,23 +165,9 @@ class HibidScraper(BaseScraper):
             }
 
             try:
-                if self.rate_limiter:
-                    await self.rate_limiter.acquire(self.platform_slug)
-
-                response = await self._session.post(
-                    HIBID_GQL_ENDPOINT,
-                    json=payload,
-                    headers={
-                        "User-Agent": self._user_agent(),
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "Origin": HIBID_BASE_URL,
-                        "Referer": f"{HIBID_BASE_URL}/catalog-search",
-                    },
+                data = await self._post_gql(
+                    payload, referer=f"{HIBID_BASE_URL}/catalog-search"
                 )
-                response.raise_for_status()
-
-                data = response.json()
                 if "errors" in data:
                     self.logger.warning(
                         f"HiBid GraphQL errors on page {page_number}: "
@@ -207,21 +194,33 @@ class HibidScraper(BaseScraper):
                     f"(total reported: {total_count})"
                 )
 
+                # Normalize all auctions on this page first
+                page_listings: list[tuple] = []  # (listing, auction_id_int)
                 for match in results:
                     auction = match.get("auction")
                     if not auction:
                         continue
                     listing = self._normalize(auction)
                     if listing:
-                        # Fetch individual lot items for this auction
                         auction_id_int = self._to_int(auction.get("id"))
-                        if auction_id_int:
-                            listing.items = await self._fetch_lots(auction_id_int)
-                            if listing.items:
-                                self.logger.info(
-                                    f"HiBid auction {auction_id_int}: "
-                                    f"{len(listing.items)} lots fetched"
-                                )
+                        page_listings.append((listing, auction_id_int))
+
+                # Fetch lots for all auctions on this page concurrently
+                async def _no_lots() -> list:
+                    return []
+
+                if page_listings:
+                    lot_tasks = [
+                        self._fetch_lots(aid) if aid else _no_lots()
+                        for _, aid in page_listings
+                    ]
+                    lot_results = await asyncio.gather(*lot_tasks, return_exceptions=True)
+                    for (listing, auction_id_int), lots in zip(page_listings, lot_results):
+                        if isinstance(lots, list) and lots:
+                            listing.items = lots
+                            self.logger.info(
+                                f"HiBid auction {auction_id_int}: {len(lots)} lots fetched"
+                            )
                         yield listing
 
                 # Stop if we've retrieved everything
@@ -233,6 +232,36 @@ class HibidScraper(BaseScraper):
                     f"HiBid error on page {page_number}: {exc}"
                 )
                 break
+
+    async def _post_gql(self, payload: dict, referer: str = "") -> dict:
+        """Rate-limited GraphQL POST with exponential backoff on 429/503.
+
+        Mirrors BaseScraper._fetch() retry logic for POST requests, which
+        _fetch() doesn't cover (it only handles GET).
+        """
+        headers = {
+            "User-Agent": self._user_agent(),
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Origin": HIBID_BASE_URL,
+            "Referer": referer or f"{HIBID_BASE_URL}/catalog-search",
+        }
+        for attempt in range(3):
+            if self.rate_limiter:
+                await self.rate_limiter.acquire(self.platform_slug)
+            response = await self._session.post(
+                HIBID_GQL_ENDPOINT, json=payload, headers=headers
+            )
+            if response.status_code in (429, 503):
+                wait = 2 ** attempt * 5
+                self.logger.warning(
+                    f"HiBid GQL rate limited ({response.status_code}), waiting {wait}s"
+                )
+                await asyncio.sleep(wait)
+                continue
+            response.raise_for_status()
+            return response.json()
+        raise RuntimeError("HiBid GraphQL POST failed after 3 attempts")
 
     def _normalize(self, auction: dict) -> ScrapedListing | None:
         """Convert a raw HiBid auction dict to a ScrapedListing."""
@@ -309,23 +338,9 @@ class HibidScraper(BaseScraper):
                 },
             }
             try:
-                if self.rate_limiter:
-                    await self.rate_limiter.acquire(self.platform_slug)
-
-                response = await self._session.post(
-                    HIBID_GQL_ENDPOINT,
-                    json=payload,
-                    headers={
-                        "User-Agent": self._user_agent(),
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "Origin": HIBID_BASE_URL,
-                        "Referer": f"{HIBID_BASE_URL}/auctions/online/{catalog_id}/",
-                    },
+                data = await self._post_gql(
+                    payload, referer=f"{HIBID_BASE_URL}/auctions/online/{catalog_id}/"
                 )
-                response.raise_for_status()
-                data = response.json()
-
                 if "errors" in data:
                     self.logger.debug(
                         f"HiBid lots GQL errors for catalog {catalog_id}: {data['errors'][:1]}"

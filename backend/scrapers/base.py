@@ -113,17 +113,18 @@ class BaseScraper(ABC):
         self.proxy_pool = proxy_pool
         self.storage = storage
         self._session: httpx.AsyncClient | None = None
+        self._active_proxy: str | None = None  # proxy URL used for this session
 
     async def __aenter__(self):
-        proxy = self.proxy_pool.get_next() if self.proxy_pool else None
+        self._active_proxy = self.proxy_pool.get_next() if self.proxy_pool else None
         # httpx >= 0.24 removed the `proxies` kwarg; use `mounts` instead.
         client_kwargs: dict = {
             "headers": {"User-Agent": self._user_agent()},
             "timeout": httpx.Timeout(30.0, connect=10.0),
             "follow_redirects": True,
         }
-        if proxy:
-            transport = httpx.AsyncHTTPTransport(proxy=proxy)
+        if self._active_proxy:
+            transport = httpx.AsyncHTTPTransport(proxy=self._active_proxy)
             client_kwargs["mounts"] = {
                 "http://": transport,
                 "https://": transport,
@@ -185,11 +186,22 @@ class BaseScraper(ABC):
                     await asyncio.sleep(wait)
                     continue
                 response.raise_for_status()
+                if self.proxy_pool and self._active_proxy:
+                    self.proxy_pool.report_success(self._active_proxy)
                 return response
             except httpx.HTTPStatusError:
                 if attempt == 2:
                     raise
                 await asyncio.sleep(2 ** attempt)
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ProxyError) as exc:
+                # Connection-level failures indicate the proxy itself is broken,
+                # not a server-side response — report and stop retrying.
+                if self.proxy_pool and self._active_proxy:
+                    self.proxy_pool.report_failure(self._active_proxy)
+                    self.logger.warning(
+                        f"Proxy {self._active_proxy} failed ({exc}); marked unhealthy"
+                    )
+                raise
         raise RuntimeError(f"Failed to fetch {url} after 3 attempts")
 
     @abstractmethod

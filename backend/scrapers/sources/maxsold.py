@@ -152,50 +152,6 @@ class MaxSoldScraper(BaseScraper):
         except json.JSONDecodeError:
             return None
 
-    def _lot_to_listing(self, lot, sale):
-        """Convert a MaxSold lot object to ScrapedListing."""
-        try:
-            auction_id = str(lot.get("amAuctionId", ""))
-            lot_id = str(lot.get("amLotId", ""))
-            if not auction_id or not lot_id:
-                return None
-
-            external_url = f"{self.base_url}/auction/{auction_id}"
-
-            images = lot.get("imagePaths", [])
-            primary_img = images[0] if images else None
-
-            addr = lot.get("address") or sale.get("address") or {}
-            city = addr.get("city", "")
-            region_code = addr.get("regionCode", "")
-            state = region_code.upper() if region_code else ""
-
-            bid_info = lot.get("currentBid") or {}
-            price_raw = bid_info.get("amount")
-            current_price = float(price_raw) if price_raw else None
-
-            return ScrapedListing(
-                platform_slug=self.platform_slug,
-                external_id=lot_id,
-                external_url=external_url,
-                title=lot.get("title") or lot.get("auctionTitle") or "MaxSold Lot",
-                description=lot.get("description"),
-                category=lot.get("saleCategory") or sale.get("saleCategory"),
-                current_price=current_price,
-                pickup_only=True,
-                ships_nationally=False,
-                city=city,
-                state=state,
-                sale_starts_at=self._parse_iso(lot.get("openTime") or sale.get("openTime")),
-                sale_ends_at=self._parse_iso(lot.get("closeTime") or sale.get("closeTime")),
-                primary_image_url=primary_img,
-                image_urls=images,
-                raw_data={"lot": lot, "sale": sale},
-            )
-        except Exception as exc:
-            self.logger.debug(f"MaxSold lot parse error: {exc}")
-            return None
-
     def _sale_to_listing(self, sale, lots=None):
         """Convert a MaxSold sale (auction) to a ScrapedListing.
 
@@ -222,7 +178,7 @@ class MaxSoldScraper(BaseScraper):
                 title=sale.get("title") or f"MaxSold Auction #{auction_id}",
                 category=sale.get("saleCategory"),
                 pickup_only=True,
-                ships_nationally=not sale.get("hasShipping", False),
+                ships_nationally=sale.get("hasShipping", False),
                 city=addr.get("city", ""),
                 state=state,
                 sale_starts_at=self._parse_iso(sale.get("openTime")),

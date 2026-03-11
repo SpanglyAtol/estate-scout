@@ -339,8 +339,16 @@ def _is_relevant(listing: dict) -> bool:
 
 
 def _compute_status(scraped: ScrapedListing) -> str:
-    """Derive auction_status from dates and is_completed flag."""
-    from datetime import timezone
+    """Derive auction_status from dates and is_completed flag.
+
+    Timezone handling: scrapers that preserve tz info (e.g. EstateSales.NET via
+    dateutil) will have aware datetimes and compare correctly against UTC now.
+    Scrapers that strip tz info (e.g. HiBid's custom strptime loop) yield naive
+    datetimes.  We treat those as UTC — the most common case for US auctions —
+    but apply a ±12-hour grace window when marking a naive-datetime listing as
+    "ended" to avoid false positives caused by local-time offsets.
+    """
+    from datetime import timedelta, timezone
     if scraped.is_completed:
         return "completed"
     now = datetime.now(timezone.utc)
@@ -350,11 +358,18 @@ def _compute_status(scraped: ScrapedListing) -> str:
             return None
         return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
+    def _is_naive(dt) -> bool:
+        return dt is not None and dt.tzinfo is None
+
     starts = _utc(scraped.sale_starts_at)
     ends = _utc(scraped.sale_ends_at)
+
     if starts and starts > now:
         return "upcoming"
-    if ends and ends < now:
+    # Apply 12-hour grace window for naive end-datetimes to absorb timezone
+    # uncertainty before declaring a listing ended.
+    grace = timedelta(hours=12) if _is_naive(scraped.sale_ends_at) else timedelta(0)
+    if ends and ends + grace < now:
         return "ended"
     return "live"
 
