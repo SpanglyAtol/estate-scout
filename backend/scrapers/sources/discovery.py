@@ -1602,36 +1602,7 @@ class DiscoveryScraper(BaseScraper):
         except Exception:
             return url
 
-    @staticmethod
-    def _parse_price(value: str) -> float | None:
-        if not value:
-            return None
-        cleaned = re.sub(r"[^\d.]", "", value.strip())
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _parse_dt(value) -> datetime | None:
-        if not value:
-            return None
-        for fmt in (
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%d",
-        ):
-            try:
-                return datetime.strptime(str(value), fmt)
-            except ValueError:
-                continue
-        try:
-            from dateutil import parser as du
-            return du.parse(str(value), fuzzy=True)
-        except Exception:
-            return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
         """Not used — discovery scraper doesn't have a canonical listing DB."""

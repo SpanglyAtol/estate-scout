@@ -15,10 +15,10 @@ Auction page:  https://www.auctionzip.com/listings/{auction-id}/
 Item/lot URL:  https://www.auctionzip.com/listings/{auction-id}/lot/{lot-id}/
 """
 
+import asyncio
 import json
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
@@ -41,12 +41,29 @@ _US_STATES = [
 _RELEVANT_KEYWORDS = [
     "estate", "antique", "collectible", "jewelry", "furniture",
     "art", "coin", "silver", "gold", "china", "crystal", "vintage",
-    "auction", "houseold", "personal property",
+    "auction", "household", "personal property",
 ]
 _IRRELEVANT_KEYWORDS = [
     "vehicle", "truck", "car auction", "auto auction", "equipment",
     "machinery", "farm", "industrial", "real estate only",
 ]
+
+# US state name (lowercase) → 2-letter abbreviation
+_STATE_NAME_TO_ABBREV: dict[str, str] = {
+    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+    "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+    "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+    "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+    "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+    "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+    "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+    "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+    "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+    "wisconsin": "WI", "wyoming": "WY", "district of columbia": "DC",
+}
 
 
 class AuctionZipScraper(BaseScraper):
@@ -64,21 +81,28 @@ class AuctionZipScraper(BaseScraper):
     async def scrape_listings(
         self,
         states: list[str] | None = None,
-        max_pages: int = 3,
+        max_pages: int = 5,
         **kwargs,
     ) -> AsyncIterator[ScrapedListing]:
         """
         Yield auction listings from AuctionZip.
 
         Args:
-            states:     List of 2-letter state codes to scrape.
-                        Defaults to top 10 states by estate sale volume.
-            max_pages:  Pages per state (default 3; ≈20 auctions/page).
+            states:         List of 2-letter state codes to scrape.
+                            Defaults to top 20 states by estate sale volume.
+            max_pages:      Pages per state (default 5; ≈20 auctions/page).
+            detail_concurrency: Max concurrent detail page fetches (default 5).
         """
         target_states = states or [
             "CA", "NY", "TX", "FL", "PA", "OH", "IL", "MA", "NJ", "GA",
             "NC", "VA", "WA", "CO", "MI", "TN", "MO", "MD", "CT", "IN",
         ]
+        detail_concurrency = kwargs.get("detail_concurrency", 5)
+        sem = asyncio.Semaphore(detail_concurrency)
+
+        async def _fetch_detail_limited(stub: dict) -> ScrapedListing | None:
+            async with sem:
+                return await self._fetch_auction_detail(stub)
 
         seen_ids: set[str] = set()
 
@@ -89,15 +113,26 @@ class AuctionZipScraper(BaseScraper):
                     auctions = await self._fetch_state_page(state, page)
                     if not auctions:
                         break
-                    for auction_stub in auctions:
-                        auction_id = auction_stub.get("id", "")
-                        if not auction_id or auction_id in seen_ids:
-                            continue
-                        seen_ids.add(auction_id)
-                        # Fetch full auction page for lot-level detail
-                        listing = await self._fetch_auction_detail(auction_stub)
-                        if listing:
-                            yield listing
+
+                    # Filter already-seen IDs, then fetch details concurrently
+                    new_stubs = []
+                    for stub in auctions:
+                        auction_id = stub.get("id", "")
+                        if auction_id and auction_id not in seen_ids:
+                            seen_ids.add(auction_id)
+                            new_stubs.append(stub)
+
+                    if not new_stubs:
+                        break
+
+                    results = await asyncio.gather(
+                        *[_fetch_detail_limited(s) for s in new_stubs],
+                        return_exceptions=True,
+                    )
+                    for result in results:
+                        if isinstance(result, ScrapedListing):
+                            yield result
+
                 except Exception as exc:
                     self.logger.warning(f"AuctionZip {state} p{page}: {exc}")
                     break
@@ -139,6 +174,9 @@ class AuctionZipScraper(BaseScraper):
                 # Relevance filter — skip clearly off-topic
                 title_lower = title.lower()
                 if any(kw in title_lower for kw in _IRRELEVANT_KEYWORDS):
+                    continue
+                # Require at least one relevant keyword (skip pure commercial auctions)
+                if not any(kw in title_lower for kw in _RELEVANT_KEYWORDS):
                     continue
 
                 href = link_el.get("href", "")
@@ -220,7 +258,7 @@ class AuctionZipScraper(BaseScraper):
         title = stub.get("title") or f"AuctionZip Auction #{auction_id}"
         city = stub.get("city", "")
         state = stub.get("state", "")
-        end_at = self._parse_date_text(stub.get("date_text", ""))
+        end_at = self._parse_dt(stub.get("date_text", ""))
 
         listing = ScrapedListing(
             platform_slug=self.platform_slug,
@@ -295,7 +333,7 @@ class AuctionZipScraper(BaseScraper):
         date_el = soup.select_one("time, [class*=date], [class*=when]")
         if date_el and not listing.sale_ends_at:
             date_text = date_el.get("datetime") or date_el.get_text(strip=True)
-            listing.sale_ends_at = self._parse_date_text(date_text)
+            listing.sale_ends_at = self._parse_dt(date_text)
 
     def _extract_lots(self, soup: BeautifulSoup, auction_url: str) -> list[ScrapedItem]:
         """Extract individual lot items from an auction detail page."""
@@ -353,51 +391,34 @@ class AuctionZipScraper(BaseScraper):
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _parse_location(self, text: str, default_state: str = "") -> tuple[str, str]:
-        """Parse 'City, ST' or 'City, State' text into (city, state_code)."""
+        """Parse 'City, ST', 'City, State', or 'City, State ZIP' into (city, state_code)."""
         if not text:
             return "", default_state
         parts = [p.strip() for p in text.split(",")]
         if len(parts) >= 2:
             city = parts[0]
-            state_part = parts[-1].strip().upper()
-            # Extract 2-letter code if spelled out
-            if len(state_part) > 2:
-                state_part = default_state
-            return city, state_part
+            # The state portion may include ZIP: "Washington 98101" or "WA 98101"
+            state_raw = parts[1].split()[0].strip() if parts[1].split() else parts[1].strip()
+            # If multi-word state (e.g. "New York"), rejoin from parts[1] onward
+            state_full = " ".join(p.strip() for p in parts[1:]).split()[0]
+            # Try full name lookup first, then 2-letter, then default
+            if len(state_raw) == 2 and state_raw.isalpha():
+                return city, state_raw.upper()
+            # Check if multi-word state spanning comma-separated parts
+            joined_tail = ", ".join(parts[1:]).strip()
+            # Remove ZIP codes from tail
+            joined_tail_clean = re.sub(r"\d{5}(-\d{4})?", "", joined_tail).strip().rstrip(",").strip()
+            abbrev = _STATE_NAME_TO_ABBREV.get(joined_tail_clean.lower())
+            if abbrev:
+                return city, abbrev
+            # Try just the first word of the tail
+            abbrev = _STATE_NAME_TO_ABBREV.get(state_full.lower())
+            if abbrev:
+                return city, abbrev
+            return city, default_state
         return text.strip(), default_state
 
-    @staticmethod
-    def _parse_price(value: str) -> float | None:
-        if not value:
-            return None
-        cleaned = re.sub(r"[^\d.]", "", value.strip())
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _parse_date_text(text: str) -> datetime | None:
-        """Best-effort parse of human date strings from auction listings."""
-        if not text:
-            return None
-        # ISO format first
-        for fmt in (
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%d",
-        ):
-            try:
-                return datetime.strptime(text.strip(), fmt)
-            except ValueError:
-                pass
-        # Try dateutil if available
-        try:
-            from dateutil import parser as du
-            return du.parse(text, fuzzy=True)
-        except Exception:
-            pass
-        return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
         """Fetch a single AuctionZip auction page."""

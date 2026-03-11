@@ -77,8 +77,11 @@ class ScraperStorage:
                 text("""
                     INSERT INTO listings (
                         platform_id, external_id, external_url, title, description,
-                        category, condition, current_price, start_price, buy_now_price,
+                        category, condition,
+                        listing_type, item_type, auction_status,
+                        current_price, start_price, buy_now_price,
                         buyers_premium_pct, final_price, is_completed, currency,
+                        estimate_low, estimate_high,
                         pickup_only, ships_nationally, shipping_estimate,
                         city, state, zip_code, country, latitude, longitude,
                         sale_starts_at, sale_ends_at,
@@ -87,8 +90,11 @@ class ScraperStorage:
                         attributes, raw_data
                     ) VALUES (
                         :platform_id, :external_id, :external_url, :title, :description,
-                        :category, :condition, :current_price, :start_price, :buy_now_price,
+                        :category, :condition,
+                        :listing_type, :item_type, :auction_status,
+                        :current_price, :start_price, :buy_now_price,
                         :buyers_premium_pct, :final_price, :is_completed, :currency,
+                        :estimate_low, :estimate_high,
                         :pickup_only, :ships_nationally, :shipping_estimate,
                         :city, :state, :zip_code, :country, :latitude, :longitude,
                         :sale_starts_at, :sale_ends_at,
@@ -100,9 +106,27 @@ class ScraperStorage:
                     DO UPDATE SET
                         title = EXCLUDED.title,
                         description = EXCLUDED.description,
+                        category = EXCLUDED.category,
+                        condition = EXCLUDED.condition,
+                        listing_type = EXCLUDED.listing_type,
+                        auction_status = EXCLUDED.auction_status,
                         current_price = EXCLUDED.current_price,
+                        start_price = EXCLUDED.start_price,
+                        buy_now_price = EXCLUDED.buy_now_price,
+                        buyers_premium_pct = EXCLUDED.buyers_premium_pct,
                         final_price = EXCLUDED.final_price,
                         is_completed = EXCLUDED.is_completed,
+                        estimate_low = EXCLUDED.estimate_low,
+                        estimate_high = EXCLUDED.estimate_high,
+                        pickup_only = EXCLUDED.pickup_only,
+                        ships_nationally = EXCLUDED.ships_nationally,
+                        shipping_estimate = EXCLUDED.shipping_estimate,
+                        city = EXCLUDED.city,
+                        state = EXCLUDED.state,
+                        zip_code = EXCLUDED.zip_code,
+                        latitude = EXCLUDED.latitude,
+                        longitude = EXCLUDED.longitude,
+                        sale_starts_at = EXCLUDED.sale_starts_at,
                         sale_ends_at = EXCLUDED.sale_ends_at,
                         primary_image_url = EXCLUDED.primary_image_url,
                         image_urls = EXCLUDED.image_urls,
@@ -124,6 +148,9 @@ class ScraperStorage:
                     "description": listing.description,
                     "category": listing.category,
                     "condition": listing.condition,
+                    "listing_type": listing.listing_type or "auction",
+                    "item_type": "individual_item",
+                    "auction_status": listing.auction_status or "upcoming",
                     "current_price": listing.current_price,
                     "start_price": listing.start_price,
                     "buy_now_price": listing.buy_now_price,
@@ -131,6 +158,8 @@ class ScraperStorage:
                     "final_price": listing.final_price,
                     "is_completed": listing.is_completed,
                     "currency": listing.currency,
+                    "estimate_low": listing.estimate_low,
+                    "estimate_high": listing.estimate_high,
                     "pickup_only": listing.pickup_only,
                     "ships_nationally": listing.ships_nationally,
                     "shipping_estimate": listing.shipping_estimate,
@@ -159,6 +188,8 @@ class ScraperStorage:
 
             if listing_db_id:
                 await self._write_market_hooks(listing, listing_db_id, platform_id)
+                if listing.items:
+                    await self._upsert_lots(listing.items, listing_db_id)
 
             if commit:
                 await self.db.commit()
@@ -167,6 +198,56 @@ class ScraperStorage:
             logger.error(f"DB upsert failed for {listing.platform_slug}/{listing.external_id}: {e}")
             await self.db.rollback()
             return False
+
+    async def _upsert_lots(self, items: list, listing_db_id: int) -> None:
+        """Write individual lot items to listing_lots table.
+
+        Uses lot_number for deduplication when available; falls back to title-
+        based matching.  Failures are logged but never propagate — lot data is
+        supplementary, not critical to the core listing record.
+        """
+        from sqlalchemy import text
+
+        for item in items:
+            try:
+                await self.db.execute(
+                    text("""
+                        INSERT INTO listing_lots (
+                            listing_id, lot_number, title, description,
+                            category, condition,
+                            current_price, hammer_price, estimate_low, estimate_high,
+                            is_completed, bid_count, sale_ends_at,
+                            primary_image_url, image_urls, external_url
+                        ) VALUES (
+                            :listing_id, :lot_number, :title, :description,
+                            :category, :condition,
+                            :current_price, :hammer_price, :estimate_low, :estimate_high,
+                            :is_completed, :bid_count, :sale_ends_at,
+                            :primary_image_url, :image_urls, :external_url
+                        )
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {
+                        "listing_id": listing_db_id,
+                        "lot_number": item.lot_number,
+                        "title": item.title,
+                        "description": item.description,
+                        "category": item.category,
+                        "condition": item.condition,
+                        "current_price": item.current_price,
+                        "hammer_price": item.hammer_price,
+                        "estimate_low": item.estimate_low,
+                        "estimate_high": item.estimate_high,
+                        "is_completed": item.is_completed,
+                        "bid_count": item.bid_count,
+                        "sale_ends_at": item.sale_ends_at,
+                        "primary_image_url": item.primary_image_url,
+                        "image_urls": item.image_urls or [],
+                        "external_url": item.external_url,
+                    },
+                )
+            except Exception as exc:
+                logger.debug(f"lot upsert failed for listing {listing_db_id}: {exc}")
 
     async def _write_market_hooks(
         self,

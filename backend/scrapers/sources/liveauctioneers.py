@@ -1,10 +1,10 @@
 """
 LiveAuctioneers Scraper
 
-Strategy (three-layer approach to beat 403 blocks)
----------------------------------------------------
+Strategy (two-layer approach to beat 403 blocks)
+-------------------------------------------------
 LiveAuctioneers uses Cloudflare WAF + bot-fingerprinting, so plain httpx
-requests get 403.  We use three progressively more lenient methods:
+requests get 403.  We use two progressively more lenient methods:
 
 1. **Public JSON API** — LiveAuctioneers exposes a search API at
    /c/search that the React SPA calls.  We hit it with full browser
@@ -12,22 +12,23 @@ requests get 403.  We use three progressively more lenient methods:
    This often works in CI because Cloudflare trusts JSON API requests
    that originate from their own domain.
 
-2. **Google Cache** — Request the cached version of the search page via
-   ``https://webcache.googleusercontent.com/search?q=cache:<url>``.
-   Google's cache bypasses the site's WAF entirely and usually contains
-   the __NEXT_DATA__ block.
+2. **HTML search page** — Falls back to hitting the HTML search page and
+   extracting __NEXT_DATA__ or parsing lot cards directly.
 
-3. **Sitemap / RSS** — LiveAuctioneers publishes a sitemap and RSS feeds
-   for upcoming auctions.  These are always accessible and give us IDs
-   + titles we can enrich later.
+   NOTE: Google Cache (webcache.googleusercontent.com) was shut down in
+   early 2024 and is no longer used as a fallback.
 
-If all three fail, we log a warning and yield nothing rather than crashing
+3. **Sitemap** (last resort) — LiveAuctioneers publishes a sitemap for
+   upcoming auctions.  We only use this if both JSON API and HTML fail,
+   and only to discover auction IDs — we skip sitemap entries that lack
+   enough data to be useful (no price, no date, no location).
+
+If all layers fail, we log a warning and yield nothing rather than crashing
 the whole hydrate run.
 """
 
 import json
 import re
-from datetime import datetime
 from typing import AsyncIterator
 from xml.etree import ElementTree as ET
 
@@ -45,10 +46,8 @@ class LiveAuctioneersScraper(BaseScraper):
     _API_URL  = "https://www.liveauctioneers.com/c/search"
     # 2. HTML search page (fallback)
     _SRCH_URL = "https://www.liveauctioneers.com/search/"
-    # 3. Sitemap index (last resort)
+    # 3. Sitemap index (last resort — IDs + URLs only, no price/date data)
     _SITEMAP  = "https://www.liveauctioneers.com/sitemap-auctions.xml"
-    # Google cache prefix
-    _GCACHE   = "https://webcache.googleusercontent.com/search?q=cache:"
 
     # ── Full Chrome-107+ headers ──────────────────────────────────────────────
     def _la_api_headers(self) -> dict:
@@ -165,28 +164,19 @@ class LiveAuctioneersScraper(BaseScraper):
             if state:
                 params["state"] = state
 
-            # Try direct first, then Google Cache
-            html = None
-            for url_fn in [
-                lambda p: (self._SRCH_URL, p),
-                lambda p: (self._GCACHE + self._SRCH_URL, p),
-            ]:
-                url, p = url_fn(params)
-                try:
-                    resp = await self._fetch(
-                        url,
-                        params=p,
-                        headers=self._browser_headers(referer="https://www.liveauctioneers.com/"),
-                    )
-                    if resp.status_code != 403:
-                        html = resp.text
-                        break
-                except Exception:
-                    continue
+            try:
+                resp = await self._fetch(
+                    self._SRCH_URL,
+                    params=params,
+                    headers=self._browser_headers(referer="https://www.liveauctioneers.com/"),
+                )
+            except Exception as exc:
+                raise PermissionError(f"LiveAuctioneers HTML fetch failed: {exc}")
 
-            if not html:
+            if resp.status_code == 403:
                 raise PermissionError("LiveAuctioneers HTML blocked (403)")
 
+            html = resp.text
             items = self._extract_json_data(html)
             if items is None:
                 soup = BeautifulSoup(html, "lxml")
@@ -210,8 +200,11 @@ class LiveAuctioneersScraper(BaseScraper):
 
     async def _scrape_sitemap(self) -> AsyncIterator[ScrapedListing]:
         """
-        Parse the auctions sitemap and yield lightweight listings (title + URL).
-        These won't have price/date info but give us IDs for later enrichment.
+        Parse the auctions sitemap to discover auction IDs when API/HTML are blocked.
+
+        Sitemap entries only contain a URL — no price, date, or location.  We
+        attempt a detail-page fetch for each entry so we get real data.  Entries
+        that fail the detail fetch are skipped rather than stored as empty shells.
         """
         try:
             resp = await self._fetch(
@@ -222,29 +215,27 @@ class LiveAuctioneersScraper(BaseScraper):
             ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
             urls = root.findall(".//sm:url/sm:loc", ns)
             if not urls:
-                # Namespace-free fallback
                 urls = root.findall(".//{*}loc")
 
-            for loc_el in urls[:200]:   # cap at 200 from sitemap
+            seen: set[str] = set()
+            for loc_el in urls[:200]:
                 url = loc_el.text or ""
-                # URLs look like /auc/AUCTIONEER-NAME/SLUG/sale/12345/
                 id_match = re.search(r"/sale/(\d+)", url)
                 if not id_match:
                     id_match = re.search(r"/(\d{5,10})/?$", url)
                 if not id_match:
                     continue
                 auction_id = id_match.group(1)
-                slug_part  = url.rstrip("/").split("/")[-2] if not id_match else ""
-                title = re.sub(r"[-_]", " ", slug_part).title() or f"Auction #{auction_id}"
+                if auction_id in seen:
+                    continue
+                seen.add(auction_id)
 
-                yield ScrapedListing(
-                    platform_slug=self.platform_slug,
-                    external_id=auction_id,
-                    external_url=url if url.startswith("http") else self.base_url + url,
-                    title=title,
-                    listing_type="auction",
-                    raw_data={"source": "sitemap"},
-                )
+                # Attempt to hydrate with real data from the detail page
+                detail = await self.scrape_listing_detail(auction_id)
+                if detail:
+                    yield detail
+                # If detail fetch fails, skip — don't store an empty shell
+
         except Exception as exc:
             self.logger.error(f"LA sitemap parse error: {exc}")
 
@@ -272,29 +263,58 @@ class LiveAuctioneersScraper(BaseScraper):
 
     def _normalize_item(self, item: dict) -> ScrapedListing:
         lot_id    = str(item.get("lotId", item.get("id", item.get("_id", ""))))
+        auction_id = str(item.get("auctionId", item.get("saleId", "")))
+        # Prefix with auction_id to prevent lot-number collisions across auctions
+        external_id = f"{auction_id}_{lot_id}" if auction_id else lot_id
+
         title_raw = item.get("title", item.get("lotTitle", item.get("description", ""))) or ""
         slug      = re.sub(r"[^a-z0-9]+", "-", title_raw.lower()).strip("-")[:60]
+
+        # Prefer full imageUrl over thumbnail when available
+        full_image = item.get("imageUrl") or item.get("thumbnailUrl") or ""
+        image_urls = item.get("imageUrls", [])
+        if full_image and full_image not in image_urls:
+            image_urls = [full_image] + image_urls
+
+        # Map API status field to our auction_status vocabulary
+        raw_status = (item.get("status") or item.get("auctionStatus") or "").lower()
+        if raw_status in ("live", "in_progress", "inprogress"):
+            auction_status = "live"
+        elif raw_status in ("ended", "completed", "closed", "past"):
+            auction_status = "ended"
+        elif raw_status in ("upcoming", "preview", "scheduled"):
+            auction_status = "upcoming"
+        else:
+            auction_status = "upcoming"
+
         return ScrapedListing(
             platform_slug=self.platform_slug,
-            external_id=lot_id,
+            external_id=external_id,
             external_url=f"{self.base_url}/item/{lot_id}-{slug}",
             title=title_raw,
             description=item.get("description", item.get("longDescription", "")),
             category=item.get("categoryName", item.get("category", "")),
+            listing_type="auction",
+            auction_status=auction_status,
+            is_completed=auction_status == "ended",
             current_price=self._parse_price(
                 item.get("currentBid", item.get("currentBidAmount", item.get("startingBid")))
             ),
-            buyers_premium_pct=item.get("buyersPremium", item.get("buyersPremiumPercentage")),
-            city=item.get("city",      item.get("saleCity",  "")),
+            estimate_low=self._parse_price(item.get("lowEstimate", item.get("estimate_low"))),
+            estimate_high=self._parse_price(item.get("highEstimate", item.get("estimate_high"))),
+            buyers_premium_pct=self._parse_price(
+                item.get("buyersPremium", item.get("buyersPremiumPercentage"))
+            ),
+            city=item.get("city",       item.get("saleCity",  "")),
             state=item.get("stateCode", item.get("saleState", item.get("state", ""))),
-            sale_ends_at=self._parse_datetime(
+            sale_ends_at=self._parse_dt(
                 item.get("dateTimeEnds",  item.get("endDate",   item.get("endsAt")))
             ),
-            sale_starts_at=self._parse_datetime(
+            sale_starts_at=self._parse_dt(
                 item.get("dateTimeStart", item.get("startDate", item.get("startsAt")))
             ),
-            primary_image_url=item.get("thumbnailUrl", item.get("imageUrl", "")),
-            image_urls=item.get("imageUrls", []),
+            primary_image_url=full_image or None,
+            image_urls=image_urls,
             raw_data=item,
         )
 
@@ -332,67 +352,58 @@ class LiveAuctioneersScraper(BaseScraper):
             return None
 
     async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
-        url = f"{self.base_url}/item/{external_id}-"
-        try:
-            response = await self._fetch(url)
-            soup     = BeautifulSoup(response.text, "lxml")
-            json_ld  = soup.find("script", type="application/ld+json")
-            if json_ld:
-                try:
-                    data = json.loads(json_ld.string)
-                    if isinstance(data, list):
-                        data = data[0]
-                    return ScrapedListing(
-                        platform_slug=self.platform_slug,
-                        external_id=external_id,
-                        external_url=url,
-                        title=data.get("name", ""),
-                        description=data.get("description", ""),
-                        current_price=self._parse_price(
-                            data.get("offers", {}).get("price")
-                        ),
-                        primary_image_url=(
-                            data.get("image", [None])[0]
-                            if isinstance(data.get("image"), list)
-                            else data.get("image")
-                        ),
-                        raw_data=data,
-                    )
-                except Exception:
-                    pass
-            return None
-        except Exception as exc:
-            self.logger.error(f"LA detail fetch error ({external_id}): {exc}")
-            return None
-
-    # ── static helpers ────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _parse_price(value) -> float | None:
-        if value is None:
-            return None
-        if isinstance(value, (int, float)):
-            return float(value)
-        cleaned = re.sub(r"[^\d.]", "", str(value))
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _parse_datetime(value) -> datetime | None:
-        if not value:
-            return None
-        formats = [
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d",
-        ]
-        for fmt in formats:
+        # external_id may be "auctionId_lotId" or just a numeric auction/lot id
+        # LiveAuctioneers auction pages: /auc/{id}  — lot pages: /item/{id}-{slug}
+        bare_id = external_id.split("_")[-1]
+        # Try auction catalog page first (more data), then individual item page
+        for url_template in (
+            f"{self.base_url}/auc/{bare_id}/",
+            f"{self.base_url}/item/{bare_id}",
+        ):
             try:
-                return datetime.strptime(str(value), fmt)
-            except ValueError:
+                response = await self._fetch(
+                    url_template,
+                    headers=self._browser_headers(referer=self.base_url + "/"),
+                )
+                soup = BeautifulSoup(response.text, "lxml")
+
+                # Try __NEXT_DATA__ first (most complete)
+                items = self._extract_json_data(response.text)
+                if items:
+                    return self._normalize_item(items[0])
+
+                # Fall back to JSON-LD
+                json_ld = soup.find("script", type="application/ld+json")
+                if json_ld and json_ld.string:
+                    try:
+                        data = json.loads(json_ld.string)
+                        if isinstance(data, list):
+                            data = data[0]
+                        offers = data.get("offers") or {}
+                        if isinstance(offers, list):
+                            offers = offers[0] if offers else {}
+                        images = data.get("image", [])
+                        primary_img = (
+                            images[0] if isinstance(images, list) and images
+                            else images if isinstance(images, str)
+                            else None
+                        )
+                        return ScrapedListing(
+                            platform_slug=self.platform_slug,
+                            external_id=external_id,
+                            external_url=url_template,
+                            title=data.get("name", ""),
+                            description=data.get("description", ""),
+                            listing_type="auction",
+                            current_price=self._parse_price(offers.get("price")),
+                            primary_image_url=primary_img,
+                            raw_data=data,
+                        )
+                    except Exception:
+                        pass
+            except Exception as exc:
+                self.logger.debug(f"LA detail fetch error ({url_template}): {exc}")
                 continue
         return None
+
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper

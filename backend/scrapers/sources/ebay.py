@@ -29,7 +29,7 @@ Category IDs used:
 """
 
 import re
-from datetime import datetime
+from datetime import datetime   # kept for _parse_sold_date strptime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
@@ -212,18 +212,7 @@ class EbaySoldListingsScraper(BaseScraper):
             self.logger.debug(f"eBay card parse error: {exc}")
             return None
 
-    @staticmethod
-    def _parse_price(text: str) -> float | None:
-        if not text:
-            return None
-        # Strip currency symbols, commas, whitespace; handle "to" ranges by
-        # taking the lower bound.
-        text = text.split(" to ")[0]
-        cleaned = re.sub(r"[^\d.]", "", text)
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
+    # _parse_price inherited from BaseScraper (also handles "X to Y" ranges)
 
     @staticmethod
     def _parse_sold_date(text: str) -> datetime | None:

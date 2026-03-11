@@ -311,17 +311,7 @@ class OneDibsScraper(BaseScraper):
         except Exception:
             return None
 
-    @staticmethod
-    def _parse_price(value) -> float | None:
-        if value is None:
-            return None
-        if isinstance(value, (int, float)):
-            return float(value)
-        cleaned = re.sub(r"[^\d.]", "", str(value).split(" ")[0])
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
         return None

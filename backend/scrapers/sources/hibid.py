@@ -22,7 +22,6 @@ keyed on the auction's numeric catalog ID.
 import asyncio
 import json
 import re
-from datetime import datetime
 from typing import AsyncIterator
 
 from scrapers.base import BaseScraper, ScrapedItem, ScrapedListing
@@ -64,6 +63,7 @@ query CatalogSearch(
           bidCloseDateTime
           bidOpenDateTime
           bidType
+          shippingOffered
           featuredPicture { fullSizeLocation }
           auctioneer { id name city state }
         }
@@ -148,6 +148,13 @@ class HibidScraper(BaseScraper):
         max_pages = kwargs.get("max_pages", 10)
         page_length = kwargs.get("page_length", 100)
 
+        # Limit concurrent lot-fetching to avoid overwhelming the GQL endpoint
+        lot_semaphore = asyncio.Semaphore(kwargs.get("lot_concurrency", 5))
+
+        async def _fetch_lots_limited(catalog_id: int) -> list[ScrapedItem]:
+            async with lot_semaphore:
+                return await self._fetch_lots(catalog_id)
+
         for page_number in range(1, max_pages + 1):
             variables = {
                 "pageNumber": page_number,
@@ -205,13 +212,13 @@ class HibidScraper(BaseScraper):
                         auction_id_int = self._to_int(auction.get("id"))
                         page_listings.append((listing, auction_id_int))
 
-                # Fetch lots for all auctions on this page concurrently
-                async def _no_lots() -> list:
+                # Fetch lots for all auctions on this page concurrently (rate-limited)
+                async def _empty_lots() -> list:
                     return []
 
                 if page_listings:
                     lot_tasks = [
-                        self._fetch_lots(aid) if aid else _no_lots()
+                        _fetch_lots_limited(aid) if aid else _empty_lots()
                         for _, aid in page_listings
                     ]
                     lot_results = await asyncio.gather(*lot_tasks, return_exceptions=True)
@@ -263,6 +270,15 @@ class HibidScraper(BaseScraper):
             return response.json()
         raise RuntimeError("HiBid GraphQL POST failed after 3 attempts")
 
+    # bidType values observed in API: "TIMED", "LIVE", "SIMULCAST"
+    _BID_TYPE_STATUS: dict[str, str] = {
+        "TIMED": "active",
+        "LIVE": "active",
+        "SIMULCAST": "active",
+        "CLOSED": "completed",
+        "PREVIEW": "upcoming",
+    }
+
     def _normalize(self, auction: dict) -> ScrapedListing | None:
         """Convert a raw HiBid auction dict to a ScrapedListing."""
         try:
@@ -301,6 +317,19 @@ class HibidScraper(BaseScraper):
             # External URL: HiBid catalog pages use /auctions/online/{id}/
             external_url = f"{HIBID_BASE_URL}/auctions/online/{auction_id}/"
 
+            # bidType → auction_status
+            bid_type = (auction.get("bidType") or "").upper()
+            auction_status = self._BID_TYPE_STATUS.get(bid_type, "active")
+
+            # shippingOffered: true means items can be shipped
+            shipping_offered = auction.get("shippingOffered")
+            if shipping_offered is None:
+                ships_nationally = True   # default assumption for HiBid
+                pickup_only = False
+            else:
+                ships_nationally = bool(shipping_offered)
+                pickup_only = not ships_nationally
+
             return ScrapedListing(
                 platform_slug=self.platform_slug,
                 external_id=auction_id,
@@ -313,19 +342,33 @@ class HibidScraper(BaseScraper):
                 sale_starts_at=start_date,
                 sale_ends_at=end_date,
                 primary_image_url=img_url,
-                pickup_only=False,   # HiBid auctions can ship
-                ships_nationally=True,
+                listing_type="auction",
+                auction_status=auction_status,
+                pickup_only=pickup_only,
+                ships_nationally=ships_nationally,
                 raw_data=auction,
             )
         except Exception as exc:
             self.logger.debug(f"HiBid _normalize error: {exc}")
             return None
 
-    async def _fetch_lots(self, catalog_id: int, max_lots: int = 200) -> list[ScrapedItem]:
-        """Fetch individual lot items for a HiBid auction via GraphQL."""
+    async def _fetch_lots(
+        self,
+        catalog_id: int,
+        max_lots: int = 2000,
+    ) -> list[ScrapedItem]:
+        """Fetch all lot items for a HiBid auction via GraphQL.
+
+        Args:
+            catalog_id: Numeric HiBid catalog / auction ID.
+            max_lots:   Safety cap to prevent runaway fetches on giant auctions.
+                        Default 2000.  A warning is logged if the auction has
+                        more lots than this limit.
+        """
         items: list[ScrapedItem] = []
         page_length = 50
         page = 1
+        total_reported = 0
 
         while len(items) < max_lots:
             payload = {
@@ -353,7 +396,7 @@ class HibidScraper(BaseScraper):
                     .get("pagedResults", {})
                 )
                 results = paged.get("results", [])
-                total = paged.get("totalCount", 0)
+                total_reported = paged.get("totalCount", 0) or 0
 
                 if not results:
                     break
@@ -366,7 +409,8 @@ class HibidScraper(BaseScraper):
                     if item:
                         items.append(item)
 
-                if page * page_length >= min(total, max_lots):
+                # All pages fetched?
+                if page * page_length >= total_reported:
                     break
                 page += 1
 
@@ -374,7 +418,16 @@ class HibidScraper(BaseScraper):
                 self.logger.debug(f"HiBid lots fetch error for {catalog_id}: {exc}")
                 break
 
+        if total_reported and len(items) < total_reported:
+            self.logger.warning(
+                f"HiBid catalog {catalog_id}: fetched {len(items)} of "
+                f"{total_reported} reported lots (cap={max_lots})"
+            )
+
         return items
+
+    # lot status values observed in API
+    _LOT_COMPLETED_STATUSES = frozenset({"SOLD", "PASSED", "CLOSED", "UNSOLD"})
 
     def _lot_to_item(self, lot: dict, catalog_id: int) -> ScrapedItem | None:
         """Convert a HiBid lot GQL object to a ScrapedItem."""
@@ -383,47 +436,63 @@ class HibidScraper(BaseScraper):
             if not title:
                 return None
 
-            lot_num = str(lot.get("lotNum") or lot.get("id") or "")
+            lot_num = str(lot.get("lotNum") or "")
+            lot_id = str(lot.get("id") or "")
 
-            # Images
+            # Images — prefer fullSizeLocation over thumbnail
             images: list[str] = []
             primary_img_node = lot.get("primaryImage") or {}
-            for key in ("fullSizeLocation", "thumbnailLocation"):
-                url = primary_img_node.get(key)
-                if url:
-                    images.insert(0, url)
-                    break
+            primary_url = (
+                primary_img_node.get("fullSizeLocation")
+                or primary_img_node.get("thumbnailLocation")
+            )
+            if primary_url:
+                images.append(primary_url)
             for img_node in lot.get("images") or []:
-                url = img_node.get("fullSizeLocation") or img_node.get("thumbnailLocation") or ""
+                url = (
+                    img_node.get("fullSizeLocation")
+                    or img_node.get("thumbnailLocation")
+                    or ""
+                )
                 if url and url not in images:
                     images.append(url)
 
-            # Pricing
-            def _f(val):
-                try:
-                    return float(val) if val is not None else None
-                except (TypeError, ValueError):
-                    return None
+            # Pricing — use _parse_price to handle 0, None, strings
+            current_bid = self._parse_price(lot.get("currentBid"))
+            hammer = self._parse_price(lot.get("hammerPrice"))
+            est_low = self._parse_price(lot.get("lowEstimate"))
+            est_high = self._parse_price(lot.get("highEstimate"))
 
-            current_bid = _f(lot.get("currentBid"))
-            hammer = _f(lot.get("hammerPrice"))
-            est_low = _f(lot.get("lowEstimate"))
-            est_high = _f(lot.get("highEstimate"))
+            # Completion status
+            lot_status = (lot.get("status") or "").upper()
+            is_completed = lot_status in self._LOT_COMPLETED_STATUSES
 
-            # External URL — HiBid lot pages
-            lot_id = str(lot.get("id") or "")
-            external_url = (
-                f"{HIBID_BASE_URL}/auctions/online/{catalog_id}/#lot-{lot_num}"
-                if lot_num else f"{HIBID_BASE_URL}/auctions/online/{catalog_id}/"
-            )
+            # Bid count
+            bid_count_raw = lot.get("bidCount")
+            bid_count = int(bid_count_raw) if bid_count_raw is not None else None
+
+            # Sale end datetime
+            sale_ends_at = self._parse_dt(lot.get("endDateTime"))
+
+            # External URL — HiBid lot detail pages use /lot/{lot_id}
+            if lot_id:
+                external_url = f"{HIBID_BASE_URL}/lot/{lot_id}"
+            elif lot_num:
+                external_url = f"{HIBID_BASE_URL}/auctions/online/{catalog_id}/#lot-{lot_num}"
+            else:
+                external_url = f"{HIBID_BASE_URL}/auctions/online/{catalog_id}/"
 
             return ScrapedItem(
                 title=title,
                 lot_number=lot_num or None,
                 description=(lot.get("description") or "").strip() or None,
                 current_price=current_bid,
+                hammer_price=hammer,
                 estimate_low=est_low,
                 estimate_high=est_high,
+                bid_count=bid_count,
+                is_completed=is_completed,
+                sale_ends_at=sale_ends_at,
                 primary_image_url=images[0] if images else None,
                 image_urls=images,
                 category=lot.get("category"),
@@ -441,24 +510,7 @@ class HibidScraper(BaseScraper):
         except (TypeError, ValueError):
             return None
 
-    @staticmethod
-    def _parse_dt(value) -> datetime | None:
-        if not value:
-            return None
-        fmts = [
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d",
-        ]
-        for fmt in fmts:
-            try:
-                return datetime.strptime(str(value), fmt)
-            except ValueError:
-                continue
-        return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     # ------------------------------------------------------------------
     # The old HTML/GraphQL-probing methods are kept as dead code for

@@ -15,10 +15,10 @@ Auction URLs:  https://www.invaluable.com/catalog/{slug}/
 Lot URLs:      https://www.invaluable.com/catalog/{slug}/lot/{lot-number}/
 """
 
+import asyncio
 import json
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
@@ -72,7 +72,7 @@ class InvaluableScraper(BaseScraper):
             categories: Invaluable category slugs to scrape.
             max_pages:  Pages per category (default 5; ≈40 results/page).
         """
-        cats = categories or _INVALUABLE_CATEGORIES[:5]
+        cats = categories or _INVALUABLE_CATEGORIES
         seen_ids: set[str] = set()
 
         for category in cats:
@@ -136,7 +136,6 @@ class InvaluableScraper(BaseScraper):
             "query": "",
             "categories": category,
             "upcoming": "true",
-            "supportsShipping": "false",
             "page": page,
             "size": 40,
             "sort": "auctionStartDate:asc",
@@ -155,6 +154,13 @@ class InvaluableScraper(BaseScraper):
                     params=params,
                     headers=headers,
                 )
+                # Guard against HTML error pages returned as 200
+                content_type = response.headers.get("content-type", "")
+                if "text/html" in content_type:
+                    self.logger.debug(
+                        f"Invaluable API {api_path} returned HTML (not JSON), skipping"
+                    )
+                    continue
                 data = response.json()
                 hits = (
                     data.get("hits", {}).get("hits")
@@ -252,9 +258,17 @@ class InvaluableScraper(BaseScraper):
 
     # ── Layer 3: Sitemap fallback ─────────────────────────────────────────────
 
-    async def _scrape_via_sitemap(self, max_pages: int = 3) -> AsyncIterator[ScrapedListing]:
+    async def _scrape_via_sitemap(
+        self, max_pages: int = 3, concurrency: int = 5
+    ) -> AsyncIterator[ScrapedListing]:
         """Walk the XML sitemap to discover auction catalog URLs."""
         sitemap_index = f"{INVALUABLE_BASE}/sitemap_index.xml"
+        sem = asyncio.Semaphore(concurrency)
+
+        async def _fetch_detail(url: str) -> ScrapedListing | None:
+            async with sem:
+                return await self.scrape_listing_detail_from_url(url)
+
         try:
             resp = await self._fetch(
                 sitemap_index,
@@ -283,10 +297,14 @@ class InvaluableScraper(BaseScraper):
                         if elem.text
                     ][:20]  # Sample first 20 from each sitemap
 
-                    for page_url in urls:
-                        listing = await self.scrape_listing_detail_from_url(page_url)
-                        if listing:
-                            yield listing
+                    # Fetch all detail pages concurrently (rate-limited by semaphore)
+                    results = await asyncio.gather(
+                        *[_fetch_detail(u) for u in urls],
+                        return_exceptions=True,
+                    )
+                    for result in results:
+                        if isinstance(result, ScrapedListing):
+                            yield result
                 except Exception as exc:
                     self.logger.debug(f"Invaluable sitemap {sitemap_url}: {exc}")
         except Exception as exc:
@@ -363,10 +381,13 @@ class InvaluableScraper(BaseScraper):
             est_str = item.get("estimate") or item.get("priceRealised") or ""
             est_low, est_high = self._parse_estimate(str(est_str))
             hammer = self._parse_price(
-                str(item.get("hammerPrice") or item.get("priceRealised") or item.get("hammer_price") or "")
+                item.get("hammerPrice") if item.get("hammerPrice") is not None
+                else (item.get("priceRealised") if item.get("priceRealised") is not None
+                      else item.get("hammer_price"))
             )
             current = self._parse_price(
-                str(item.get("currentBid") or item.get("current_bid") or "")
+                item.get("currentBid") if item.get("currentBid") is not None
+                else item.get("current_bid")
             )
 
             # Buyer's premium
@@ -396,11 +417,12 @@ class InvaluableScraper(BaseScraper):
                 state_str = ""
             else:
                 city_str = auctioneer.get("city") or auctioneer.get("location", "").split(",")[0].strip()
-                state_str = auctioneer.get("state") or (
+                raw_state = auctioneer.get("state") or (
                     auctioneer.get("location", "").split(",")[-1].strip()
                     if "," in auctioneer.get("location", "")
                     else ""
                 )
+                state_str = self._normalize_state(raw_state)
 
             cat = item.get("category") or item.get("categoryName") or ""
             if isinstance(cat, list):
@@ -421,9 +443,9 @@ class InvaluableScraper(BaseScraper):
                             title=lot_title,
                             lot_number=str(lot.get("lotNum") or lot.get("lotNumber") or ""),
                             description=lot.get("description"),
-                            current_price=self._parse_price(str(lot.get("currentBid") or "")),
-                            estimate_low=self._parse_price(str(lot.get("estimateLow") or "")),
-                            estimate_high=self._parse_price(str(lot.get("estimateHigh") or "")),
+                            current_price=self._parse_price(lot.get("currentBid")),
+                            estimate_low=self._parse_price(lot.get("estimateLow")),
+                            estimate_high=self._parse_price(lot.get("estimateHigh")),
                             primary_image_url=lot_imgs[0] if lot_imgs else None,
                             image_urls=lot_imgs,
                         ))
@@ -507,23 +529,40 @@ class InvaluableScraper(BaseScraper):
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _parse_price(value: str) -> float | None:
-        if not value or value.strip() in ("", "N/A", "-", "—"):
-            return None
-        cleaned = re.sub(r"[^\d.]", "", value)
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
+
+    _STATE_NAMES: dict[str, str] = {
+        "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+        "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+        "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+        "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+        "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+        "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+        "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+        "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+        "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+        "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+        "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+        "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+        "wisconsin": "WI", "wyoming": "WY", "district of columbia": "DC",
+    }
+
+    def _normalize_state(self, raw: str) -> str:
+        """Convert 'New York', 'new york', or 'NY' to 'NY'."""
+        if not raw:
+            return ""
+        stripped = raw.strip()
+        if len(stripped) == 2 and stripped.isalpha():
+            return stripped.upper()
+        return self._STATE_NAMES.get(stripped.lower(), stripped)
 
     @classmethod
     def _parse_estimate(cls, raw: str) -> tuple[float | None, float | None]:
         """Parse estimate strings like '$500 - $800' or '500/800' → (500, 800)."""
         if not raw:
             return None, None
-        # Replace any separator between two numbers
-        nums = re.findall(r"[\d,]+(?:\.\d+)?", raw.replace(",", ""))
+        # Strip commas so "1,000" becomes "1000", then find all numeric tokens
+        nums = re.findall(r"\d+(?:\.\d+)?", raw.replace(",", ""))
         if len(nums) >= 2:
             try:
                 return float(nums[0]), float(nums[1])
@@ -533,21 +572,3 @@ class InvaluableScraper(BaseScraper):
             val = cls._parse_price(nums[0])
             return val, val
         return None, None
-
-    @staticmethod
-    def _parse_dt(value) -> datetime | None:
-        if not value:
-            return None
-        for fmt in (
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d",
-        ):
-            try:
-                return datetime.strptime(str(value), fmt)
-            except ValueError:
-                continue
-        return None
