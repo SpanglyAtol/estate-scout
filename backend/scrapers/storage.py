@@ -236,6 +236,153 @@ class ScraperStorage:
             except Exception as exc:
                 logger.warning("fingerprint upsert failed for listing %s: %s", listing_db_id, exc)
 
+    # ── Archive methods ───────────────────────────────────────────────────────
+
+    async def batch_archive_ended(self, cutoff_days: int = 2) -> int:
+        """
+        Find completed/ended public.listings older than ``cutoff_days`` that
+        haven't been archived yet, copy them to archive.listings, then set
+        archived_at on the public row so the website stops serving them.
+
+        Called by the hourly archive scheduler job.  Returns count archived.
+        """
+        if not self.db:
+            return 0
+        from sqlalchemy import text
+
+        try:
+            # Fetch rows that need archiving — JOIN platforms for denormalization.
+            rows = (await self.db.execute(text("""
+                SELECT
+                    l.id,
+                    l.external_id,       l.external_url,
+                    l.title,             l.description,
+                    l.category,          l.condition,
+                    l.listing_type,      l.item_type,
+                    l.final_price,       l.current_price,
+                    l.estimate_low,      l.estimate_high,
+                    l.buyers_premium_pct, l.currency,
+                    l.maker,             l.brand,
+                    l.collaboration_brands,
+                    l.period,            l.country_of_origin,
+                    l.attributes,
+                    l.city,              l.state,
+                    l.zip_code,          l.latitude,   l.longitude,
+                    l.sale_starts_at,    l.sale_ends_at,
+                    l.primary_image_url, l.scraped_at,
+                    p.name              AS platform_slug,
+                    p.display_name      AS platform_display_name,
+                    p.base_url          AS platform_base_url
+                FROM listings l
+                JOIN platforms p ON p.id = l.platform_id
+                WHERE l.archived_at IS NULL
+                  AND (
+                    l.is_completed = true
+                    OR (
+                      l.sale_ends_at IS NOT NULL
+                      AND l.sale_ends_at < NOW() - make_interval(days => :cutoff_days)
+                    )
+                  )
+                LIMIT 2000
+            """), {"cutoff_days": cutoff_days})).mappings().all()
+
+            if not rows:
+                return 0
+
+            archived_ids: list[int] = []
+            for row in rows:
+                try:
+                    await self.db.execute(text("""
+                        INSERT INTO archive.listings (
+                            source_listing_id,
+                            platform_slug, platform_display_name, platform_base_url,
+                            external_id, external_url, title, description,
+                            category, condition, listing_type, item_type,
+                            final_price, current_price, estimate_low, estimate_high,
+                            buyers_premium_pct, currency,
+                            maker, brand, collaboration_brands, period,
+                            country_of_origin, attributes,
+                            city, state, zip_code, latitude, longitude,
+                            sale_starts_at, sale_ends_at,
+                            primary_image_url, scraped_at
+                        ) VALUES (
+                            :source_id,
+                            :platform_slug, :platform_display_name, :platform_base_url,
+                            :external_id, :external_url, :title, :description,
+                            :category, :condition, :listing_type, :item_type,
+                            :final_price, :current_price, :estimate_low, :estimate_high,
+                            :buyers_premium_pct, :currency,
+                            :maker, :brand, :collaboration_brands, :period,
+                            :country_of_origin, CAST(:attributes AS jsonb),
+                            :city, :state, :zip_code, :latitude, :longitude,
+                            :sale_starts_at, :sale_ends_at,
+                            :primary_image_url, :scraped_at
+                        )
+                        ON CONFLICT (platform_slug, external_id) DO UPDATE SET
+                            final_price   = EXCLUDED.final_price,
+                            current_price = EXCLUDED.current_price,
+                            maker         = EXCLUDED.maker,
+                            attributes    = EXCLUDED.attributes,
+                            archived_at   = NOW()
+                    """), {
+                        "source_id":              row["id"],
+                        "platform_slug":          row["platform_slug"],
+                        "platform_display_name":  row["platform_display_name"],
+                        "platform_base_url":      row["platform_base_url"],
+                        "external_id":            row["external_id"],
+                        "external_url":           row["external_url"],
+                        "title":                  row["title"],
+                        "description":            row["description"],
+                        "category":               row["category"],
+                        "condition":              row["condition"],
+                        "listing_type":           row.get("listing_type") or "auction",
+                        "item_type":              row.get("item_type") or "individual_item",
+                        "final_price":            row["final_price"],
+                        "current_price":          row["current_price"],
+                        "estimate_low":           row.get("estimate_low"),
+                        "estimate_high":          row.get("estimate_high"),
+                        "buyers_premium_pct":     row["buyers_premium_pct"],
+                        "currency":               row["currency"] or "USD",
+                        "maker":                  row.get("maker"),
+                        "brand":                  row.get("brand"),
+                        "collaboration_brands":   list(row.get("collaboration_brands") or []),
+                        "period":                 row.get("period"),
+                        "country_of_origin":      row.get("country_of_origin"),
+                        "attributes":             json.dumps(
+                                                      dict(row["attributes"])
+                                                      if row.get("attributes") else {}
+                                                  ),
+                        "city":                   row["city"],
+                        "state":                  row["state"],
+                        "zip_code":               row["zip_code"],
+                        "latitude":               row["latitude"],
+                        "longitude":              row["longitude"],
+                        "sale_starts_at":         row["sale_starts_at"],
+                        "sale_ends_at":           row["sale_ends_at"],
+                        "primary_image_url":      row["primary_image_url"],
+                        "scraped_at":             row.get("scraped_at"),
+                    })
+                    archived_ids.append(row["id"])
+                except Exception as row_exc:
+                    logger.warning(
+                        f"Archive failed for listing {row['id']} "
+                        f"({row['platform_slug']}/{row['external_id']}): {row_exc}"
+                    )
+
+            if archived_ids:
+                await self.db.execute(
+                    text("UPDATE listings SET archived_at = NOW() WHERE id = ANY(:ids)"),
+                    {"ids": archived_ids},
+                )
+            await self.db.commit()
+            logger.info(f"Archive: moved {len(archived_ids)} ended listings to archive.listings")
+            return len(archived_ids)
+
+        except Exception as exc:
+            logger.error(f"batch_archive_ended failed: {exc}")
+            await self.db.rollback()
+            return 0
+
     def _append_to_jsonl(self, listing: ScrapedListing):
         record = asdict(listing)
         for key in ("sale_starts_at", "sale_ends_at"):

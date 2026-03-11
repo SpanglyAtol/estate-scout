@@ -21,7 +21,10 @@ class SearchService:
         query = (
             select(Listing)
             .options(selectinload(Listing.platform))
-            .where(Listing.is_active == True)  # noqa: E712
+            .where(
+                Listing.is_active == True,      # noqa: E712
+                Listing.archived_at.is_(None),  # only live rows; archived rows live in archive.listings
+            )
         )
 
         # Full-text search
