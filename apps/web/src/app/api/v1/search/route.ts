@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
 import { searchSupabase, isSupabaseConfigured } from "@/lib/supabase-search";
+import { haversineKm, KM_PER_MILE } from "@/lib/geo";
 import type { SearchResult } from "@/types";
 
 // When BACKEND_API_URL is configured, proxy search to the FastAPI backend.
@@ -17,19 +18,6 @@ async function tryBackendSearch(req: NextRequest): Promise<NextResponse | null> 
     // Backend unavailable — fall through
   }
   return null;
-}
-
-// ── Haversine distance (km) ────────────────────────────────────────────────────
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export async function GET(req: NextRequest) {
@@ -159,13 +147,13 @@ export async function GET(req: NextRequest) {
 
   // ── Geographic radius ───────────────────────────────────────────────────────
   if (lat != null && lon != null && radiusMiles != null) {
-    const radiusKm = radiusMiles * 1.60934;
+    const radiusKm = radiusMiles * KM_PER_MILE;
     results = results
       .filter((l) => l.latitude != null && l.longitude != null &&
         haversineKm(lat, lon, l.latitude, l.longitude) <= radiusKm)
       .map((l) => ({
         ...l,
-        distance_miles: haversineKm(lat, lon, l.latitude, l.longitude) / 1.60934,
+        distance_miles: haversineKm(lat, lon, l.latitude, l.longitude) / KM_PER_MILE,
       }));
   }
 

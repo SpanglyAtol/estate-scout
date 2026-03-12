@@ -12,26 +12,13 @@
  */
 
 import type { Listing, SearchResult } from "@/types";
+import { haversineKm, KM_PER_MILE } from "@/lib/geo";
 
 const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(SUPABASE_URL && SUPABASE_KEY);
-}
-
-// ── Haversine ─────────────────────────────────────────────────────────────────
-
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 // ── Row → Listing ─────────────────────────────────────────────────────────────
@@ -261,13 +248,13 @@ export async function searchSupabase(params: URLSearchParams): Promise<SearchRes
 
     // Client-side geo filter + distance annotation
     if (lat != null && lon != null && radiusMiles != null) {
-      const radKm = radiusMiles * 1.60934;
+      const radKm = radiusMiles * KM_PER_MILE;
       results = results
         .filter((l) => l.latitude != null && l.longitude != null &&
           haversineKm(lat, lon, l.latitude!, l.longitude!) <= radKm)
         .map((l) => ({
           ...l,
-          distance_miles: haversineKm(lat, lon, l.latitude!, l.longitude!) / 1.60934,
+          distance_miles: haversineKm(lat, lon, l.latitude!, l.longitude!) / KM_PER_MILE,
         }));
     }
 

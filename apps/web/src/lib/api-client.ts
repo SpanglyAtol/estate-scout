@@ -1,4 +1,4 @@
-import type { Listing, SearchFilters, SearchResult, ValuationRequest, ValuationResult } from "../types";
+import type { Listing, SearchFilters, SearchResult, ValuationRequest, ValuationResult } from "@/types";
 
 // API base URL resolution:
 //   Browser  → "" (relative URL — same origin, works locally and on Vercel)
@@ -79,7 +79,7 @@ export async function getStats(): Promise<StatsResult> {
 // --- Listings ---
 
 export async function getListings(params: { page?: number; page_size?: number } = {}) {
-  return request<Listing[]>(`/api/v1/listings?${toQueryString(params)}`);
+  return request<SearchResult>(`/api/v1/listings?${toQueryString(params)}`);
 }
 
 export async function getListing(id: number) {
