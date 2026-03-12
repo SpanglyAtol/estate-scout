@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
+import { searchSupabase, isSupabaseConfigured } from "@/lib/supabase-search";
 
 // When BACKEND_API_URL is configured, proxy search to the FastAPI backend which
 // serves 40k+ listings from PostgreSQL. Falls back to bundled JSON files.
@@ -33,8 +34,15 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 export async function GET(req: NextRequest) {
+  // Priority 1: FastAPI backend proxy (when deployed to Railway/Render)
   const proxied = await tryBackendSearch(req);
   if (proxied) return proxied;
+
+  // Priority 2: Direct Supabase query (same DB scrapers write to, no backend needed)
+  if (isSupabaseConfigured()) {
+    const supabaseResults = await searchSupabase(req.nextUrl.searchParams);
+    if (supabaseResults !== null) return NextResponse.json(supabaseResults);
+  }
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.toLowerCase() ?? "";

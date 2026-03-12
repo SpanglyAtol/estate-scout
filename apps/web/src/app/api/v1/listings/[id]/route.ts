@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
+import { getSupabaseListing, isSupabaseConfigured } from "@/lib/supabase-search";
 
 export async function GET(
   req: NextRequest,
@@ -27,6 +28,12 @@ export async function GET(
     } catch {
       // Backend unavailable — fall through to JSON bundle
     }
+  }
+
+  // ── Priority 2: Direct Supabase query ─────────────────────────────────────
+  if (isSupabaseConfigured()) {
+    const supabaseListing = await getSupabaseListing(numId);
+    if (supabaseListing) return NextResponse.json(supabaseListing);
   }
 
   // ── Fallback: local JSON bundle ─────────────────────────────────────────────
