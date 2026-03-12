@@ -121,6 +121,21 @@ export interface SearchFilters {
   collaboration?: string;
   /** Filter by sub-category slug, e.g. "art_pottery", "oil_painting" */
   sub_category?: string;
+  /** Filter by condition slug, e.g. "excellent", "good", "fair" */
+  condition?: string;
+}
+
+/**
+ * Paginated search response — the /api/v1/search route always returns this
+ * shape so filters are applied against the FULL database, not just the
+ * currently-loaded slice.
+ */
+export interface SearchResult {
+  results: Listing[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export interface CompSale {

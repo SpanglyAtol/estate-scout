@@ -1,4 +1,4 @@
-import type { Listing, SearchFilters, ValuationRequest, ValuationResult } from "../types";
+import type { Listing, SearchFilters, SearchResult, ValuationRequest, ValuationResult } from "../types";
 
 // API base URL resolution:
 //   Browser  → "" (relative URL — same origin, works locally and on Vercel)
@@ -88,8 +88,14 @@ export async function getListing(id: number) {
 
 // --- Search ---
 
-export async function searchListings(filters: SearchFilters) {
-  return request<Listing[]>(`/api/v1/search?${toQueryString(filters as Record<string, unknown>)}`);
+export async function searchListings(filters: SearchFilters): Promise<SearchResult> {
+  return request<SearchResult>(`/api/v1/search?${toQueryString(filters as Record<string, unknown>)}`);
+}
+
+/** Convenience wrapper — returns just the listings array (used by homepage sections) */
+export async function searchListingsArray(filters: SearchFilters): Promise<Listing[]> {
+  const result = await searchListings(filters);
+  return result.results ?? [];
 }
 
 // --- Valuation ---

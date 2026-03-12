@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Search, Clock, Calendar, TrendingUp, Package, MapPin } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { CuratedPicks } from "@/components/home/curated-picks";
-import { getStats, searchListings } from "@/lib/api-client";
+import { getStats, searchListingsArray } from "@/lib/api-client";
 import { CATEGORIES } from "@/lib/category-meta";
 import type { StatsResult } from "@/lib/api-client";
 import type { Listing } from "@/types";
@@ -22,13 +22,13 @@ export default async function HomePage() {
   try {
     [featured, endingSoon, live, upcoming, estateSales, stats] = await Promise.all([
       // Featured: individual items (single antiques/collectibles) currently live
-      searchListings({ item_type: "individual_item", status: "live", page_size: 6 }),
-      searchListings({ status: "ending_soon", page_size: 6 }),
+      searchListingsArray({ item_type: "individual_item", status: "live", page_size: 6 }),
+      searchListingsArray({ status: "ending_soon", page_size: 6 }),
       // Live auctions: auction catalogs and any live listings
-      searchListings({ status: "live", page_size: 12 }),
-      searchListings({ status: "upcoming", page_size: 6 }),
+      searchListingsArray({ status: "live", page_size: 12 }),
+      searchListingsArray({ status: "upcoming", page_size: 6 }),
       // Estate sales & lots go at the bottom
-      searchListings({ listing_type: "estate_sale", page_size: 6 }),
+      searchListingsArray({ listing_type: "estate_sale", page_size: 6 }),
       getStats(),
     ]);
   } catch {
@@ -41,7 +41,7 @@ export default async function HomePage() {
   const totalTimeFiltered = featured.length + endingSoon.length + live.length + upcoming.length;
   if (totalTimeFiltered === 0) {
     try {
-      recentFallback = await searchListings({ sort: "newest", page_size: 24 });
+      recentFallback = await searchListingsArray({ sort: "newest", page_size: 24 });
     } catch {
       // silently skip
     }
