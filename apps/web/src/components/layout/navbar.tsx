@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  Search, BookMarked, MessageSquare, MapPin, Globe,
+  Search, BookMarked, MessageSquare, MapPin,
   LogIn, LogOut, Menu, X, BarChart3, User, BookOpen, TrendingUp, LayoutGrid, Library,
 } from "lucide-react";
 import { isLoggedIn, logout } from "@/lib/auth";
@@ -35,7 +35,6 @@ export function Navbar() {
     { href: "/search",       label: "Search",        icon: <Search        className="w-4 h-4" /> },
     { href: "/categories",   label: "Categories",    icon: <LayoutGrid    className="w-4 h-4" /> },
     { href: "/estate-sales", label: "Estate Sales",  icon: <MapPin        className="w-4 h-4" /> },
-    { href: "/map",          label: "Map",           icon: <Globe         className="w-4 h-4" /> },
     { href: "/library",      label: "Library",       icon: <Library       className="w-4 h-4" /> },
     { href: "/valuation",    label: "Price Check",   icon: <MessageSquare className="w-4 h-4" /> },
     { href: "/prices",       label: "Price Guide",   icon: <TrendingUp    className="w-4 h-4" /> },

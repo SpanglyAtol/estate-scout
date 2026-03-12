@@ -93,27 +93,50 @@ export function AuctionMap({
             click: () => onMarkerClick?.(listing.id),
           }}
         >
-          <Popup maxWidth={260}>
-            <div className="text-sm space-y-1 min-w-[200px]">
-              <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8B6914" }}>
-                {listing.platform.display_name}
-              </p>
+          <Popup maxWidth={280}>
+            <div className="text-sm space-y-1.5 min-w-[220px]">
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8B6914" }}>
+                  {listing.platform.display_name}
+                </p>
+                {listing.pickup_only && !listing.ships_nationally && (
+                  <span style={{ fontSize: "10px", background: "#f3f4f6", color: "#6b7280", borderRadius: "9999px", padding: "1px 6px", fontWeight: 500 }}>
+                    In Person
+                  </span>
+                )}
+                {listing.ships_nationally && (
+                  <span style={{ fontSize: "10px", background: "#f3f4f6", color: "#6b7280", borderRadius: "9999px", padding: "1px 6px", fontWeight: 500 }}>
+                    Online
+                  </span>
+                )}
+              </div>
               <p className="font-semibold leading-snug line-clamp-2" style={{ color: "#2C1810" }}>
                 {listing.title}
               </p>
               {(listing.city || listing.state) && (
                 <p className="text-xs" style={{ color: "#6B4F3A" }}>
                   📍 {[listing.city, listing.state].filter(Boolean).join(", ")}
+                  {listing.distance_miles != null && (
+                    <span style={{ color: "#9C8070", marginLeft: "4px" }}>
+                      · {listing.distance_miles.toFixed(1)} mi
+                    </span>
+                  )}
+                </p>
+              )}
+              {(listing.sale_starts_at || listing.sale_ends_at) && (
+                <p className="text-xs" style={{ color: "#6B4F3A" }}>
+                  📅{" "}
+                  {listing.sale_starts_at
+                    ? new Date(listing.sale_starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                    : ""}
+                  {listing.sale_ends_at
+                    ? ` – ${new Date(listing.sale_ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                    : ""}
                 </p>
               )}
               {listing.current_price != null && (
                 <p className="text-sm font-bold" style={{ color: "#8B6914" }}>
                   {formatPrice(listing.current_price)}
-                </p>
-              )}
-              {listing.distance_miles != null && (
-                <p className="text-xs" style={{ color: "#9C8070" }}>
-                  {listing.distance_miles.toFixed(1)} mi away
                 </p>
               )}
               <a

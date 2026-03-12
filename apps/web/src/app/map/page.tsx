@@ -1,18 +1,9 @@
-import type { Metadata } from "next";
-import { MapSearch } from "@/components/map/map-search";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "Auction Map | Estate Scout",
-  description:
-    "Browse estate sales and auctions near you. Enter a ZIP code and radius to find listings on the map.",
-};
-
+/**
+ * The map view has been merged into the Estate Sales finder.
+ * Redirect anyone hitting /map directly.
+ */
 export default function MapPage() {
-  return (
-    <main className="flex flex-col h-[calc(100vh-64px)]">
-      <MapSearch />
-    </main>
-  );
+  redirect("/estate-sales");
 }
