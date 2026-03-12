@@ -463,6 +463,29 @@ _WATCH_MODELS: dict[str, list[str]] = {
     "El Primero":         ["el primero"],
 }
 
+# ── Watch reference number patterns (brand-specific) ──────────────────────────
+# Each entry: (brand_slug, compiled regex for that brand's ref format)
+# Listed most-specific first; order matters within a brand family.
+_I = re.IGNORECASE
+_WATCH_REF_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    # Rolex: 4-6 digits + up to 4 optional letters  (e.g. 116610LN, 1675, 126710BLNR)
+    ("rolex",    re.compile(r"\b(1[012]\d{4}[a-z]{0,4}|[5-9]\d{3}[a-z]{0,2})\b", _I)),
+    # Patek Philippe: 4-5 digits + slash-variant   (e.g. 5711/1A, 3970E, 5726A)
+    ("patek",    re.compile(r"\b([3-6]\d{3,4}(?:/\d+[a-z]{0,2})?[a-z]?)\b", _I)),
+    # Audemars Piguet: 5 digits + alpha  (e.g. 15202ST, 26120ST, 77350BC)
+    ("ap",       re.compile(r"\b([12]\d{4}[a-z]{2,4}(?:\.\w{2,8})?)\b", _I)),
+    # Omega: 8-10 digit dotted format  (e.g. 311.30.42.30.01.005)
+    ("omega",    re.compile(r"\b(\d{3}\.\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{3})\b")),
+    # IWC: IW + 6 digits  (e.g. IW377714, IW500401)
+    ("iwc",      re.compile(r"\b(IW\d{6})\b", _I)),
+    # Panerai: PAM + 3-5 digits  (e.g. PAM00441, PAM 441)
+    ("panerai",  re.compile(r"\b(PAM\s*\d{3,5})\b", _I)),
+    # Breitling: 1-2 letters + 5 digits + optional alpha  (e.g. A17330, AB0162)
+    ("breitling",re.compile(r"\b([a-z]{1,2}\d{5}[a-z0-9]{0,4})\b", _I)),
+    # Generic fallback: letter+4-5 digits+letters OR digits+2-4 letters
+    ("generic",  re.compile(r"\b([a-z]\d{4,5}[a-z]{0,4}|\d{4,6}[a-z]{2,4})\b", _I)),
+]
+
 # ── Watch complications ────────────────────────────────────────────────────────
 _WATCH_COMPLICATIONS: list[tuple[str, list[str]]] = [
     ("chronograph",        ["chronograph", "chrono"]),
@@ -559,6 +582,70 @@ _CERAMIC_STYLES: dict[str, list[str]] = {
     "lusterware":   ["lusterware", "lustre ware"],
     "jasperware":   ["jasperware", "jasper ware"],
     "basalt":       ["basalt", "black basalt"],
+}
+
+# ── China / ceramic pattern names ─────────────────────────────────────────────
+# Ordered: more distinctive patterns before generic terms.
+# Values are lowercase search strings; key is the canonical pattern slug.
+_CHINA_PATTERNS: dict[str, list[str]] = {
+    # Transferware classics (blue & white)
+    "blue_willow":       ["blue willow", "willow pattern", "willow ware"],
+    "blue_italian":      ["blue italian", "spode blue italian"],
+    "blue_danube":       ["blue danube"],
+    "spode_tower":       ["spode tower", "tower pattern"],
+    "old_britain_castles": ["old britain castles"],
+    "asiatic_pheasants": ["asiatic pheasants"],
+    "balmoral":          ["balmoral pattern"],
+    "abbey":             ["abbey pattern"],
+    "flow_blue_conway":  ["conway pattern"],
+    "vermont":           ["vermont pattern"],
+    "portman":           ["portman pattern"],
+    "manhattan":         ["manhattan pattern"],
+    # Spode patterns
+    "spode_stafford_flowers": ["stafford flowers"],
+    "spode_maritime_rose":    ["maritime rose"],
+    "spode_heath":            ["heath pattern spode"],
+    # Wedgwood patterns
+    "wedgwood_florentine":    ["florentine wedgwood", "wedgwood florentine"],
+    "wedgwood_columbia":      ["columbia wedgwood", "wedgwood columbia"],
+    "wedgwood_ulander":       ["ulander wedgwood", "wedgwood ulander"],
+    "wedgwood_appledore":     ["appledore wedgwood", "wedgwood appledore"],
+    # Royal Doulton
+    "old_colony":      ["old colony doulton", "old colony royal doulton"],
+    "bunnykins":       ["bunnykins"],
+    "brambly_hedge":   ["brambly hedge"],
+    # Royal Worcester
+    "evesham":         ["evesham"],
+    "herbs":           ["royal worcester herbs", "worcester herbs"],
+    # Meissen
+    "onion_meissen":   ["onion pattern meissen", "blue onion meissen", "meissen onion", "zwiebelmuster"],
+    "saxon_flowers":   ["saxonian flowers", "meissen flowers"],
+    # Haviland / Limoges
+    "ranson":          ["ranson pattern", "haviland ranson", "ranson haviland"],
+    "apple_blossom":   ["apple blossom haviland", "haviland apple blossom"],
+    "haviland_drop_rose": ["drop rose haviland", "haviland drop rose"],
+    # American
+    "autumn_leaf":     ["autumn leaf", "jewel tea autumn leaf"],
+    "fiesta_red":      ["fiesta red", "radioactive red fiesta"],
+    "franciscan_apple": ["franciscan apple"],
+    "franciscan_desert_rose": ["desert rose franciscan", "franciscan desert rose"],
+    "homer_laughlin_rhythm": ["rhythm pattern"],
+    # Noritake / Japanese export
+    "noritake_tree_in_meadow": ["tree in meadow noritake"],
+    "noritake_azalea":         ["noritake azalea"],
+    "noritake_morimura":       ["morimura brothers"],
+    # Herend
+    "herend_chinese_bouquet":  ["chinese bouquet herend"],
+    "herend_queen_victoria":   ["queen victoria herend"],
+    "herend_rothschild":       ["rothschild bird herend"],
+    # Royal Copenhagen
+    "flora_danica":     ["flora danica"],
+    "blue_fluted":      ["blue fluted royal copenhagen", "blue fluted plain"],
+    "full_lace":        ["full lace royal copenhagen"],
+    # Lenox
+    "lenox_autumn":     ["lenox autumn", "autumn lenox"],
+    "lenox_tudor_rose": ["tudor rose lenox"],
+    "lenox_imperial":   ["imperial lenox"],
 }
 
 # ── Silver makers ──────────────────────────────────────────────────────────────
@@ -1021,6 +1108,31 @@ def _enrich_watches(text: str) -> dict[str, Any]:
                                 "warranty card"]):
         attrs["has_papers"] = True
 
+    # Reference number — try brand-specific patterns first, then generic
+    brand_slug = attrs.get("brand_slug", "")
+    ref_num: str | None = None
+    for slug, pattern in _WATCH_REF_PATTERNS:
+        if slug == "generic" or slug == brand_slug:
+            m = pattern.search(text)
+            if m:
+                candidate = m.group(1).replace(" ", "").upper()
+                # Sanity check: ≥4 chars, not a plain year or size
+                if len(candidate) >= 4 and not re.fullmatch(r"19\d{2}|20\d{2}|\d{2}mm", candidate, re.IGNORECASE):
+                    ref_num = candidate
+                    break
+    if not ref_num and brand_slug:
+        # Generic fallback for any watch brand
+        for slug, pattern in _WATCH_REF_PATTERNS:
+            if slug == "generic":
+                m = pattern.search(text)
+                if m:
+                    candidate = m.group(1).replace(" ", "").upper()
+                    if len(candidate) >= 4 and not re.fullmatch(r"19\d{2}|20\d{2}|\d{2}mm", candidate, re.IGNORECASE):
+                        ref_num = candidate
+                break
+    if ref_num:
+        attrs["reference_number"] = ref_num
+
     # Vintage indicator (pre-1990 references or the word vintage)
     if "vintage" in text:
         attrs["is_vintage"] = True
@@ -1139,15 +1251,19 @@ def _enrich_ceramics(text: str) -> dict[str, Any]:
                                 "stamped", "incised mark"]):
         attrs["is_marked"] = True
 
-    # Pattern name extraction — look for "pattern" preceded by a capitalised phrase
-    pattern_m = re.search(
-        r'"([^"]{3,40})"\s*pattern|(\w[\w\s]{2,30})\s+pattern\b',
-        text, re.IGNORECASE
-    )
-    if pattern_m:
-        pat_name = (pattern_m.group(1) or pattern_m.group(2) or "").strip()
-        if pat_name and len(pat_name) > 2:
-            attrs["pattern_name"] = pat_name[:60]
+    # Pattern name — check curated dict first, then generic regex fallback
+    china_pattern = _first_match(text, _CHINA_PATTERNS)
+    if china_pattern:
+        attrs["pattern_name"] = china_pattern
+    else:
+        pattern_m = re.search(
+            r'"([^"]{3,40})"\s*pattern|(\w[\w\s]{2,30})\s+pattern\b',
+            text, re.IGNORECASE
+        )
+        if pattern_m:
+            pat_name = (pattern_m.group(1) or pattern_m.group(2) or "").strip()
+            if pat_name and len(pat_name) > 2:
+                attrs["pattern_name"] = pat_name[:60]
 
     return attrs
 

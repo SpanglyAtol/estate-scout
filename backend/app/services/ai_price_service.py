@@ -16,6 +16,7 @@ structured PriceCheckResponse.
 import hashlib
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 
 from sqlalchemy import text
@@ -34,6 +35,19 @@ from app.services.cache_service import CacheService
 logger = logging.getLogger(__name__)
 
 PRICE_CHECK_CACHE_TTL = 24 * 3600  # 24 hours — market data changes daily
+
+# Matches watch reference numbers: Rolex 116610LN, Patek 5711/1A, AP 15202ST, etc.
+_WATCH_REF_RE = re.compile(r"\b([A-Z]?\d{4,6}[A-Z]{0,4}(?:/\d+[A-Z]{0,2})?)\b")
+
+
+def _extract_watch_ref(title: str) -> str | None:
+    """Extract a watch reference number from a listing title, if present."""
+    m = _WATCH_REF_RE.search(title)
+    if m:
+        candidate = m.group(1)
+        if len(candidate) >= 4 and any(c.isdigit() for c in candidate):
+            return candidate
+    return None
 
 
 class AiPriceService:
@@ -118,27 +132,29 @@ class AiPriceService:
         if not req.maker:
             return None
 
+        # Extract a candidate reference number from the request title
+        ref_candidate = _extract_watch_ref(req.title) if req.category in ("watches", None) else None
+
         row = await self.db.execute(
             text("""
                 SELECT
                     edition_string, is_limited_edition, reference_number,
-                    avg_price, min_price, max_price,
-                    total_appearances, price_trend_pct
+                    avg_sale_price, min_sale_price, max_sale_price,
+                    appearance_count, price_trend_pct
                 FROM item_fingerprints
                 WHERE maker ILIKE :maker
                   AND (:ref IS NULL OR reference_number ILIKE :ref)
                   AND (
-                      :edition IS NULL
-                      OR edition_string ILIKE :edition
+                      :ref IS NOT NULL
+                      OR edition_string IS NOT NULL
                       OR title_normalized ILIKE '%' || :title_fragment || '%'
                   )
-                ORDER BY total_appearances DESC
+                ORDER BY appearance_count DESC
                 LIMIT 1
             """),
             {
                 "maker": req.maker,
-                "ref": None,  # Could extract from title in future
-                "edition": None,
+                "ref": ref_candidate,
                 "title_fragment": req.title[:30],
             },
         )
@@ -150,10 +166,10 @@ class AiPriceService:
             edition_string=data["edition_string"],
             is_limited_edition=bool(data["is_limited_edition"]),
             reference_number=data["reference_number"],
-            avg_price=float(data["avg_price"]) if data["avg_price"] else None,
-            min_price=float(data["min_price"]) if data["min_price"] else None,
-            max_price=float(data["max_price"]) if data["max_price"] else None,
-            total_appearances=data["total_appearances"] or 0,
+            avg_price=float(data["avg_sale_price"]) if data["avg_sale_price"] else None,
+            min_price=float(data["min_sale_price"]) if data["min_sale_price"] else None,
+            max_price=float(data["max_sale_price"]) if data["max_sale_price"] else None,
+            total_appearances=data["appearance_count"] or 0,
             price_trend_pct=float(data["price_trend_pct"]) if data["price_trend_pct"] else None,
         )
 
@@ -163,21 +179,23 @@ class AiPriceService:
         result = await self.db.execute(
             text("""
                 SELECT DISTINCT ON (ps.listing_id)
-                    ps.title, ps.price_at_snapshot as price,
-                    ps.created_at as sale_date,
-                    ps.platform_slug as platform,
+                    l.title,
+                    ps.final_price as price,
+                    ps.snapped_at as sale_date,
+                    p.slug as platform,
                     ps.condition_bucket as condition,
                     l.external_url as url
                 FROM price_snapshots ps
                 LEFT JOIN listings l ON l.id = ps.listing_id
-                WHERE ps.event_type IN ('completed', 'sold')
-                  AND ps.price_at_snapshot IS NOT NULL
-                  AND ps.created_at >= :cutoff
+                LEFT JOIN platforms p ON p.id = ps.platform_id
+                WHERE ps.event_type = 'completed'
+                  AND ps.final_price IS NOT NULL
+                  AND ps.snapped_at >= :cutoff
                   AND (
                       (:category IS NULL OR ps.category ILIKE :category)
                       AND (:maker IS NULL OR ps.maker ILIKE :maker)
                   )
-                ORDER BY ps.listing_id, ps.created_at DESC
+                ORDER BY ps.listing_id, ps.snapped_at DESC
                 LIMIT 12
             """),
             {
