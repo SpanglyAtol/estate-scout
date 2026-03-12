@@ -121,12 +121,13 @@ async function sbFetch(path: string, query: URLSearchParams): Promise<Response> 
       apikey: SUPABASE_KEY!,
       Authorization: `Bearer ${SUPABASE_KEY}`,
       "Content-Type": "application/json",
-      // Return total count in Prefer header
-      "Prefer": "count=estimated",
     },
     next: { revalidate: 120 },
   });
 }
+
+// Listing cols without the platforms join (fallback when join fails)
+const LISTING_COLS_NO_JOIN = LISTING_COLS.replace(",platforms(id,name,display_name,base_url,logo_url)", "");
 
 // ── Search listings ───────────────────────────────────────────────────────────
 
@@ -150,8 +151,9 @@ export async function searchSupabase(params: URLSearchParams): Promise<Listing[]
 
   const query = new URLSearchParams();
   query.set("select", LISTING_COLS);
-  query.set("is_active", "eq.true");
-  query.set("archived_at", "is.null");
+  // Note: is_active / archived_at columns may not be set by all scraper versions.
+  // We intentionally omit those filters so all scraped rows are visible.
+  // The scraped_at freshness check below handles stale data instead.
 
   // listing_type filter
   if (listingType) {
@@ -217,10 +219,20 @@ export async function searchSupabase(params: URLSearchParams): Promise<Listing[]
   query.set("offset", String(fetchOffset));
 
   try {
-    const res = await sbFetch("listings", query);
+    let res = await sbFetch("listings", query);
+    // If the platforms join caused a 400/error, retry without it
     if (!res.ok) {
-      console.error("[Supabase] search error:", res.status, await res.text().catch(() => ""));
-      return null;
+      const errText = await res.text().catch(() => "");
+      console.error("[Supabase] search error:", res.status, errText);
+      if (res.status === 400 && errText.includes("platforms")) {
+        console.warn("[Supabase] Retrying search without platforms join");
+        query.set("select", LISTING_COLS_NO_JOIN);
+        res = await sbFetch("listings", query);
+      }
+      if (!res.ok) {
+        console.error("[Supabase] search retry failed:", res.status, await res.text().catch(() => ""));
+        return null;
+      }
     }
     const rows = await res.json();
     if (!Array.isArray(rows)) return null;
@@ -268,8 +280,15 @@ export async function getSupabaseListing(id: number): Promise<Listing | null> {
   query.set("limit", "1");
 
   try {
-    const res = await sbFetch("listings", query);
-    if (!res.ok) return null;
+    let res = await sbFetch("listings", query);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      if (res.status === 400 && errText.includes("platforms")) {
+        query.set("select", LISTING_COLS_NO_JOIN);
+        res = await sbFetch("listings", query);
+      }
+      if (!res.ok) return null;
+    }
     const rows = await res.json();
     if (!Array.isArray(rows) || rows.length === 0) return null;
     return transformRow(rows[0]);
