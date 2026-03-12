@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight } from "lucide-react";
-import { getListing } from "@/lib/api-client";
+import { getListing, ApiError } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { categoryToSlug } from "@/lib/category-meta";
 import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
@@ -63,8 +63,12 @@ export default async function ListingPage({ params }: PageProps) {
   let listing;
   try {
     listing = await getListing(id);
-  } catch {
-    notFound();
+  } catch (err) {
+    // Only map a true "not found" (404) to Next.js notFound().
+    // Other errors (503, network timeouts) should propagate so the error.tsx
+    // boundary shows a "try again" page rather than a misleading 404.
+    if (err instanceof ApiError && err.status === 404) notFound();
+    throw err;
   }
 
   const lt = listing.listing_type ?? "auction";

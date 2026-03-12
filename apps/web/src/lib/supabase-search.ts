@@ -180,24 +180,26 @@ export async function searchSupabase(params: URLSearchParams): Promise<SearchRes
     query.set("or", `(title.ilike.*${escaped}*,description.ilike.*${escaped}*,category.ilike.*${escaped}*)`);
   }
 
-  // Status
-  const now = new Date().toISOString();
+  // Status — use the auction_status enum column as the primary signal.
+  // This avoids false-negatives caused by null sale_ends_at on many scraped rows.
   switch (statusFilter) {
-    case "upcoming":
-      query.set("sale_starts_at", `gt.${now}`);
-      break;
     case "live":
-      query.set("sale_starts_at", `lte.${now}`);
-      query.set("sale_ends_at", `gte.${now}`);
+      query.set("auction_status", "eq.live");
+      query.set("is_completed", "eq.false");
+      break;
+    case "upcoming":
+      query.set("auction_status", "eq.upcoming");
       break;
     case "ending_soon": {
+      const now = new Date().toISOString();
       const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
-      query.set("sale_ends_at", `gt.${now}`);
-      query.set("sale_ends_at", `lt.${tomorrow}`);
+      query.set("auction_status", "eq.live");
+      query.append("sale_ends_at", `gt.${now}`);
+      query.append("sale_ends_at", `lt.${tomorrow}`);
       break;
     }
     case "ended":
-      query.set("sale_ends_at", `lt.${now}`);
+      query.set("is_completed", "eq.true");
       break;
   }
 

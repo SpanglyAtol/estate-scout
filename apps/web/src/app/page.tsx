@@ -35,11 +35,13 @@ export default async function HomePage() {
     // Backend not running yet — show empty state gracefully
   }
 
-  // Fallback: if all time-filtered sections returned empty, load recent listings
-  // regardless of status so the homepage always has content to show.
+  // Fallback: if the live/featured sections are empty (status filters returned
+  // nothing — common when auction_status hasn't been indexed yet or backend
+  // is warming up), load recent listings regardless of status so the homepage
+  // always has content to show.
   let recentFallback: Listing[] = [];
   const totalTimeFiltered = featured.length + endingSoon.length + live.length + upcoming.length;
-  if (totalTimeFiltered === 0) {
+  if (totalTimeFiltered === 0 || live.length === 0) {
     try {
       recentFallback = await searchListingsArray({ sort: "newest", page_size: 24 });
     } catch {
@@ -176,18 +178,24 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── Live Auctions ─────────────────────────────────────────────────────── */}
+      {/* ── Live Auctions (or Recent Listings when no live data yet) ──────────── */}
       <section className="mb-14">
         <SectionHeader
           icon={<TrendingUp className="w-5 h-5 text-antique-accent" />}
-          title="Live Auctions"
-          subtitle={stats ? `${((stats.live ?? 0) + (stats.upcoming ?? 0)).toLocaleString()} active listings` : undefined}
-          href="/search?status=live"
+          title={live.length > 0 ? "Live Auctions" : "Recent Listings"}
+          subtitle={
+            live.length > 0
+              ? stats ? `${((stats.live ?? 0) + (stats.upcoming ?? 0)).toLocaleString()} active listings` : undefined
+              : recentFallback.length > 0
+              ? `${recentFallback.length} listings from all platforms`
+              : "Browse listings from all platforms"
+          }
+          href={live.length > 0 ? "/search?status=live" : "/search"}
           linkLabel="Browse all"
         />
         <ListingGrid
-          listings={live}
-          emptyMessage="No live listings yet — check back soon or run a scraper."
+          listings={live.length > 0 ? live : recentFallback}
+          emptyMessage="No listings yet — check back soon or run a scraper."
         />
       </section>
 
@@ -226,8 +234,9 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── Recent Listings fallback (shown when time-filtered sections are empty) */}
-      {recentFallback.length > 0 && (
+      {/* ── Recent Listings fallback — only show when the Live Auctions section
+            already has real live listings (to avoid double-showing the same data) */}
+      {recentFallback.length > 0 && live.length > 0 && (
         <section className="mb-14">
           <SectionHeader
             icon={<Package className="w-5 h-5 text-antique-accent" />}

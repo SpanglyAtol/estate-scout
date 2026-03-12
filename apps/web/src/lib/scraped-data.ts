@@ -45,6 +45,20 @@ function isMeaningful(listing: MockListing): boolean {
   if (!listing.title?.trim()) return false;
   if (GARBAGE_TITLE_RE.test(listing.title)) return false;
 
+  // Reject placeholder / example domain URLs that sneak through the scraper
+  const urlHost = (() => {
+    try { return new URL(listing.external_url).hostname; } catch { return ""; }
+  })();
+  if (
+    urlHost === "example.com" ||
+    urlHost === "example-auction.com" ||
+    urlHost === "example-estate.com" ||
+    urlHost.endsWith(".example.com") ||
+    urlHost.includes("example-") ||
+    urlHost === "localhost" ||
+    urlHost === ""
+  ) return false;
+
   // For general auction platforms (BidSpotter, HiBid, AuctionZip, Discovery),
   // require a positive antique/collectible signal in the title, description,
   // or category. Estate-specific platforms pass through without this check.

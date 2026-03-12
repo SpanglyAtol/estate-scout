@@ -19,14 +19,21 @@ export async function GET(
   const backendUrl = process.env.BACKEND_API_URL;
   if (backendUrl) {
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
       const upstream = await fetch(
         `${backendUrl}/api/v1/listings/${numId}`,
-        { next: { revalidate: 60 } }
+        { next: { revalidate: 60 }, signal: controller.signal }
       );
+      clearTimeout(timer);
       if (upstream.ok) return NextResponse.json(await upstream.json());
-      // 404 from backend → fall through to JSON bundle (dev data may differ)
+      // 404 from backend — fall through to Supabase / JSON bundle
+      if (upstream.status === 404) {
+        // Don't fall through to stale JSON for explicitly missing backend IDs
+        return NextResponse.json({ detail: "Listing not found" }, { status: 404 });
+      }
     } catch {
-      // Backend unavailable — fall through to JSON bundle
+      // Backend unavailable or timed out — fall through to Supabase / JSON
     }
   }
 

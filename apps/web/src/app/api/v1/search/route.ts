@@ -5,17 +5,21 @@ import { haversineKm, KM_PER_MILE } from "@/lib/geo";
 import type { SearchResult } from "@/types";
 
 // When BACKEND_API_URL is configured, proxy search to the FastAPI backend.
+// Timeout after 8 s so Vercel never hits its 10-s function limit waiting on backend.
 async function tryBackendSearch(req: NextRequest): Promise<NextResponse | null> {
   const backendUrl = process.env.BACKEND_API_URL;
   if (!backendUrl) return null;
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
     const upstream = await fetch(
       `${backendUrl}/api/v1/search?${req.nextUrl.searchParams.toString()}`,
-      { next: { revalidate: 60 } }
+      { next: { revalidate: 60 }, signal: controller.signal }
     );
+    clearTimeout(timer);
     if (upstream.ok) return NextResponse.json(await upstream.json());
   } catch {
-    // Backend unavailable — fall through
+    // Backend unavailable or timed out — fall through to Supabase / JSON
   }
   return null;
 }
