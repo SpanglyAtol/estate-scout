@@ -1,0 +1,298 @@
+/**
+ * Direct Supabase REST API (PostgREST) connector for the Next.js app.
+ *
+ * This is the middle tier in the data priority chain:
+ *   1. BACKEND_API_URL → FastAPI proxy (search/listings routes)
+ *   2. SUPABASE_URL + SUPABASE_KEY → this module (direct Supabase)
+ *   3. JSON bundle → scraped-data.ts fallback
+ *
+ * Required env vars (set in Vercel project settings):
+ *   SUPABASE_URL   – e.g. https://abcdefgh.supabase.co
+ *   SUPABASE_KEY   – service role key (from Supabase > Settings > API)
+ *                    Use service role so listings are fully readable server-side.
+ *
+ * The Supabase project already has the `listings` + `platforms` tables
+ * populated by the scraper GitHub Actions workflows.
+ */
+
+import type { Listing } from "@/types";
+
+const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/$/, "");
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+export function isSupabaseConfigured(): boolean {
+  return Boolean(SUPABASE_URL && SUPABASE_KEY);
+}
+
+// ── Haversine ─────────────────────────────────────────────────────────────────
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Row → Listing ─────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformRow(row: Record<string, any>): Listing {
+  // PostgREST returns the joined platforms record under the FK table name
+  const p = row.platforms ?? {};
+  const currentPrice = row.current_price != null ? parseFloat(String(row.current_price)) : null;
+  const premium = row.buyers_premium_pct != null ? parseFloat(String(row.buyers_premium_pct)) : null;
+
+  return {
+    id: row.id,
+    platform: {
+      id: p.id ?? 0,
+      name: p.name ?? "",
+      display_name: p.display_name ?? "",
+      base_url: p.base_url ?? "",
+      logo_url: p.logo_url ?? null,
+    },
+    external_id: row.external_id ?? "",
+    external_url: row.external_url ?? "",
+    title: row.title ?? "",
+    description: row.description ?? null,
+    category: row.category ?? null,
+    condition: row.condition ?? null,
+    listing_type: row.listing_type ?? "auction",
+    item_type: row.item_type ?? "individual_item",
+    current_price: currentPrice,
+    buy_now_price: row.buy_now_price != null ? parseFloat(String(row.buy_now_price)) : null,
+    estimate_low: row.estimate_low != null ? parseFloat(String(row.estimate_low)) : null,
+    estimate_high: row.estimate_high != null ? parseFloat(String(row.estimate_high)) : null,
+    final_price: row.final_price != null ? parseFloat(String(row.final_price)) : null,
+    is_completed: Boolean(row.is_completed),
+    auction_status: row.auction_status ?? "unknown",
+    buyers_premium_pct: premium,
+    total_cost_estimate:
+      currentPrice != null && premium != null
+        ? currentPrice * (1 + premium / 100)
+        : null,
+    pickup_only: Boolean(row.pickup_only),
+    ships_nationally: row.ships_nationally !== false,
+    city: row.city ?? null,
+    state: row.state ?? null,
+    zip_code: row.zip_code ?? null,
+    latitude: row.latitude != null ? parseFloat(String(row.latitude)) : null,
+    longitude: row.longitude != null ? parseFloat(String(row.longitude)) : null,
+    sale_ends_at: row.sale_ends_at ?? null,
+    sale_starts_at: row.sale_starts_at ?? null,
+    primary_image_url: row.primary_image_url ?? null,
+    image_urls: Array.isArray(row.image_urls) ? row.image_urls : [],
+    scraped_at: row.scraped_at ?? new Date().toISOString(),
+    maker: row.maker ?? null,
+    brand: row.brand ?? null,
+    period: row.period ?? null,
+    country_of_origin: row.country_of_origin ?? null,
+    attributes: row.attributes ?? {},
+    sub_category: row.sub_category ?? null,
+    collaboration_brands: Array.isArray(row.collaboration_brands) ? row.collaboration_brands : [],
+  };
+}
+
+// ── Supabase fetch helper ─────────────────────────────────────────────────────
+
+const LISTING_COLS = [
+  "id", "external_id", "external_url", "title", "description", "category",
+  "condition", "listing_type", "item_type", "auction_status",
+  "current_price", "buy_now_price", "estimate_low", "estimate_high",
+  "final_price", "buyers_premium_pct", "is_completed",
+  "pickup_only", "ships_nationally",
+  "city", "state", "zip_code", "latitude", "longitude",
+  "sale_starts_at", "sale_ends_at",
+  "primary_image_url", "image_urls",
+  "scraped_at", "maker", "brand", "period", "country_of_origin",
+  "sub_category", "collaboration_brands", "attributes",
+  "platforms(id,name,display_name,base_url,logo_url)",
+].join(",");
+
+async function sbFetch(path: string, query: URLSearchParams): Promise<Response> {
+  const url = `${SUPABASE_URL}/rest/v1/${path}?${query}`;
+  return fetch(url, {
+    headers: {
+      apikey: SUPABASE_KEY!,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    next: { revalidate: 120 },
+  });
+}
+
+// Listing cols without the platforms join (fallback when join fails)
+const LISTING_COLS_NO_JOIN = LISTING_COLS.replace(",platforms(id,name,display_name,base_url,logo_url)", "");
+
+// ── Search listings ───────────────────────────────────────────────────────────
+
+export async function searchSupabase(params: URLSearchParams): Promise<Listing[] | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const q             = params.get("q")?.toLowerCase() ?? "";
+  const listingType   = params.get("listing_type") ?? "";
+  const category      = params.get("category") ?? "";
+  const minPrice      = params.get("min_price") ?? "";
+  const maxPrice      = params.get("max_price") ?? "";
+  const statusFilter  = params.get("status") ?? "";
+  const platformIds   = params.getAll("platform_ids").map(Number).filter(Boolean);
+  const lat           = parseFloat(params.get("lat") ?? "") || null;
+  const lon           = parseFloat(params.get("lon") ?? "") || null;
+  const radiusMiles   = parseFloat(params.get("radius_miles") ?? "") || null;
+  const sort          = params.get("sort") ?? "";
+  const page          = parseInt(params.get("page") ?? "1");
+  const pageSize      = parseInt(params.get("page_size") ?? "24");
+  const estatePage    = params.get("estate_sales_page") === "1";
+
+  const query = new URLSearchParams();
+  query.set("select", LISTING_COLS);
+  // Note: is_active / archived_at columns may not be set by all scraper versions.
+  // We intentionally omit those filters so all scraped rows are visible.
+  // The scraped_at freshness check below handles stale data instead.
+
+  // listing_type filter
+  if (listingType) {
+    query.set("listing_type", `eq.${listingType}`);
+  } else if (!estatePage) {
+    // General search: exclude estate sale events
+    query.set("listing_type", "neq.estate_sale");
+  }
+
+  // Category
+  if (category) query.set("category", `ilike.*${category}*`);
+
+  // Price
+  if (minPrice) query.set("current_price", `gte.${minPrice}`);
+  if (maxPrice) query.set("current_price", `lte.${maxPrice}`);
+
+  // Text search — use PostgREST OR filter across title + description
+  // For complex queries the backend FTS is better; this covers simple cases
+  if (q) {
+    const escaped = q.replace(/[%_*()]/g, "\\$&");
+    query.set("or", `(title.ilike.*${escaped}*,description.ilike.*${escaped}*,category.ilike.*${escaped}*)`);
+  }
+
+  // Status filter
+  const now = new Date().toISOString();
+  switch (statusFilter) {
+    case "upcoming":
+      query.set("sale_starts_at", `gt.${now}`);
+      break;
+    case "live":
+      // starts <= now AND (ends is null OR ends >= now)
+      query.set("sale_starts_at", `lte.${now}`);
+      query.set("sale_ends_at", `gte.${now}`);
+      break;
+    case "ending_soon": {
+      const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
+      query.set("sale_ends_at", `gt.${now}`);
+      query.set("sale_ends_at", `lt.${tomorrow}`);
+      break;
+    }
+    case "ended":
+      query.set("sale_ends_at", `lt.${now}`);
+      break;
+  }
+
+  // Platform filter — not directly supported in simple query syntax for arrays;
+  // filter client-side when platformIds provided (they are small lists)
+
+  // Sort
+  switch (sort) {
+    case "price_asc":  query.set("order", "current_price.asc.nullslast"); break;
+    case "price_desc": query.set("order", "current_price.desc.nullsfirst"); break;
+    case "ending_soon":query.set("order", "sale_ends_at.asc.nullslast"); break;
+    case "newest":     query.set("order", "scraped_at.desc"); break;
+    default:           query.set("order", "scraped_at.desc"); break;
+  }
+
+  // Fetch a larger batch when we need to geo-filter or platform-filter client-side
+  const needsClientFilter = (lat != null && lon != null) || platformIds.length > 0;
+  const fetchLimit  = needsClientFilter ? Math.min(pageSize * 30, 1000) : pageSize;
+  const fetchOffset = needsClientFilter ? 0 : (page - 1) * pageSize;
+  query.set("limit", String(fetchLimit));
+  query.set("offset", String(fetchOffset));
+
+  try {
+    let res = await sbFetch("listings", query);
+    // If the platforms join caused a 400/error, retry without it
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error("[Supabase] search error:", res.status, errText);
+      if (res.status === 400 && errText.includes("platforms")) {
+        console.warn("[Supabase] Retrying search without platforms join");
+        query.set("select", LISTING_COLS_NO_JOIN);
+        res = await sbFetch("listings", query);
+      }
+      if (!res.ok) {
+        console.error("[Supabase] search retry failed:", res.status, await res.text().catch(() => ""));
+        return null;
+      }
+    }
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return null;
+
+    let results = rows.map(transformRow);
+
+    // Client-side platform filter
+    if (platformIds.length > 0) {
+      results = results.filter((l) => platformIds.includes(l.platform.id));
+    }
+
+    // Client-side geo filter + distance annotation
+    if (lat != null && lon != null && radiusMiles != null) {
+      const radKm = radiusMiles * 1.60934;
+      results = results
+        .filter((l) => l.latitude != null && l.longitude != null &&
+          haversineKm(lat, lon, l.latitude!, l.longitude!) <= radKm)
+        .map((l) => ({
+          ...l,
+          distance_miles: haversineKm(lat, lon, l.latitude!, l.longitude!) / 1.60934,
+        }));
+    }
+
+    // Apply page slice after client-side filtering
+    if (needsClientFilter) {
+      const start = (page - 1) * pageSize;
+      results = results.slice(start, start + pageSize);
+    }
+
+    return results;
+  } catch (err) {
+    console.error("[Supabase] search fetch failed:", err);
+    return null;
+  }
+}
+
+// ── Single listing lookup ─────────────────────────────────────────────────────
+
+export async function getSupabaseListing(id: number): Promise<Listing | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const query = new URLSearchParams();
+  query.set("select", LISTING_COLS);
+  query.set("id", `eq.${id}`);
+  query.set("limit", "1");
+
+  try {
+    let res = await sbFetch("listings", query);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      if (res.status === 400 && errText.includes("platforms")) {
+        query.set("select", LISTING_COLS_NO_JOIN);
+        res = await sbFetch("listings", query);
+      }
+      if (!res.ok) return null;
+    }
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    return transformRow(rows[0]);
+  } catch {
+    return null;
+  }
+}

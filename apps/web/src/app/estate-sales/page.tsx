@@ -84,9 +84,9 @@ const STATUS_OPTIONS = [
 ];
 
 const SALE_MODE_OPTIONS = [
-  { label: "All sales",    value: "all" },
-  { label: "In Person",    value: "in_person" },
-  { label: "Online Only",  value: "online" },
+  { label: "All listings",          value: "all" },
+  { label: "Estate Sale Events",    value: "estate_sale" },
+  { label: "Auction Items",         value: "auction" },
 ];
 
 const SORT_OPTIONS = [
@@ -114,7 +114,7 @@ interface Filters {
   radiusMiles: number;
   sort: string;
   page: number;
-  saleMode: "all" | "in_person" | "online";
+  saleMode: "all" | "estate_sale" | "auction";
 }
 
 interface Location { lat: number; lon: number; label: string }
@@ -154,14 +154,18 @@ async function zipToCoords(zip: string): Promise<{ lat: number; lon: number } | 
 }
 
 function buildApiParams(filters: Filters, loc: Location | null): URLSearchParams {
-  const p = new URLSearchParams({ listing_type: "estate_sale", page_size: String(PAGE_SIZE) });
-  if (filters.q.trim())    p.set("q", filters.q.trim());
-  if (filters.status)      p.set("status", filters.status);
-  if (filters.category)    p.set("category", filters.category);
-  if (filters.minPrice)    p.set("min_price", filters.minPrice);
-  if (filters.maxPrice)    p.set("max_price", filters.maxPrice);
-  if (filters.sort)        p.set("sort", filters.sort);
-  if (filters.page > 1)    p.set("page", String(filters.page));
+  // Use estate_sales_page=1 to tell the search route to include estate sale events
+  // alongside auction items (the general search hides estate sales by default).
+  // Pass listing_type only when the user has explicitly filtered by sale type.
+  const p = new URLSearchParams({ estate_sales_page: "1", page_size: String(PAGE_SIZE) });
+  if (filters.saleMode !== "all")  p.set("listing_type", filters.saleMode);
+  if (filters.q.trim())            p.set("q", filters.q.trim());
+  if (filters.status)              p.set("status", filters.status);
+  if (filters.category)            p.set("category", filters.category);
+  if (filters.minPrice)            p.set("min_price", filters.minPrice);
+  if (filters.maxPrice)            p.set("max_price", filters.maxPrice);
+  if (filters.sort)                p.set("sort", filters.sort);
+  if (filters.page > 1)            p.set("page", String(filters.page));
   filters.platformIds.forEach((id) => p.append("platform_ids", String(id)));
   if (loc) {
     p.set("lat", String(loc.lat));
@@ -222,7 +226,7 @@ function EstateSaleFilters({
         <h2 className="text-base font-bold text-antique-text">Filters</h2>
         {activeCount > 0 && (
           <button
-            onClick={() => onChange({ status: "", category: "", minPrice: "", maxPrice: "", platformIds: [], radiusMiles: 50, saleMode: "all" })}
+            onClick={() => onChange({ status: "", category: "", minPrice: "", maxPrice: "", platformIds: [], radiusMiles: 50, saleMode: "all" as const })}
             className="text-xs text-antique-accent hover:text-antique-accent-h font-medium"
           >
             Clear all ({activeCount})
@@ -239,7 +243,7 @@ function EstateSaleFilters({
                 type="radio"
                 name="es_sale_mode"
                 checked={filters.saleMode === opt.value}
-                onChange={() => onChange({ saleMode: opt.value as Filters["saleMode"], page: 1 })}
+                onChange={() => onChange({ saleMode: opt.value as "all" | "estate_sale" | "auction", page: 1 })}
                 className="w-4 h-4"
               />
               <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
@@ -511,12 +515,8 @@ export default function EstateSalesPage() {
     setFilters((f) => ({ ...f, ...patch }));
   }
 
-  // Client-side saleMode filter applied on top of API results
-  const displayListings = filters.saleMode === "in_person"
-    ? listings.filter((l) => l.pickup_only || !l.ships_nationally)
-    : filters.saleMode === "online"
-    ? listings.filter((l) => l.ships_nationally)
-    : listings;
+  // listing_type filter is applied server-side via buildApiParams
+  const displayListings = listings;
 
   // ZIP search
   const handleZipSearch = useCallback(async () => {

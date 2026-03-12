@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
+import { searchSupabase, isSupabaseConfigured } from "@/lib/supabase-search";
 
 // When BACKEND_API_URL is configured, proxy search to the FastAPI backend which
 // serves 40k+ listings from PostgreSQL. Falls back to bundled JSON files.
@@ -33,8 +34,15 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 export async function GET(req: NextRequest) {
+  // Priority 1: FastAPI backend proxy (when deployed to Railway/Render)
   const proxied = await tryBackendSearch(req);
   if (proxied) return proxied;
+
+  // Priority 2: Direct Supabase query (same DB scrapers write to, no backend needed)
+  if (isSupabaseConfigured()) {
+    const supabaseResults = await searchSupabase(req.nextUrl.searchParams);
+    if (supabaseResults !== null) return NextResponse.json(supabaseResults);
+  }
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.toLowerCase() ?? "";
@@ -54,13 +62,16 @@ export async function GET(req: NextRequest) {
   let results = [...getListings()];
 
   // ── Estate sale separation ─────────────────────────────────────────────────
-  // Full estate sale EVENTS (item_type=estate_sale or listing_type=estate_sale)
-  // belong on the /estate-sales page, not in the main catalog or search.
-  // They are only included when the caller explicitly requests them.
-  const wantsEstateSales =
-    searchParams.get("listing_type") === "estate_sale" ||
-    searchParams.get("item_type") === "estate_sale";
-  if (!wantsEstateSales) {
+  // Estate sale EVENTS are shown on the /estate-sales page; the main /search
+  // page only shows auction/buy_now items (no estate sale events).
+  // When the caller explicitly passes listing_type=... we apply it below
+  // in the listing type filter block. Only exclude estate sales from the
+  // implicit (no filter) case when this is a general catalog search.
+  const explicitListingType = searchParams.get("listing_type");
+  const isEstateSalesPage = explicitListingType === "estate_sale" ||
+    searchParams.get("estate_sales_page") === "1";
+  if (!explicitListingType && !isEstateSalesPage) {
+    // General search / catalog: hide estate sale events (they live on /estate-sales)
     results = results.filter((l) => {
       const lt = (l.listing_type as string | undefined) ?? "auction";
       const it = (l as unknown as { item_type?: string }).item_type ?? "";

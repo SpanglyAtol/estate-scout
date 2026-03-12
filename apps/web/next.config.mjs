@@ -26,12 +26,19 @@ const nextConfig = {
       { protocol: "https", hostname: "**.azureedge.net" },
       { protocol: "https", hostname: "portal-images.azureedge.net" },
       { protocol: "https", hostname: "**.bidspotter.com" },
+      // BidSpotter serves listing images via GlobalAuctionPlatform CDN
+      { protocol: "https", hostname: "cdn.globalauctionplatform.com" },
+      { protocol: "https", hostname: "**.globalauctionplatform.com" },
       // ── HTTP fallback for older platforms ──────────────────────────────────
       { protocol: "http", hostname: "**.liveauctioneers.com" },
       { protocol: "http", hostname: "**.estatesales.net" },
       { protocol: "http", hostname: "**.hibid.com" },
       { protocol: "http", hostname: "**.maxsold.com" },
       { protocol: "http", hostname: "images.maxsold.com" },
+      // ── Discovery scraper sources ──────────────────────────────────────────
+      { protocol: "https", hostname: "**.caseantiques.com" },
+      { protocol: "https", hostname: "caseantiques.com" },
+      { protocol: "https", hostname: "cdn.prod.website-files.com" },
       // ── Placeholder / dev ──────────────────────────────────────────────────
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "**.picsum.photos" },
