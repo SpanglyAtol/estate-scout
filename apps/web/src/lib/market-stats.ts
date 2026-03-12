@@ -9,6 +9,8 @@
  * (Vercel preview, local dev, demo) without requiring a live database.
  */
 
+import { readFileSync } from "fs";
+import { join } from "path";
 import type { MockListing } from "@/app/api/v1/_mock-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -92,11 +94,11 @@ function matchCategory(listing: MockListing): string | null {
 
 // ── Scraped-data aggregation ──────────────────────────────────────────────────
 
-/** Lazy-load the eBay sold comps JSON. Server-only. */
+/** Load the eBay sold comps JSON from disk. Server-only. */
 function loadEbayComps(): MockListing[] {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require("@/data/scraped-listings-ebay.json") as MockListing[];
+    const filePath = join(process.cwd(), "src/data/scraped-listings-ebay.json");
+    return JSON.parse(readFileSync(filePath, "utf-8")) as MockListing[];
   } catch {
     return [];
   }
