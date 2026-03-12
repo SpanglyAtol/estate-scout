@@ -183,9 +183,9 @@ export async function searchSupabase(params: URLSearchParams): Promise<SearchRes
   // Condition
   if (condition) query.set("condition", `ilike.*${condition}*`);
 
-  // Price
-  if (minPrice) query.set("current_price", `gte.${minPrice}`);
-  if (maxPrice) query.set("current_price", `lte.${maxPrice}`);
+  // Price — PostgREST requires separate params for range; use append so both survive
+  if (minPrice) query.append("current_price", `gte.${minPrice}`);
+  if (maxPrice) query.append("current_price", `lte.${maxPrice}`);
 
   // Text search
   if (q) {
