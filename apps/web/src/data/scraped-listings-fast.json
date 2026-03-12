@@ -36,7 +36,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T06:59:26.731266",
+    "scraped_at": "2026-03-12T14:52:22.844159",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -48,7 +48,7 @@
     "items": []
   },
   {
-    "id": 6,
+    "id": 5,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -84,7 +84,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T06:59:32.136233",
+    "scraped_at": "2026-03-12T14:52:27.457531",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -96,7 +96,7 @@
     "items": []
   },
   {
-    "id": 7,
+    "id": 6,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -120,7 +120,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": null,
@@ -132,7 +132,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T06:59:34.025968",
+    "scraped_at": "2026-03-12T14:52:28.645824",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -144,55 +144,7 @@
     "items": []
   },
   {
-    "id": 8,
-    "platform": {
-      "id": 5,
-      "name": "bidspotter",
-      "display_name": "BidSpotter",
-      "base_url": "https://www.bidspotter.com",
-      "logo_url": null
-    },
-    "external_id": "bscbt10733",
-    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
-    "title": "3/12/26 New-In-Box - MRO Surplus",
-    "description": null,
-    "category": null,
-    "condition": null,
-    "listing_type": "auction",
-    "item_type": "individual_item",
-    "current_price": null,
-    "buy_now_price": null,
-    "estimate_low": null,
-    "estimate_high": null,
-    "final_price": null,
-    "is_completed": false,
-    "buyers_premium_pct": null,
-    "total_cost_estimate": null,
-    "auction_status": "live",
-    "pickup_only": false,
-    "ships_nationally": true,
-    "city": "Muskegon",
-    "state": "MI",
-    "zip_code": null,
-    "sale_ends_at": "2026-03-12T10:24:00-04:00",
-    "sale_starts_at": "2026-02-12T00:10:00-05:00",
-    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
-    "image_urls": [],
-    "latitude": 43.2341813,
-    "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T06:59:35.147809",
-    "is_sponsored": false,
-    "maker": null,
-    "brand": null,
-    "collaboration_brands": [],
-    "period": null,
-    "country_of_origin": null,
-    "sub_category": null,
-    "attributes": {},
-    "items": []
-  },
-  {
-    "id": 9,
+    "id": 7,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -216,7 +168,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Middleburg",
@@ -228,7 +180,7 @@
     "image_urls": [],
     "latitude": 30.0688512,
     "longitude": -81.8603778,
-    "scraped_at": "2026-03-12T06:59:36.725471",
+    "scraped_at": "2026-03-12T14:52:30.151519",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -240,7 +192,7 @@
     "items": []
   },
   {
-    "id": 10,
+    "id": 8,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -276,7 +228,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T06:59:38.002002",
+    "scraped_at": "2026-03-12T14:52:31.483342",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -288,7 +240,7 @@
     "items": []
   },
   {
-    "id": 12,
+    "id": 9,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -324,7 +276,7 @@
     "image_urls": [],
     "latitude": 26.1223084,
     "longitude": -80.1433786,
-    "scraped_at": "2026-03-12T06:59:40.859346",
+    "scraped_at": "2026-03-12T14:52:32.983654",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -336,7 +288,7 @@
     "items": []
   },
   {
-    "id": 13,
+    "id": 10,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -372,7 +324,7 @@
     "image_urls": [],
     "latitude": 40.0942664,
     "longitude": -75.9113306,
-    "scraped_at": "2026-03-12T06:59:42.589448",
+    "scraped_at": "2026-03-12T14:52:34.310194",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -386,7 +338,7 @@
     "items": []
   },
   {
-    "id": 14,
+    "id": 11,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -422,7 +374,7 @@
     "image_urls": [],
     "latitude": 42.4858692,
     "longitude": -83.1052028,
-    "scraped_at": "2026-03-12T06:59:43.564725",
+    "scraped_at": "2026-03-12T14:52:35.673814",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -434,7 +386,55 @@
     "items": []
   },
   {
-    "id": 15,
+    "id": 12,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bscbt10733",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
+    "title": "3/12/26 New-In-Box - MRO Surplus",
+    "description": null,
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": "Muskegon",
+    "state": "MI",
+    "zip_code": null,
+    "sale_ends_at": "2026-03-12T11:01:46-04:00",
+    "sale_starts_at": "2026-02-12T00:10:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
+    "image_urls": [],
+    "latitude": 43.2341813,
+    "longitude": -86.2483921,
+    "scraped_at": "2026-03-12T14:52:37.001804",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 13,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -470,7 +470,7 @@
     "image_urls": [],
     "latitude": 41.4996574,
     "longitude": -81.6936772,
-    "scraped_at": "2026-03-12T06:59:45.450700",
+    "scraped_at": "2026-03-12T14:52:38.639717",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -482,7 +482,7 @@
     "items": []
   },
   {
-    "id": 16,
+    "id": 14,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -512,13 +512,13 @@
     "city": "Mansfield",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:34:00-05:00",
+    "sale_ends_at": "2026-03-12T15:35:00-05:00",
     "sale_starts_at": "2026-02-02T15:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscinv10332/images/b64b8707-5a4a-440e-9cf4-ab12b6686e9b.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.563487,
     "longitude": -97.1420308,
-    "scraped_at": "2026-03-12T06:59:46.420436",
+    "scraped_at": "2026-03-12T14:52:39.829042",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -530,7 +530,7 @@
     "items": []
   },
   {
-    "id": 17,
+    "id": 15,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -566,7 +566,7 @@
     "image_urls": [],
     "latitude": 43.1790768,
     "longitude": -88.1170784,
-    "scraped_at": "2026-03-12T06:59:48.459103",
+    "scraped_at": "2026-03-12T14:52:41.601033",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -578,7 +578,7 @@
     "items": []
   },
   {
-    "id": 18,
+    "id": 16,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -608,13 +608,13 @@
     "city": "Auburn Hills",
     "state": "MI",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:19:30-04:00",
+    "sale_ends_at": "2026-03-12T15:20:00-04:00",
     "sale_starts_at": "2026-03-05T11:00:00-05:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/levy-r10181/images/42d25639-b0d6-4f87-8b09-51d08149c4c4.JPG?h=1000",
     "image_urls": [],
     "latitude": 42.6875323,
     "longitude": -83.2341028,
-    "scraped_at": "2026-03-12T06:59:49.433754",
+    "scraped_at": "2026-03-12T14:52:42.526669",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -626,7 +626,7 @@
     "items": []
   },
   {
-    "id": 19,
+    "id": 17,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -662,7 +662,7 @@
     "image_urls": [],
     "latitude": 39.1928853,
     "longitude": -76.7241371,
-    "scraped_at": "2026-03-12T06:59:51.482152",
+    "scraped_at": "2026-03-12T14:52:44.427612",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -674,7 +674,7 @@
     "items": []
   },
   {
-    "id": 20,
+    "id": 18,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -710,7 +710,7 @@
     "image_urls": [],
     "latitude": 40.7596198,
     "longitude": -111.886797,
-    "scraped_at": "2026-03-12T06:59:52.287646",
+    "scraped_at": "2026-03-12T14:52:45.218852",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -722,7 +722,7 @@
     "items": []
   },
   {
-    "id": 21,
+    "id": 19,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -758,7 +758,7 @@
     "image_urls": [],
     "latitude": 37.970495,
     "longitude": -87.5715641,
-    "scraped_at": "2026-03-12T06:59:54.495206",
+    "scraped_at": "2026-03-12T14:52:47.251458",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -770,7 +770,7 @@
     "items": []
   },
   {
-    "id": 23,
+    "id": 21,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -806,7 +806,7 @@
     "image_urls": [],
     "latitude": 32.6098566,
     "longitude": -85.4807825,
-    "scraped_at": "2026-03-12T06:59:57.508436",
+    "scraped_at": "2026-03-12T14:52:50.098026",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -818,7 +818,7 @@
     "items": []
   },
   {
-    "id": 24,
+    "id": 22,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -854,7 +854,7 @@
     "image_urls": [],
     "latitude": 39.7589478,
     "longitude": -84.1916069,
-    "scraped_at": "2026-03-12T06:59:58.309507",
+    "scraped_at": "2026-03-12T14:52:50.873983",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -866,7 +866,7 @@
     "items": []
   },
   {
-    "id": 26,
+    "id": 24,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -902,7 +902,7 @@
     "image_urls": [],
     "latitude": 26.5625742,
     "longitude": -81.9438802,
-    "scraped_at": "2026-03-12T07:00:01.324960",
+    "scraped_at": "2026-03-12T14:52:53.840168",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -914,7 +914,7 @@
     "items": []
   },
   {
-    "id": 27,
+    "id": 25,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -950,7 +950,7 @@
     "image_urls": [],
     "latitude": 35.7803977,
     "longitude": -78.6390989,
-    "scraped_at": "2026-03-12T07:00:03.062990",
+    "scraped_at": "2026-03-12T14:52:55.622937",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -962,7 +962,7 @@
     "items": []
   },
   {
-    "id": 28,
+    "id": 26,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -998,7 +998,7 @@
     "image_urls": [],
     "latitude": 33.5386858,
     "longitude": -112.185994,
-    "scraped_at": "2026-03-12T07:00:04.022664",
+    "scraped_at": "2026-03-12T14:52:56.532758",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1010,7 +1010,7 @@
     "items": []
   },
   {
-    "id": 30,
+    "id": 28,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1046,7 +1046,7 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:00:06.876655",
+    "scraped_at": "2026-03-12T14:52:59.501063",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1058,7 +1058,7 @@
     "items": []
   },
   {
-    "id": 31,
+    "id": 29,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1094,7 +1094,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:08.930833",
+    "scraped_at": "2026-03-12T14:53:01.415382",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1106,7 +1106,7 @@
     "items": []
   },
   {
-    "id": 32,
+    "id": 30,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1142,7 +1142,7 @@
     "image_urls": [],
     "latitude": 34.0553813,
     "longitude": -117.7517496,
-    "scraped_at": "2026-03-12T07:00:09.733086",
+    "scraped_at": "2026-03-12T14:53:02.329113",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1154,7 +1154,7 @@
     "items": []
   },
   {
-    "id": 33,
+    "id": 31,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1190,7 +1190,7 @@
     "image_urls": [],
     "latitude": 40.5130953,
     "longitude": -74.8591333,
-    "scraped_at": "2026-03-12T07:00:11.785619",
+    "scraped_at": "2026-03-12T14:53:04.109384",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1202,7 +1202,7 @@
     "items": []
   },
   {
-    "id": 34,
+    "id": 32,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1238,7 +1238,7 @@
     "image_urls": [],
     "latitude": 34.1069927,
     "longitude": -117.934214,
-    "scraped_at": "2026-03-12T07:00:12.431476",
+    "scraped_at": "2026-03-12T14:53:05.154096",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1250,7 +1250,7 @@
     "items": []
   },
   {
-    "id": 35,
+    "id": 33,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1286,7 +1286,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:14.641499",
+    "scraped_at": "2026-03-12T14:53:06.938551",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1298,7 +1298,7 @@
     "items": []
   },
   {
-    "id": 36,
+    "id": 34,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1334,7 +1334,7 @@
     "image_urls": [],
     "latitude": 28.0394654,
     "longitude": -81.9498042,
-    "scraped_at": "2026-03-12T07:00:15.288810",
+    "scraped_at": "2026-03-12T14:53:07.845576",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1346,7 +1346,7 @@
     "items": []
   },
   {
-    "id": 37,
+    "id": 35,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1382,7 +1382,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:17.652736",
+    "scraped_at": "2026-03-12T14:53:09.639090",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1394,7 +1394,7 @@
     "items": []
   },
   {
-    "id": 38,
+    "id": 36,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1404,7 +1404,7 @@
     },
     "external_id": "bscpau10367",
     "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10367",
-    "title": "SALE #2 BOSTON - HIGH END RETAIL FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM  SETS - CHANDELIERS - DECOR - FIXTURES",
+    "title": "SALE #2 BOSTON -  HIGH END RETAIL CIRCLE FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM SETS - CHANDELIERS - DECOR -FIXTURE",
     "description": "SALE #2 BOSTON - FURNITURE & DECOR - CIRCLE FURNITURE RETAIL STYLE AUCTION",
     "category": "furniture",
     "condition": null,
@@ -1430,7 +1430,7 @@
     "image_urls": [],
     "latitude": 42.3588336,
     "longitude": -71.0578303,
-    "scraped_at": "2026-03-12T07:00:18.151644",
+    "scraped_at": "2026-03-12T14:53:10.674111",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1444,7 +1444,7 @@
     "items": []
   },
   {
-    "id": 40,
+    "id": 38,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1474,13 +1474,13 @@
     "city": "Dallas",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-13T13:29:00-05:00",
+    "sale_ends_at": "2026-03-13T13:14:00-05:00",
     "sale_starts_at": "2026-02-20T20:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/sam-au10169/images/141d0f6a-42c1-4f5e-a4bd-b3f70160bcaf.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.7762719,
     "longitude": -96.7968559,
-    "scraped_at": "2026-03-12T07:00:21.165886",
+    "scraped_at": "2026-03-12T14:53:13.500119",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1492,7 +1492,7 @@
     "items": []
   },
   {
-    "id": 41,
+    "id": 39,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1528,7 +1528,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:23.366462",
+    "scraped_at": "2026-03-12T14:53:15.431443",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1540,7 +1540,7 @@
     "items": []
   },
   {
-    "id": 42,
+    "id": 40,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1576,7 +1576,7 @@
     "image_urls": [],
     "latitude": 40.5484233,
     "longitude": -76.3846781,
-    "scraped_at": "2026-03-12T07:00:24.173706",
+    "scraped_at": "2026-03-12T14:53:16.191906",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1588,7 +1588,7 @@
     "items": []
   },
   {
-    "id": 44,
+    "id": 42,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1624,7 +1624,7 @@
     "image_urls": [],
     "latitude": 28.6732806,
     "longitude": -81.5116471,
-    "scraped_at": "2026-03-12T07:00:27.024725",
+    "scraped_at": "2026-03-12T14:53:19.019634",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1636,7 +1636,7 @@
     "items": []
   },
   {
-    "id": 45,
+    "id": 43,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1672,7 +1672,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:28.919376",
+    "scraped_at": "2026-03-12T14:53:20.953770",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1684,7 +1684,7 @@
     "items": []
   },
   {
-    "id": 51,
+    "id": 49,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1720,7 +1720,7 @@
     "image_urls": [],
     "latitude": 41.8975152,
     "longitude": -84.0373054,
-    "scraped_at": "2026-03-12T07:00:37.799459",
+    "scraped_at": "2026-03-12T14:53:29.716584",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1732,7 +1732,7 @@
     "items": []
   },
   {
-    "id": 52,
+    "id": 50,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1768,7 +1768,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:38.629877",
+    "scraped_at": "2026-03-12T14:53:30.356788",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1780,7 +1780,7 @@
     "items": []
   },
   {
-    "id": 54,
+    "id": 52,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1816,7 +1816,7 @@
     "image_urls": [],
     "latitude": 41.2587459,
     "longitude": -95.9383758,
-    "scraped_at": "2026-03-12T07:00:41.484733",
+    "scraped_at": "2026-03-12T14:53:33.054964",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1828,7 +1828,7 @@
     "items": []
   },
   {
-    "id": 56,
+    "id": 54,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1864,7 +1864,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:00:52.181171",
+    "scraped_at": "2026-03-12T14:53:35.745865",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1876,7 +1876,7 @@
     "items": []
   },
   {
-    "id": 58,
+    "id": 56,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1912,7 +1912,7 @@
     "image_urls": [],
     "latitude": 40.9636685,
     "longitude": -81.3312195,
-    "scraped_at": "2026-03-12T07:01:00.053826",
+    "scraped_at": "2026-03-12T14:53:38.578163",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1924,7 +1924,7 @@
     "items": []
   },
   {
-    "id": 59,
+    "id": 57,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -1960,7 +1960,7 @@
     "image_urls": [],
     "latitude": 43.7982806,
     "longitude": -73.087913,
-    "scraped_at": "2026-03-12T07:01:01.320322",
+    "scraped_at": "2026-03-12T14:53:40.888718",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -1972,7 +1972,7 @@
     "items": []
   },
   {
-    "id": 60,
+    "id": 58,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2008,7 +2008,55 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:01:03.064585",
+    "scraped_at": "2026-03-12T14:53:41.269102",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 59,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bsctho10713",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/thompson-auctioneers/catalogue-id-bsctho10713",
+    "title": "Brinly-Hardy Co.",
+    "description": "Well-Maintained Fabricating, Wire & Tube Machinery - Surplus Due to Facility Consolidation",
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": null,
+    "state": null,
+    "zip_code": null,
+    "sale_ends_at": "2026-03-17T11:41:00-04:00",
+    "sale_starts_at": "2026-02-03T10:00:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bsctho10713/images/b373c520-c392-40f1-b313-a4f2ecbd5c8c.jpg?h=1000",
+    "image_urls": [],
+    "latitude": null,
+    "longitude": null,
+    "scraped_at": "2026-03-12T14:53:43.580528",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2056,7 +2104,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:07.688264",
+    "scraped_at": "2026-03-12T14:53:49.706813",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2068,7 +2116,7 @@
     "items": []
   },
   {
-    "id": 66,
+    "id": 65,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2104,7 +2152,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:13.557397",
+    "scraped_at": "2026-03-12T14:53:52.731883",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2116,7 +2164,7 @@
     "items": []
   },
   {
-    "id": 67,
+    "id": 66,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2140,7 +2188,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": null,
@@ -2152,7 +2200,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:14.333866",
+    "scraped_at": "2026-03-12T14:53:55.096419",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2164,55 +2212,7 @@
     "items": []
   },
   {
-    "id": 68,
-    "platform": {
-      "id": 5,
-      "name": "bidspotter",
-      "display_name": "BidSpotter",
-      "base_url": "https://www.bidspotter.com",
-      "logo_url": null
-    },
-    "external_id": "bscbt10733",
-    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
-    "title": "3/12/26 New-In-Box - MRO Surplus",
-    "description": null,
-    "category": null,
-    "condition": null,
-    "listing_type": "auction",
-    "item_type": "individual_item",
-    "current_price": null,
-    "buy_now_price": null,
-    "estimate_low": null,
-    "estimate_high": null,
-    "final_price": null,
-    "is_completed": false,
-    "buyers_premium_pct": null,
-    "total_cost_estimate": null,
-    "auction_status": "live",
-    "pickup_only": false,
-    "ships_nationally": true,
-    "city": "Muskegon",
-    "state": "MI",
-    "zip_code": null,
-    "sale_ends_at": "2026-03-12T10:24:00-04:00",
-    "sale_starts_at": "2026-02-12T00:10:00-05:00",
-    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
-    "image_urls": [],
-    "latitude": 43.2341813,
-    "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:01:16.569402",
-    "is_sponsored": false,
-    "maker": null,
-    "brand": null,
-    "collaboration_brands": [],
-    "period": null,
-    "country_of_origin": null,
-    "sub_category": null,
-    "attributes": {},
-    "items": []
-  },
-  {
-    "id": 69,
+    "id": 67,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2236,7 +2236,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Middleburg",
@@ -2248,7 +2248,7 @@
     "image_urls": [],
     "latitude": 30.0688512,
     "longitude": -81.8603778,
-    "scraped_at": "2026-03-12T07:01:17.355042",
+    "scraped_at": "2026-03-12T14:53:55.573680",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2260,7 +2260,7 @@
     "items": []
   },
   {
-    "id": 70,
+    "id": 68,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2296,7 +2296,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:19.578717",
+    "scraped_at": "2026-03-12T14:53:57.922151",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2308,7 +2308,7 @@
     "items": []
   },
   {
-    "id": 72,
+    "id": 69,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2344,7 +2344,7 @@
     "image_urls": [],
     "latitude": 26.1223084,
     "longitude": -80.1433786,
-    "scraped_at": "2026-03-12T07:01:22.592788",
+    "scraped_at": "2026-03-12T14:53:58.262090",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2356,7 +2356,7 @@
     "items": []
   },
   {
-    "id": 73,
+    "id": 70,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2392,7 +2392,7 @@
     "image_urls": [],
     "latitude": 40.0942664,
     "longitude": -75.9113306,
-    "scraped_at": "2026-03-12T07:01:23.061517",
+    "scraped_at": "2026-03-12T14:54:00.750069",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2406,7 +2406,7 @@
     "items": []
   },
   {
-    "id": 74,
+    "id": 71,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2442,7 +2442,7 @@
     "image_urls": [],
     "latitude": 42.4858692,
     "longitude": -83.1052028,
-    "scraped_at": "2026-03-12T07:01:25.600876",
+    "scraped_at": "2026-03-12T14:54:01.225321",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2454,7 +2454,55 @@
     "items": []
   },
   {
-    "id": 75,
+    "id": 72,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bscbt10733",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
+    "title": "3/12/26 New-In-Box - MRO Surplus",
+    "description": null,
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": "Muskegon",
+    "state": "MI",
+    "zip_code": null,
+    "sale_ends_at": "2026-03-12T11:03:01-04:00",
+    "sale_starts_at": "2026-02-12T00:10:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
+    "image_urls": [],
+    "latitude": 43.2341813,
+    "longitude": -86.2483921,
+    "scraped_at": "2026-03-12T14:54:03.576446",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 73,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2490,7 +2538,7 @@
     "image_urls": [],
     "latitude": 41.4996574,
     "longitude": -81.6936772,
-    "scraped_at": "2026-03-12T07:01:25.957800",
+    "scraped_at": "2026-03-12T14:54:03.923403",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2502,7 +2550,7 @@
     "items": []
   },
   {
-    "id": 76,
+    "id": 74,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2532,13 +2580,13 @@
     "city": "Mansfield",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:34:00-05:00",
+    "sale_ends_at": "2026-03-12T15:35:00-05:00",
     "sale_starts_at": "2026-02-02T15:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscinv10332/images/b64b8707-5a4a-440e-9cf4-ab12b6686e9b.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.563487,
     "longitude": -97.1420308,
-    "scraped_at": "2026-03-12T07:01:28.614416",
+    "scraped_at": "2026-03-12T14:54:06.269116",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2550,7 +2598,7 @@
     "items": []
   },
   {
-    "id": 77,
+    "id": 75,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2586,7 +2634,7 @@
     "image_urls": [],
     "latitude": 43.1790768,
     "longitude": -88.1170784,
-    "scraped_at": "2026-03-12T07:01:28.967199",
+    "scraped_at": "2026-03-12T14:54:06.755749",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2598,7 +2646,7 @@
     "items": []
   },
   {
-    "id": 78,
+    "id": 76,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2628,13 +2676,13 @@
     "city": "Auburn Hills",
     "state": "MI",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:19:30-04:00",
+    "sale_ends_at": "2026-03-12T15:20:00-04:00",
     "sale_starts_at": "2026-03-05T11:00:00-05:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/levy-r10181/images/42d25639-b0d6-4f87-8b09-51d08149c4c4.JPG?h=1000",
     "image_urls": [],
     "latitude": 42.6875323,
     "longitude": -83.2341028,
-    "scraped_at": "2026-03-12T07:01:31.625872",
+    "scraped_at": "2026-03-12T14:54:09.098515",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2646,7 +2694,7 @@
     "items": []
   },
   {
-    "id": 79,
+    "id": 77,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2682,7 +2730,7 @@
     "image_urls": [],
     "latitude": 39.1928853,
     "longitude": -76.7241371,
-    "scraped_at": "2026-03-12T07:01:32.138079",
+    "scraped_at": "2026-03-12T14:54:09.448737",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2694,7 +2742,7 @@
     "items": []
   },
   {
-    "id": 80,
+    "id": 78,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2730,7 +2778,7 @@
     "image_urls": [],
     "latitude": 40.7596198,
     "longitude": -111.886797,
-    "scraped_at": "2026-03-12T07:01:34.482596",
+    "scraped_at": "2026-03-12T14:54:11.790736",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2742,7 +2790,7 @@
     "items": []
   },
   {
-    "id": 81,
+    "id": 79,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2778,7 +2826,7 @@
     "image_urls": [],
     "latitude": 37.970495,
     "longitude": -87.5715641,
-    "scraped_at": "2026-03-12T07:01:35.147996",
+    "scraped_at": "2026-03-12T14:54:12.136579",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2790,7 +2838,7 @@
     "items": []
   },
   {
-    "id": 83,
+    "id": 81,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2826,7 +2874,7 @@
     "image_urls": [],
     "latitude": 32.6098566,
     "longitude": -85.4807825,
-    "scraped_at": "2026-03-12T07:01:37.999558",
+    "scraped_at": "2026-03-12T14:54:15.096347",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2838,7 +2886,7 @@
     "items": []
   },
   {
-    "id": 84,
+    "id": 82,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2874,7 +2922,7 @@
     "image_urls": [],
     "latitude": 39.7589478,
     "longitude": -84.1916069,
-    "scraped_at": "2026-03-12T07:01:40.191953",
+    "scraped_at": "2026-03-12T14:54:17.320135",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2886,7 +2934,7 @@
     "items": []
   },
   {
-    "id": 86,
+    "id": 84,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2922,7 +2970,7 @@
     "image_urls": [],
     "latitude": 26.5625742,
     "longitude": -81.9438802,
-    "scraped_at": "2026-03-12T07:01:43.046267",
+    "scraped_at": "2026-03-12T14:54:20.061753",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2934,7 +2982,7 @@
     "items": []
   },
   {
-    "id": 87,
+    "id": 85,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -2970,7 +3018,7 @@
     "image_urls": [],
     "latitude": 35.7803977,
     "longitude": -78.6390989,
-    "scraped_at": "2026-03-12T07:01:43.550958",
+    "scraped_at": "2026-03-12T14:54:20.760329",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -2982,7 +3030,7 @@
     "items": []
   },
   {
-    "id": 88,
+    "id": 86,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3018,7 +3066,7 @@
     "image_urls": [],
     "latitude": 33.5386858,
     "longitude": -112.185994,
-    "scraped_at": "2026-03-12T07:01:46.055930",
+    "scraped_at": "2026-03-12T14:54:26.082142",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3030,7 +3078,7 @@
     "items": []
   },
   {
-    "id": 90,
+    "id": 88,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3066,7 +3114,7 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:01:48.759475",
+    "scraped_at": "2026-03-12T14:54:28.790651",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3078,7 +3126,7 @@
     "items": []
   },
   {
-    "id": 91,
+    "id": 89,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3114,7 +3162,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:49.107746",
+    "scraped_at": "2026-03-12T14:54:31.487203",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3126,7 +3174,7 @@
     "items": []
   },
   {
-    "id": 92,
+    "id": 90,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3162,7 +3210,7 @@
     "image_urls": [],
     "latitude": 34.0553813,
     "longitude": -117.7517496,
-    "scraped_at": "2026-03-12T07:01:51.456805",
+    "scraped_at": "2026-03-12T14:54:31.680814",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3174,7 +3222,7 @@
     "items": []
   },
   {
-    "id": 93,
+    "id": 91,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3210,7 +3258,7 @@
     "image_urls": [],
     "latitude": 40.5130953,
     "longitude": -74.8591333,
-    "scraped_at": "2026-03-12T07:01:51.962741",
+    "scraped_at": "2026-03-12T14:54:34.179318",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3222,7 +3270,7 @@
     "items": []
   },
   {
-    "id": 94,
+    "id": 92,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3258,7 +3306,7 @@
     "image_urls": [],
     "latitude": 34.1069927,
     "longitude": -117.934214,
-    "scraped_at": "2026-03-12T07:01:54.467497",
+    "scraped_at": "2026-03-12T14:54:34.505381",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3270,7 +3318,7 @@
     "items": []
   },
   {
-    "id": 95,
+    "id": 93,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3306,7 +3354,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:54.818717",
+    "scraped_at": "2026-03-12T14:54:37.008246",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3318,7 +3366,7 @@
     "items": []
   },
   {
-    "id": 96,
+    "id": 94,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3354,7 +3402,7 @@
     "image_urls": [],
     "latitude": 28.0394654,
     "longitude": -81.9498042,
-    "scraped_at": "2026-03-12T07:01:57.327969",
+    "scraped_at": "2026-03-12T14:54:37.332434",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3366,7 +3414,7 @@
     "items": []
   },
   {
-    "id": 97,
+    "id": 95,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3402,7 +3450,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:01:57.679194",
+    "scraped_at": "2026-03-12T14:54:39.978914",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3414,7 +3462,7 @@
     "items": []
   },
   {
-    "id": 98,
+    "id": 96,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3424,7 +3472,7 @@
     },
     "external_id": "bscpau10367",
     "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10367",
-    "title": "SALE #2 BOSTON - HIGH END RETAIL FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM  SETS - CHANDELIERS - DECOR - FIXTURES",
+    "title": "SALE #2 BOSTON -  HIGH END RETAIL CIRCLE FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM SETS - CHANDELIERS - DECOR -FIXTURE",
     "description": "SALE #2 BOSTON - FURNITURE & DECOR - CIRCLE FURNITURE RETAIL STYLE AUCTION",
     "category": "furniture",
     "condition": null,
@@ -3450,7 +3498,7 @@
     "image_urls": [],
     "latitude": 42.3588336,
     "longitude": -71.0578303,
-    "scraped_at": "2026-03-12T07:02:00.028765",
+    "scraped_at": "2026-03-12T14:54:40.166279",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3464,7 +3512,7 @@
     "items": []
   },
   {
-    "id": 100,
+    "id": 98,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3494,13 +3542,13 @@
     "city": "Dallas",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-13T13:29:00-05:00",
+    "sale_ends_at": "2026-03-13T13:14:00-05:00",
     "sale_starts_at": "2026-02-20T20:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/sam-au10169/images/141d0f6a-42c1-4f5e-a4bd-b3f70160bcaf.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.7762719,
     "longitude": -96.7968559,
-    "scraped_at": "2026-03-12T07:02:02.731382",
+    "scraped_at": "2026-03-12T14:54:43.137093",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3512,7 +3560,7 @@
     "items": []
   },
   {
-    "id": 101,
+    "id": 99,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3548,7 +3596,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:03.228738",
+    "scraped_at": "2026-03-12T14:54:45.503386",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3560,7 +3608,7 @@
     "items": []
   },
   {
-    "id": 102,
+    "id": 100,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3596,7 +3644,7 @@
     "image_urls": [],
     "latitude": 40.5484233,
     "longitude": -76.3846781,
-    "scraped_at": "2026-03-12T07:02:05.585199",
+    "scraped_at": "2026-03-12T14:54:46.100657",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3608,7 +3656,7 @@
     "items": []
   },
   {
-    "id": 104,
+    "id": 102,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3644,7 +3692,7 @@
     "image_urls": [],
     "latitude": 28.6732806,
     "longitude": -81.5116471,
-    "scraped_at": "2026-03-12T07:02:08.600641",
+    "scraped_at": "2026-03-12T14:54:48.790168",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3656,7 +3704,7 @@
     "items": []
   },
   {
-    "id": 105,
+    "id": 103,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3692,7 +3740,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:08.951662",
+    "scraped_at": "2026-03-12T14:54:51.303298",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3704,7 +3752,7 @@
     "items": []
   },
   {
-    "id": 111,
+    "id": 109,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3740,7 +3788,7 @@
     "image_urls": [],
     "latitude": 41.8975152,
     "longitude": -84.0373054,
-    "scraped_at": "2026-03-12T07:02:17.830845",
+    "scraped_at": "2026-03-12T14:55:00.072482",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3752,7 +3800,7 @@
     "items": []
   },
   {
-    "id": 112,
+    "id": 110,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3788,7 +3836,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:20.017719",
+    "scraped_at": "2026-03-12T14:55:00.265566",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3800,7 +3848,7 @@
     "items": []
   },
   {
-    "id": 114,
+    "id": 112,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3836,7 +3884,7 @@
     "image_urls": [],
     "latitude": 41.2587459,
     "longitude": -95.9383758,
-    "scraped_at": "2026-03-12T07:02:26.033108",
+    "scraped_at": "2026-03-12T14:55:03.235543",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3848,7 +3896,7 @@
     "items": []
   },
   {
-    "id": 116,
+    "id": 114,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3884,7 +3932,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:37.384165",
+    "scraped_at": "2026-03-12T14:55:06.063046",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3896,7 +3944,7 @@
     "items": []
   },
   {
-    "id": 118,
+    "id": 116,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3932,7 +3980,7 @@
     "image_urls": [],
     "latitude": 40.9636685,
     "longitude": -81.3312195,
-    "scraped_at": "2026-03-12T07:02:40.237403",
+    "scraped_at": "2026-03-12T14:55:08.897486",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3944,7 +3992,7 @@
     "items": []
   },
   {
-    "id": 119,
+    "id": 117,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -3980,7 +4028,7 @@
     "image_urls": [],
     "latitude": 43.7982806,
     "longitude": -73.087913,
-    "scraped_at": "2026-03-12T07:02:42.137365",
+    "scraped_at": "2026-03-12T14:55:11.122652",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -3992,7 +4040,7 @@
     "items": []
   },
   {
-    "id": 120,
+    "id": 118,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4028,7 +4076,55 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:02:42.936769",
+    "scraped_at": "2026-03-12T14:55:11.722104",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 119,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bsctho10713",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/thompson-auctioneers/catalogue-id-bsctho10713",
+    "title": "Brinly-Hardy Co.",
+    "description": "Well-Maintained Fabricating, Wire & Tube Machinery - Surplus Due to Facility Consolidation",
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": null,
+    "state": null,
+    "zip_code": null,
+    "sale_ends_at": "2026-03-17T11:41:00-04:00",
+    "sale_starts_at": "2026-02-03T10:00:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bsctho10713/images/b373c520-c392-40f1-b313-a4f2ecbd5c8c.jpg?h=1000",
+    "image_urls": [],
+    "latitude": null,
+    "longitude": null,
+    "scraped_at": "2026-03-12T14:55:13.956628",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4076,7 +4172,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:48.058342",
+    "scraped_at": "2026-03-12T14:55:20.103392",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4088,7 +4184,7 @@
     "items": []
   },
   {
-    "id": 126,
+    "id": 125,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4124,7 +4220,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:53.661195",
+    "scraped_at": "2026-03-12T14:55:23.290499",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4136,7 +4232,7 @@
     "items": []
   },
   {
-    "id": 127,
+    "id": 126,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4160,7 +4256,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": null,
@@ -4172,7 +4268,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:54.357983",
+    "scraped_at": "2026-03-12T14:55:25.520847",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4184,55 +4280,7 @@
     "items": []
   },
   {
-    "id": 128,
-    "platform": {
-      "id": 5,
-      "name": "bidspotter",
-      "display_name": "BidSpotter",
-      "base_url": "https://www.bidspotter.com",
-      "logo_url": null
-    },
-    "external_id": "bscbt10733",
-    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
-    "title": "3/12/26 New-In-Box - MRO Surplus",
-    "description": null,
-    "category": null,
-    "condition": null,
-    "listing_type": "auction",
-    "item_type": "individual_item",
-    "current_price": null,
-    "buy_now_price": null,
-    "estimate_low": null,
-    "estimate_high": null,
-    "final_price": null,
-    "is_completed": false,
-    "buyers_premium_pct": null,
-    "total_cost_estimate": null,
-    "auction_status": "live",
-    "pickup_only": false,
-    "ships_nationally": true,
-    "city": "Muskegon",
-    "state": "MI",
-    "zip_code": null,
-    "sale_ends_at": "2026-03-12T10:24:00-04:00",
-    "sale_starts_at": "2026-02-12T00:10:00-05:00",
-    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
-    "image_urls": [],
-    "latitude": 43.2341813,
-    "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:02:56.515689",
-    "is_sponsored": false,
-    "maker": null,
-    "brand": null,
-    "collaboration_brands": [],
-    "period": null,
-    "country_of_origin": null,
-    "sub_category": null,
-    "attributes": {},
-    "items": []
-  },
-  {
-    "id": 129,
+    "id": 127,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4256,7 +4304,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Middleburg",
@@ -4268,7 +4316,7 @@
     "image_urls": [],
     "latitude": 30.0688512,
     "longitude": -81.8603778,
-    "scraped_at": "2026-03-12T07:02:57.053321",
+    "scraped_at": "2026-03-12T14:55:26.124863",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4280,7 +4328,7 @@
     "items": []
   },
   {
-    "id": 130,
+    "id": 128,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4316,7 +4364,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:02:59.369543",
+    "scraped_at": "2026-03-12T14:55:28.217885",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4328,7 +4376,7 @@
     "items": []
   },
   {
-    "id": 132,
+    "id": 129,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4364,7 +4412,7 @@
     "image_urls": [],
     "latitude": 26.1223084,
     "longitude": -80.1433786,
-    "scraped_at": "2026-03-12T07:03:02.376712",
+    "scraped_at": "2026-03-12T14:55:28.950534",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4376,7 +4424,7 @@
     "items": []
   },
   {
-    "id": 133,
+    "id": 130,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4412,7 +4460,7 @@
     "image_urls": [],
     "latitude": 40.0942664,
     "longitude": -75.9113306,
-    "scraped_at": "2026-03-12T07:03:02.606796",
+    "scraped_at": "2026-03-12T14:55:31.042187",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4426,7 +4474,7 @@
     "items": []
   },
   {
-    "id": 134,
+    "id": 131,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4462,7 +4510,7 @@
     "image_urls": [],
     "latitude": 42.4858692,
     "longitude": -83.1052028,
-    "scraped_at": "2026-03-12T07:03:05.389560",
+    "scraped_at": "2026-03-12T14:55:31.914174",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4474,7 +4522,55 @@
     "items": []
   },
   {
-    "id": 135,
+    "id": 132,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bscbt10733",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
+    "title": "3/12/26 New-In-Box - MRO Surplus",
+    "description": null,
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": "Muskegon",
+    "state": "MI",
+    "zip_code": null,
+    "sale_ends_at": "2026-03-12T11:03:52-04:00",
+    "sale_starts_at": "2026-02-12T00:10:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
+    "image_urls": [],
+    "latitude": 43.2341813,
+    "longitude": -86.2483921,
+    "scraped_at": "2026-03-12T14:55:33.869362",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 133,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4510,7 +4606,7 @@
     "image_urls": [],
     "latitude": 41.4996574,
     "longitude": -81.6936772,
-    "scraped_at": "2026-03-12T07:03:05.898615",
+    "scraped_at": "2026-03-12T14:55:34.875655",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4522,7 +4618,7 @@
     "items": []
   },
   {
-    "id": 136,
+    "id": 134,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4552,13 +4648,13 @@
     "city": "Mansfield",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:34:00-05:00",
+    "sale_ends_at": "2026-03-12T15:35:00-05:00",
     "sale_starts_at": "2026-02-02T15:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscinv10332/images/b64b8707-5a4a-440e-9cf4-ab12b6686e9b.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.563487,
     "longitude": -97.1420308,
-    "scraped_at": "2026-03-12T07:03:08.089844",
+    "scraped_at": "2026-03-12T14:55:36.565187",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4570,7 +4666,7 @@
     "items": []
   },
   {
-    "id": 137,
+    "id": 135,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4606,7 +4702,7 @@
     "image_urls": [],
     "latitude": 43.1790768,
     "longitude": -88.1170784,
-    "scraped_at": "2026-03-12T07:03:08.750865",
+    "scraped_at": "2026-03-12T14:55:37.702896",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4618,7 +4714,7 @@
     "items": []
   },
   {
-    "id": 138,
+    "id": 136,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4648,13 +4744,13 @@
     "city": "Auburn Hills",
     "state": "MI",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:19:30-04:00",
+    "sale_ends_at": "2026-03-12T15:20:00-04:00",
     "sale_starts_at": "2026-03-05T11:00:00-05:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/levy-r10181/images/42d25639-b0d6-4f87-8b09-51d08149c4c4.JPG?h=1000",
     "image_urls": [],
     "latitude": 42.6875323,
     "longitude": -83.2341028,
-    "scraped_at": "2026-03-12T07:03:10.943194",
+    "scraped_at": "2026-03-12T14:55:39.528005",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4666,7 +4762,7 @@
     "items": []
   },
   {
-    "id": 139,
+    "id": 137,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4702,7 +4798,7 @@
     "image_urls": [],
     "latitude": 39.1928853,
     "longitude": -76.7241371,
-    "scraped_at": "2026-03-12T07:03:11.447296",
+    "scraped_at": "2026-03-12T14:55:40.395865",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4714,7 +4810,7 @@
     "items": []
   },
   {
-    "id": 140,
+    "id": 138,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4750,7 +4846,7 @@
     "image_urls": [],
     "latitude": 40.7596198,
     "longitude": -111.886797,
-    "scraped_at": "2026-03-12T07:03:13.957245",
+    "scraped_at": "2026-03-12T14:55:42.354828",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4762,7 +4858,7 @@
     "items": []
   },
   {
-    "id": 141,
+    "id": 139,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4798,7 +4894,7 @@
     "image_urls": [],
     "latitude": 37.970495,
     "longitude": -87.5715641,
-    "scraped_at": "2026-03-12T07:03:14.306326",
+    "scraped_at": "2026-03-12T14:55:43.086026",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4810,7 +4906,7 @@
     "items": []
   },
   {
-    "id": 143,
+    "id": 141,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4846,7 +4942,7 @@
     "image_urls": [],
     "latitude": 32.6098566,
     "longitude": -85.4807825,
-    "scraped_at": "2026-03-12T07:03:17.324494",
+    "scraped_at": "2026-03-12T14:55:45.779723",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4858,7 +4954,7 @@
     "items": []
   },
   {
-    "id": 144,
+    "id": 142,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4894,7 +4990,7 @@
     "image_urls": [],
     "latitude": 39.7589478,
     "longitude": -84.1916069,
-    "scraped_at": "2026-03-12T07:03:19.511272",
+    "scraped_at": "2026-03-12T14:55:48.014667",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4906,7 +5002,7 @@
     "items": []
   },
   {
-    "id": 146,
+    "id": 144,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4942,7 +5038,7 @@
     "image_urls": [],
     "latitude": 26.5625742,
     "longitude": -81.9438802,
-    "scraped_at": "2026-03-12T07:03:22.366536",
+    "scraped_at": "2026-03-12T14:55:50.707298",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -4954,7 +5050,7 @@
     "items": []
   },
   {
-    "id": 147,
+    "id": 145,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -4990,7 +5086,7 @@
     "image_urls": [],
     "latitude": 35.7803977,
     "longitude": -78.6390989,
-    "scraped_at": "2026-03-12T07:03:22.888117",
+    "scraped_at": "2026-03-12T14:55:51.301939",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5002,7 +5098,7 @@
     "items": []
   },
   {
-    "id": 148,
+    "id": 146,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5038,7 +5134,7 @@
     "image_urls": [],
     "latitude": 33.5386858,
     "longitude": -112.185994,
-    "scraped_at": "2026-03-12T07:03:25.220205",
+    "scraped_at": "2026-03-12T14:55:53.402702",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5050,7 +5146,7 @@
     "items": []
   },
   {
-    "id": 150,
+    "id": 148,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5086,7 +5182,7 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:03:28.230627",
+    "scraped_at": "2026-03-12T14:55:56.098388",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5098,7 +5194,7 @@
     "items": []
   },
   {
-    "id": 151,
+    "id": 149,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5134,7 +5230,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:03:28.442115",
+    "scraped_at": "2026-03-12T14:55:57.091268",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5146,7 +5242,7 @@
     "items": []
   },
   {
-    "id": 152,
+    "id": 150,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5182,7 +5278,7 @@
     "image_urls": [],
     "latitude": 34.0553813,
     "longitude": -117.7517496,
-    "scraped_at": "2026-03-12T07:03:31.085543",
+    "scraped_at": "2026-03-12T14:55:58.789354",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5194,7 +5290,7 @@
     "items": []
   },
   {
-    "id": 153,
+    "id": 151,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5230,7 +5326,7 @@
     "image_urls": [],
     "latitude": 40.5130953,
     "longitude": -74.8591333,
-    "scraped_at": "2026-03-12T07:03:31.608774",
+    "scraped_at": "2026-03-12T14:55:59.786803",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5242,7 +5338,7 @@
     "items": []
   },
   {
-    "id": 154,
+    "id": 152,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5278,7 +5374,7 @@
     "image_urls": [],
     "latitude": 34.1069927,
     "longitude": -117.934214,
-    "scraped_at": "2026-03-12T07:03:33.944418",
+    "scraped_at": "2026-03-12T14:56:01.485154",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5290,7 +5386,7 @@
     "items": []
   },
   {
-    "id": 155,
+    "id": 153,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5326,7 +5422,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:03:34.617153",
+    "scraped_at": "2026-03-12T14:56:02.478066",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5338,7 +5434,7 @@
     "items": []
   },
   {
-    "id": 156,
+    "id": 154,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5374,7 +5470,7 @@
     "image_urls": [],
     "latitude": 28.0394654,
     "longitude": -81.9498042,
-    "scraped_at": "2026-03-12T07:03:36.958960",
+    "scraped_at": "2026-03-12T14:56:04.319351",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5386,7 +5482,7 @@
     "items": []
   },
   {
-    "id": 157,
+    "id": 155,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5422,7 +5518,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:03:37.474576",
+    "scraped_at": "2026-03-12T14:56:05.171799",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5434,7 +5530,7 @@
     "items": []
   },
   {
-    "id": 158,
+    "id": 156,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5444,7 +5540,7 @@
     },
     "external_id": "bscpau10367",
     "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10367",
-    "title": "SALE #2 BOSTON - HIGH END RETAIL FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM  SETS - CHANDELIERS - DECOR - FIXTURES",
+    "title": "SALE #2 BOSTON -  HIGH END RETAIL CIRCLE FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM SETS - CHANDELIERS - DECOR -FIXTURE",
     "description": "SALE #2 BOSTON - FURNITURE & DECOR - CIRCLE FURNITURE RETAIL STYLE AUCTION",
     "category": "furniture",
     "condition": null,
@@ -5470,7 +5566,7 @@
     "image_urls": [],
     "latitude": 42.3588336,
     "longitude": -71.0578303,
-    "scraped_at": "2026-03-12T07:03:39.970687",
+    "scraped_at": "2026-03-12T14:56:07.010503",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5484,7 +5580,7 @@
     "items": []
   },
   {
-    "id": 160,
+    "id": 158,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5514,13 +5610,13 @@
     "city": "Dallas",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-13T13:29:00-05:00",
+    "sale_ends_at": "2026-03-13T13:14:00-05:00",
     "sale_starts_at": "2026-02-20T20:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/sam-au10169/images/141d0f6a-42c1-4f5e-a4bd-b3f70160bcaf.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.7762719,
     "longitude": -96.7968559,
-    "scraped_at": "2026-03-12T07:03:42.671130",
+    "scraped_at": "2026-03-12T14:56:09.701406",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5532,7 +5628,7 @@
     "items": []
   },
   {
-    "id": 161,
+    "id": 159,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5568,7 +5664,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:03:43.350375",
+    "scraped_at": "2026-03-12T14:56:10.701244",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5580,7 +5676,7 @@
     "items": []
   },
   {
-    "id": 162,
+    "id": 160,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5616,7 +5712,7 @@
     "image_urls": [],
     "latitude": 40.5484233,
     "longitude": -76.3846781,
-    "scraped_at": "2026-03-12T07:03:45.524194",
+    "scraped_at": "2026-03-12T14:56:12.535063",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5628,7 +5724,7 @@
     "items": []
   },
   {
-    "id": 164,
+    "id": 162,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5664,7 +5760,7 @@
     "image_urls": [],
     "latitude": 28.6732806,
     "longitude": -81.5116471,
-    "scraped_at": "2026-03-12T07:03:48.532756",
+    "scraped_at": "2026-03-12T14:56:15.360527",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5676,7 +5772,7 @@
     "items": []
   },
   {
-    "id": 165,
+    "id": 163,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5712,7 +5808,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:03:48.909929",
+    "scraped_at": "2026-03-12T14:56:16.223452",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5724,7 +5820,7 @@
     "items": []
   },
   {
-    "id": 171,
+    "id": 169,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5760,7 +5856,7 @@
     "image_urls": [],
     "latitude": 41.8975152,
     "longitude": -84.0373054,
-    "scraped_at": "2026-03-12T07:04:10.787553",
+    "scraped_at": "2026-03-12T14:56:24.434969",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5772,7 +5868,7 @@
     "items": []
   },
   {
-    "id": 172,
+    "id": 170,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5808,7 +5904,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:04:11.962900",
+    "scraped_at": "2026-03-12T14:56:26.677248",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5820,7 +5916,7 @@
     "items": []
   },
   {
-    "id": 174,
+    "id": 172,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5856,7 +5952,7 @@
     "image_urls": [],
     "latitude": 41.2587459,
     "longitude": -95.9383758,
-    "scraped_at": "2026-03-12T07:04:14.817208",
+    "scraped_at": "2026-03-12T14:56:29.509281",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5868,7 +5964,7 @@
     "items": []
   },
   {
-    "id": 176,
+    "id": 174,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5904,7 +6000,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:04:17.834220",
+    "scraped_at": "2026-03-12T14:56:35.532743",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5916,7 +6012,7 @@
     "items": []
   },
   {
-    "id": 178,
+    "id": 176,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -5952,7 +6048,7 @@
     "image_urls": [],
     "latitude": 40.9636685,
     "longitude": -81.3312195,
-    "scraped_at": "2026-03-12T07:04:20.686635",
+    "scraped_at": "2026-03-12T14:56:38.358057",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -5964,7 +6060,7 @@
     "items": []
   },
   {
-    "id": 179,
+    "id": 177,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6000,7 +6096,7 @@
     "image_urls": [],
     "latitude": 43.7982806,
     "longitude": -73.087913,
-    "scraped_at": "2026-03-12T07:04:22.230060",
+    "scraped_at": "2026-03-12T14:56:40.773031",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6012,7 +6108,7 @@
     "items": []
   },
   {
-    "id": 180,
+    "id": 178,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6048,7 +6144,55 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:04:23.695979",
+    "scraped_at": "2026-03-12T14:56:41.182451",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 179,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bsctho10713",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/thompson-auctioneers/catalogue-id-bsctho10713",
+    "title": "Brinly-Hardy Co.",
+    "description": "Well-Maintained Fabricating, Wire & Tube Machinery - Surplus Due to Facility Consolidation",
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": null,
+    "state": null,
+    "zip_code": null,
+    "sale_ends_at": "2026-03-17T11:41:00-04:00",
+    "sale_starts_at": "2026-02-03T10:00:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bsctho10713/images/b373c520-c392-40f1-b313-a4f2ecbd5c8c.jpg?h=1000",
+    "image_urls": [],
+    "latitude": null,
+    "longitude": null,
+    "scraped_at": "2026-03-12T14:56:46.796772",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6096,7 +6240,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:04:28.046766",
+    "scraped_at": "2026-03-12T14:56:52.900066",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6108,7 +6252,7 @@
     "items": []
   },
   {
-    "id": 186,
+    "id": 185,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6144,7 +6288,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:04:33.920371",
+    "scraped_at": "2026-03-12T14:56:57.220568",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6156,7 +6300,7 @@
     "items": []
   },
   {
-    "id": 187,
+    "id": 186,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6180,7 +6324,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": null,
@@ -6192,7 +6336,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:04:34.952841",
+    "scraped_at": "2026-03-12T14:56:58.421786",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6204,55 +6348,7 @@
     "items": []
   },
   {
-    "id": 188,
-    "platform": {
-      "id": 5,
-      "name": "bidspotter",
-      "display_name": "BidSpotter",
-      "base_url": "https://www.bidspotter.com",
-      "logo_url": null
-    },
-    "external_id": "bscbt10733",
-    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
-    "title": "3/12/26 New-In-Box - MRO Surplus",
-    "description": null,
-    "category": null,
-    "condition": null,
-    "listing_type": "auction",
-    "item_type": "individual_item",
-    "current_price": null,
-    "buy_now_price": null,
-    "estimate_low": null,
-    "estimate_high": null,
-    "final_price": null,
-    "is_completed": false,
-    "buyers_premium_pct": null,
-    "total_cost_estimate": null,
-    "auction_status": "live",
-    "pickup_only": false,
-    "ships_nationally": true,
-    "city": "Muskegon",
-    "state": "MI",
-    "zip_code": null,
-    "sale_ends_at": "2026-03-12T10:24:00-04:00",
-    "sale_starts_at": "2026-02-12T00:10:00-05:00",
-    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
-    "image_urls": [],
-    "latitude": 43.2341813,
-    "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:04:36.929178",
-    "is_sponsored": false,
-    "maker": null,
-    "brand": null,
-    "collaboration_brands": [],
-    "period": null,
-    "country_of_origin": null,
-    "sub_category": null,
-    "attributes": {},
-    "items": []
-  },
-  {
-    "id": 189,
+    "id": 187,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6276,7 +6372,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Middleburg",
@@ -6288,7 +6384,7 @@
     "image_urls": [],
     "latitude": 30.0688512,
     "longitude": -81.8603778,
-    "scraped_at": "2026-03-12T07:04:37.961207",
+    "scraped_at": "2026-03-12T14:57:00.054092",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6300,7 +6396,7 @@
     "items": []
   },
   {
-    "id": 190,
+    "id": 188,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6336,7 +6432,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:04:39.785173",
+    "scraped_at": "2026-03-12T14:57:01.392462",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6348,7 +6444,7 @@
     "items": []
   },
   {
-    "id": 192,
+    "id": 189,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6384,7 +6480,7 @@
     "image_urls": [],
     "latitude": 26.1223084,
     "longitude": -80.1433786,
-    "scraped_at": "2026-03-12T07:04:42.795060",
+    "scraped_at": "2026-03-12T14:57:02.881073",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6396,7 +6492,7 @@
     "items": []
   },
   {
-    "id": 193,
+    "id": 190,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6432,7 +6528,7 @@
     "image_urls": [],
     "latitude": 40.0942664,
     "longitude": -75.9113306,
-    "scraped_at": "2026-03-12T07:04:43.356678",
+    "scraped_at": "2026-03-12T14:57:04.096495",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6446,7 +6542,7 @@
     "items": []
   },
   {
-    "id": 194,
+    "id": 191,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6482,7 +6578,7 @@
     "image_urls": [],
     "latitude": 42.4858692,
     "longitude": -83.1052028,
-    "scraped_at": "2026-03-12T07:04:45.649885",
+    "scraped_at": "2026-03-12T14:57:05.712030",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6494,7 +6590,55 @@
     "items": []
   },
   {
-    "id": 195,
+    "id": 192,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bscbt10733",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
+    "title": "3/12/26 New-In-Box - MRO Surplus",
+    "description": null,
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": "Muskegon",
+    "state": "MI",
+    "zip_code": null,
+    "sale_ends_at": "2026-03-12T11:03:52-04:00",
+    "sale_starts_at": "2026-02-12T00:10:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
+    "image_urls": [],
+    "latitude": 43.2341813,
+    "longitude": -86.2483921,
+    "scraped_at": "2026-03-12T14:57:06.922601",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 193,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6530,7 +6674,7 @@
     "image_urls": [],
     "latitude": 41.4996574,
     "longitude": -81.6936772,
-    "scraped_at": "2026-03-12T07:04:46.207709",
+    "scraped_at": "2026-03-12T14:57:08.675401",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6542,7 +6686,7 @@
     "items": []
   },
   {
-    "id": 196,
+    "id": 194,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6572,13 +6716,13 @@
     "city": "Mansfield",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:34:00-05:00",
+    "sale_ends_at": "2026-03-12T15:35:00-05:00",
     "sale_starts_at": "2026-02-02T15:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscinv10332/images/b64b8707-5a4a-440e-9cf4-ab12b6686e9b.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.563487,
     "longitude": -97.1420308,
-    "scraped_at": "2026-03-12T07:04:48.660832",
+    "scraped_at": "2026-03-12T14:57:09.613273",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6590,7 +6734,7 @@
     "items": []
   },
   {
-    "id": 197,
+    "id": 195,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6626,7 +6770,7 @@
     "image_urls": [],
     "latitude": 43.1790768,
     "longitude": -88.1170784,
-    "scraped_at": "2026-03-12T07:04:49.061721",
+    "scraped_at": "2026-03-12T14:57:11.367080",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6638,7 +6782,7 @@
     "items": []
   },
   {
-    "id": 198,
+    "id": 196,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6668,13 +6812,13 @@
     "city": "Auburn Hills",
     "state": "MI",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:19:30-04:00",
+    "sale_ends_at": "2026-03-12T15:20:00-04:00",
     "sale_starts_at": "2026-03-05T11:00:00-05:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/levy-r10181/images/42d25639-b0d6-4f87-8b09-51d08149c4c4.JPG?h=1000",
     "image_urls": [],
     "latitude": 42.6875323,
     "longitude": -83.2341028,
-    "scraped_at": "2026-03-12T07:04:51.670500",
+    "scraped_at": "2026-03-12T14:57:12.312920",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6686,7 +6830,7 @@
     "items": []
   },
   {
-    "id": 199,
+    "id": 197,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6722,7 +6866,7 @@
     "image_urls": [],
     "latitude": 39.1928853,
     "longitude": -76.7241371,
-    "scraped_at": "2026-03-12T07:04:52.181449",
+    "scraped_at": "2026-03-12T14:57:14.328953",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6734,7 +6878,7 @@
     "items": []
   },
   {
-    "id": 200,
+    "id": 198,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6770,7 +6914,7 @@
     "image_urls": [],
     "latitude": 40.7596198,
     "longitude": -111.886797,
-    "scraped_at": "2026-03-12T07:04:54.680494",
+    "scraped_at": "2026-03-12T14:57:15.276753",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6782,7 +6926,7 @@
     "items": []
   },
   {
-    "id": 201,
+    "id": 199,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6818,7 +6962,7 @@
     "image_urls": [],
     "latitude": 37.970495,
     "longitude": -87.5715641,
-    "scraped_at": "2026-03-12T07:04:55.036456",
+    "scraped_at": "2026-03-12T14:57:17.159734",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6830,7 +6974,7 @@
     "items": []
   },
   {
-    "id": 203,
+    "id": 201,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6866,7 +7010,7 @@
     "image_urls": [],
     "latitude": 32.6098566,
     "longitude": -85.4807825,
-    "scraped_at": "2026-03-12T07:04:57.886227",
+    "scraped_at": "2026-03-12T14:57:19.850681",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6878,7 +7022,7 @@
     "items": []
   },
   {
-    "id": 204,
+    "id": 202,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6914,7 +7058,7 @@
     "image_urls": [],
     "latitude": 39.7589478,
     "longitude": -84.1916069,
-    "scraped_at": "2026-03-12T07:05:00.550864",
+    "scraped_at": "2026-03-12T14:57:20.803561",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6926,7 +7070,7 @@
     "items": []
   },
   {
-    "id": 206,
+    "id": 204,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -6962,7 +7106,7 @@
     "image_urls": [],
     "latitude": 26.5625742,
     "longitude": -81.9438802,
-    "scraped_at": "2026-03-12T07:05:03.404788",
+    "scraped_at": "2026-03-12T14:57:23.769780",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -6974,7 +7118,7 @@
     "items": []
   },
   {
-    "id": 207,
+    "id": 205,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7010,7 +7154,7 @@
     "image_urls": [],
     "latitude": 35.7803977,
     "longitude": -78.6390989,
-    "scraped_at": "2026-03-12T07:05:04.072406",
+    "scraped_at": "2026-03-12T14:57:25.510591",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7022,7 +7166,7 @@
     "items": []
   },
   {
-    "id": 208,
+    "id": 206,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7058,7 +7202,7 @@
     "image_urls": [],
     "latitude": 33.5386858,
     "longitude": -112.185994,
-    "scraped_at": "2026-03-12T07:05:06.421345",
+    "scraped_at": "2026-03-12T14:57:26.462438",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7070,7 +7214,7 @@
     "items": []
   },
   {
-    "id": 210,
+    "id": 208,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7106,7 +7250,7 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:05:09.272623",
+    "scraped_at": "2026-03-12T14:57:29.290091",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7118,7 +7262,7 @@
     "items": []
   },
   {
-    "id": 211,
+    "id": 209,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7154,7 +7298,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:09.776610",
+    "scraped_at": "2026-03-12T14:57:31.036010",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7166,7 +7310,7 @@
     "items": []
   },
   {
-    "id": 212,
+    "id": 210,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7202,7 +7346,7 @@
     "image_urls": [],
     "latitude": 34.0553813,
     "longitude": -117.7517496,
-    "scraped_at": "2026-03-12T07:05:12.130158",
+    "scraped_at": "2026-03-12T14:57:32.167940",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7214,7 +7358,7 @@
     "items": []
   },
   {
-    "id": 213,
+    "id": 211,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7250,7 +7394,7 @@
     "image_urls": [],
     "latitude": 40.5130953,
     "longitude": -74.8591333,
-    "scraped_at": "2026-03-12T07:05:12.787214",
+    "scraped_at": "2026-03-12T14:57:34.001897",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7262,7 +7406,7 @@
     "items": []
   },
   {
-    "id": 214,
+    "id": 212,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7298,7 +7442,7 @@
     "image_urls": [],
     "latitude": 34.1069927,
     "longitude": -117.934214,
-    "scraped_at": "2026-03-12T07:05:14.988701",
+    "scraped_at": "2026-03-12T14:57:34.859453",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7310,7 +7454,7 @@
     "items": []
   },
   {
-    "id": 215,
+    "id": 213,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7346,7 +7490,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:15.639344",
+    "scraped_at": "2026-03-12T14:57:36.826557",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7358,7 +7502,7 @@
     "items": []
   },
   {
-    "id": 216,
+    "id": 214,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7394,7 +7538,7 @@
     "image_urls": [],
     "latitude": 28.0394654,
     "longitude": -81.9498042,
-    "scraped_at": "2026-03-12T07:05:17.999711",
+    "scraped_at": "2026-03-12T14:57:37.547770",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7406,7 +7550,7 @@
     "items": []
   },
   {
-    "id": 217,
+    "id": 215,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7442,7 +7586,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:18.653329",
+    "scraped_at": "2026-03-12T14:57:39.525635",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7454,7 +7598,7 @@
     "items": []
   },
   {
-    "id": 218,
+    "id": 216,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7464,7 +7608,7 @@
     },
     "external_id": "bscpau10367",
     "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10367",
-    "title": "SALE #2 BOSTON - HIGH END RETAIL FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM  SETS - CHANDELIERS - DECOR - FIXTURES",
+    "title": "SALE #2 BOSTON -  HIGH END RETAIL CIRCLE FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM SETS - CHANDELIERS - DECOR -FIXTURE",
     "description": "SALE #2 BOSTON - FURNITURE & DECOR - CIRCLE FURNITURE RETAIL STYLE AUCTION",
     "category": "furniture",
     "condition": null,
@@ -7490,7 +7634,7 @@
     "image_urls": [],
     "latitude": 42.3588336,
     "longitude": -71.0578303,
-    "scraped_at": "2026-03-12T07:05:20.705424",
+    "scraped_at": "2026-03-12T14:57:40.373783",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7504,7 +7648,7 @@
     "items": []
   },
   {
-    "id": 220,
+    "id": 218,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7534,13 +7678,13 @@
     "city": "Dallas",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-13T13:29:00-05:00",
+    "sale_ends_at": "2026-03-13T13:14:00-05:00",
     "sale_starts_at": "2026-02-20T20:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/sam-au10169/images/141d0f6a-42c1-4f5e-a4bd-b3f70160bcaf.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.7762719,
     "longitude": -96.7968559,
-    "scraped_at": "2026-03-12T07:05:23.566870",
+    "scraped_at": "2026-03-12T14:57:43.063134",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7552,7 +7696,7 @@
     "items": []
   },
   {
-    "id": 221,
+    "id": 219,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7588,7 +7732,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:24.366276",
+    "scraped_at": "2026-03-12T14:57:44.915021",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7600,7 +7744,7 @@
     "items": []
   },
   {
-    "id": 222,
+    "id": 220,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7636,7 +7780,7 @@
     "image_urls": [],
     "latitude": 40.5484233,
     "longitude": -76.3846781,
-    "scraped_at": "2026-03-12T07:05:26.421776",
+    "scraped_at": "2026-03-12T14:57:45.890849",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7648,7 +7792,7 @@
     "items": []
   },
   {
-    "id": 224,
+    "id": 222,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7684,7 +7828,7 @@
     "image_urls": [],
     "latitude": 28.6732806,
     "longitude": -81.5116471,
-    "scraped_at": "2026-03-12T07:05:29.119866",
+    "scraped_at": "2026-03-12T14:57:48.853923",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7696,7 +7840,7 @@
     "items": []
   },
   {
-    "id": 225,
+    "id": 223,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7732,7 +7876,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:30.388603",
+    "scraped_at": "2026-03-12T14:57:50.716025",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7744,7 +7888,7 @@
     "items": []
   },
   {
-    "id": 231,
+    "id": 229,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7780,7 +7924,7 @@
     "image_urls": [],
     "latitude": 41.8975152,
     "longitude": -84.0373054,
-    "scraped_at": "2026-03-12T07:05:43.298740",
+    "scraped_at": "2026-03-12T14:57:59.067902",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7792,7 +7936,7 @@
     "items": []
   },
   {
-    "id": 232,
+    "id": 230,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7828,7 +7972,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:43.863817",
+    "scraped_at": "2026-03-12T14:58:00.307268",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7840,7 +7984,7 @@
     "items": []
   },
   {
-    "id": 234,
+    "id": 232,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7876,7 +8020,7 @@
     "image_urls": [],
     "latitude": 41.2587459,
     "longitude": -95.9383758,
-    "scraped_at": "2026-03-12T07:05:46.871197",
+    "scraped_at": "2026-03-12T14:58:06.329822",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7888,7 +8032,7 @@
     "items": []
   },
   {
-    "id": 236,
+    "id": 234,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7924,7 +8068,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:05:49.880891",
+    "scraped_at": "2026-03-12T14:58:18.051435",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7936,7 +8080,7 @@
     "items": []
   },
   {
-    "id": 238,
+    "id": 236,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -7972,7 +8116,7 @@
     "image_urls": [],
     "latitude": 40.9636685,
     "longitude": -81.3312195,
-    "scraped_at": "2026-03-12T07:05:52.735767",
+    "scraped_at": "2026-03-12T14:58:20.749135",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -7984,7 +8128,7 @@
     "items": []
   },
   {
-    "id": 239,
+    "id": 237,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8020,7 +8164,7 @@
     "image_urls": [],
     "latitude": 43.7982806,
     "longitude": -73.087913,
-    "scraped_at": "2026-03-12T07:05:55.194439",
+    "scraped_at": "2026-03-12T14:58:23.098869",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8032,7 +8176,7 @@
     "items": []
   },
   {
-    "id": 240,
+    "id": 238,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8068,7 +8212,55 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:05:55.435813",
+    "scraped_at": "2026-03-12T14:58:23.577671",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 239,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bsctho10713",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/thompson-auctioneers/catalogue-id-bsctho10713",
+    "title": "Brinly-Hardy Co.",
+    "description": "Well-Maintained Fabricating, Wire & Tube Machinery - Surplus Due to Facility Consolidation",
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": null,
+    "state": null,
+    "zip_code": null,
+    "sale_ends_at": "2026-03-17T11:41:00-04:00",
+    "sale_starts_at": "2026-02-03T10:00:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bsctho10713/images/b373c520-c392-40f1-b313-a4f2ecbd5c8c.jpg?h=1000",
+    "image_urls": [],
+    "latitude": null,
+    "longitude": null,
+    "scraped_at": "2026-03-12T14:58:25.786659",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8116,7 +8308,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:01.654223",
+    "scraped_at": "2026-03-12T14:58:31.978592",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8128,7 +8320,7 @@
     "items": []
   },
   {
-    "id": 246,
+    "id": 245,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8164,7 +8356,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:07.365983",
+    "scraped_at": "2026-03-12T14:58:35.125231",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8176,7 +8368,7 @@
     "items": []
   },
   {
-    "id": 247,
+    "id": 246,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8200,7 +8392,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": null,
@@ -8212,7 +8404,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:07.730788",
+    "scraped_at": "2026-03-12T14:58:37.653823",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8224,55 +8416,7 @@
     "items": []
   },
   {
-    "id": 248,
-    "platform": {
-      "id": 5,
-      "name": "bidspotter",
-      "display_name": "BidSpotter",
-      "base_url": "https://www.bidspotter.com",
-      "logo_url": null
-    },
-    "external_id": "bscbt10733",
-    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
-    "title": "3/12/26 New-In-Box - MRO Surplus",
-    "description": null,
-    "category": null,
-    "condition": null,
-    "listing_type": "auction",
-    "item_type": "individual_item",
-    "current_price": null,
-    "buy_now_price": null,
-    "estimate_low": null,
-    "estimate_high": null,
-    "final_price": null,
-    "is_completed": false,
-    "buyers_premium_pct": null,
-    "total_cost_estimate": null,
-    "auction_status": "live",
-    "pickup_only": false,
-    "ships_nationally": true,
-    "city": "Muskegon",
-    "state": "MI",
-    "zip_code": null,
-    "sale_ends_at": "2026-03-12T10:24:00-04:00",
-    "sale_starts_at": "2026-02-12T00:10:00-05:00",
-    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
-    "image_urls": [],
-    "latitude": 43.2341813,
-    "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:06:10.222844",
-    "is_sponsored": false,
-    "maker": null,
-    "brand": null,
-    "collaboration_brands": [],
-    "period": null,
-    "country_of_origin": null,
-    "sub_category": null,
-    "attributes": {},
-    "items": []
-  },
-  {
-    "id": 249,
+    "id": 247,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8296,7 +8440,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Middleburg",
@@ -8308,7 +8452,7 @@
     "image_urls": [],
     "latitude": 30.0688512,
     "longitude": -81.8603778,
-    "scraped_at": "2026-03-12T07:06:10.586274",
+    "scraped_at": "2026-03-12T14:58:37.998109",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8320,7 +8464,7 @@
     "items": []
   },
   {
-    "id": 250,
+    "id": 248,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8356,7 +8500,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:13.076969",
+    "scraped_at": "2026-03-12T14:58:40.350151",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8368,7 +8512,7 @@
     "items": []
   },
   {
-    "id": 252,
+    "id": 249,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8404,7 +8548,7 @@
     "image_urls": [],
     "latitude": 26.1223084,
     "longitude": -80.1433786,
-    "scraped_at": "2026-03-12T07:06:15.775929",
+    "scraped_at": "2026-03-12T14:58:40.825110",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8416,7 +8560,7 @@
     "items": []
   },
   {
-    "id": 253,
+    "id": 250,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8452,7 +8596,7 @@
     "image_urls": [],
     "latitude": 40.0942664,
     "longitude": -75.9113306,
-    "scraped_at": "2026-03-12T07:06:16.619284",
+    "scraped_at": "2026-03-12T14:58:43.183286",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8466,7 +8610,7 @@
     "items": []
   },
   {
-    "id": 254,
+    "id": 251,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8502,7 +8646,7 @@
     "image_urls": [],
     "latitude": 42.4858692,
     "longitude": -83.1052028,
-    "scraped_at": "2026-03-12T07:06:18.633256",
+    "scraped_at": "2026-03-12T14:58:43.515637",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8514,7 +8658,55 @@
     "items": []
   },
   {
-    "id": 255,
+    "id": 252,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bscbt10733",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
+    "title": "3/12/26 New-In-Box - MRO Surplus",
+    "description": null,
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": "Muskegon",
+    "state": "MI",
+    "zip_code": null,
+    "sale_ends_at": "2026-03-12T11:06:41-04:00",
+    "sale_starts_at": "2026-02-12T00:10:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
+    "image_urls": [],
+    "latitude": 43.2341813,
+    "longitude": -86.2483921,
+    "scraped_at": "2026-03-12T14:58:46.015544",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 253,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8550,7 +8742,7 @@
     "image_urls": [],
     "latitude": 41.4996574,
     "longitude": -81.6936772,
-    "scraped_at": "2026-03-12T07:06:19.473950",
+    "scraped_at": "2026-03-12T14:58:46.344887",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8562,7 +8754,7 @@
     "items": []
   },
   {
-    "id": 256,
+    "id": 254,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8592,13 +8784,13 @@
     "city": "Mansfield",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:34:00-05:00",
+    "sale_ends_at": "2026-03-12T15:35:00-05:00",
     "sale_starts_at": "2026-02-02T15:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscinv10332/images/b64b8707-5a4a-440e-9cf4-ab12b6686e9b.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.563487,
     "longitude": -97.1420308,
-    "scraped_at": "2026-03-12T07:06:21.645389",
+    "scraped_at": "2026-03-12T14:58:48.706616",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8610,7 +8802,7 @@
     "items": []
   },
   {
-    "id": 257,
+    "id": 255,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8646,7 +8838,7 @@
     "image_urls": [],
     "latitude": 43.1790768,
     "longitude": -88.1170784,
-    "scraped_at": "2026-03-12T07:06:22.491873",
+    "scraped_at": "2026-03-12T14:58:49.172158",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8658,7 +8850,7 @@
     "items": []
   },
   {
-    "id": 258,
+    "id": 256,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8688,13 +8880,13 @@
     "city": "Auburn Hills",
     "state": "MI",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:19:30-04:00",
+    "sale_ends_at": "2026-03-12T15:20:00-04:00",
     "sale_starts_at": "2026-03-05T11:00:00-05:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/levy-r10181/images/42d25639-b0d6-4f87-8b09-51d08149c4c4.JPG?h=1000",
     "image_urls": [],
     "latitude": 42.6875323,
     "longitude": -83.2341028,
-    "scraped_at": "2026-03-12T07:06:24.657839",
+    "scraped_at": "2026-03-12T14:58:51.672461",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8706,7 +8898,7 @@
     "items": []
   },
   {
-    "id": 259,
+    "id": 257,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8742,7 +8934,7 @@
     "image_urls": [],
     "latitude": 39.1928853,
     "longitude": -76.7241371,
-    "scraped_at": "2026-03-12T07:06:25.189770",
+    "scraped_at": "2026-03-12T14:58:52.137260",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8754,7 +8946,7 @@
     "items": []
   },
   {
-    "id": 260,
+    "id": 258,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8790,7 +8982,7 @@
     "image_urls": [],
     "latitude": 40.7596198,
     "longitude": -111.886797,
-    "scraped_at": "2026-03-12T07:06:27.682257",
+    "scraped_at": "2026-03-12T14:58:54.509676",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8802,7 +8994,7 @@
     "items": []
   },
   {
-    "id": 261,
+    "id": 259,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8838,7 +9030,7 @@
     "image_urls": [],
     "latitude": 37.970495,
     "longitude": -87.5715641,
-    "scraped_at": "2026-03-12T07:06:28.199521",
+    "scraped_at": "2026-03-12T14:58:54.961192",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8850,7 +9042,7 @@
     "items": []
   },
   {
-    "id": 263,
+    "id": 261,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8886,7 +9078,7 @@
     "image_urls": [],
     "latitude": 32.6098566,
     "longitude": -85.4807825,
-    "scraped_at": "2026-03-12T07:06:30.894676",
+    "scraped_at": "2026-03-12T14:58:57.800705",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8898,7 +9090,7 @@
     "items": []
   },
   {
-    "id": 264,
+    "id": 262,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8934,7 +9126,7 @@
     "image_urls": [],
     "latitude": 39.7589478,
     "longitude": -84.1916069,
-    "scraped_at": "2026-03-12T07:06:33.714623",
+    "scraped_at": "2026-03-12T14:59:00.310395",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8946,7 +9138,7 @@
     "items": []
   },
   {
-    "id": 266,
+    "id": 264,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -8982,7 +9174,7 @@
     "image_urls": [],
     "latitude": 26.5625742,
     "longitude": -81.9438802,
-    "scraped_at": "2026-03-12T07:06:36.414792",
+    "scraped_at": "2026-03-12T14:59:03.001443",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -8994,7 +9186,7 @@
     "items": []
   },
   {
-    "id": 267,
+    "id": 265,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9030,7 +9222,7 @@
     "image_urls": [],
     "latitude": 35.7803977,
     "longitude": -78.6390989,
-    "scraped_at": "2026-03-12T07:06:37.076939",
+    "scraped_at": "2026-03-12T14:59:03.223683",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9042,7 +9234,7 @@
     "items": []
   },
   {
-    "id": 268,
+    "id": 266,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9078,7 +9270,7 @@
     "image_urls": [],
     "latitude": 33.5386858,
     "longitude": -112.185994,
-    "scraped_at": "2026-03-12T07:06:39.426956",
+    "scraped_at": "2026-03-12T14:59:05.964637",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9090,7 +9282,7 @@
     "items": []
   },
   {
-    "id": 270,
+    "id": 268,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9126,7 +9318,7 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:06:42.282887",
+    "scraped_at": "2026-03-12T14:59:08.657069",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9138,7 +9330,7 @@
     "items": []
   },
   {
-    "id": 271,
+    "id": 269,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9174,7 +9366,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:43.100530",
+    "scraped_at": "2026-03-12T14:59:08.988791",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9186,7 +9378,7 @@
     "items": []
   },
   {
-    "id": 272,
+    "id": 270,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9222,7 +9414,7 @@
     "image_urls": [],
     "latitude": 34.0553813,
     "longitude": -117.7517496,
-    "scraped_at": "2026-03-12T07:06:45.297043",
+    "scraped_at": "2026-03-12T14:59:11.489119",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9234,7 +9426,7 @@
     "items": []
   },
   {
-    "id": 273,
+    "id": 271,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9270,7 +9462,7 @@
     "image_urls": [],
     "latitude": 40.5130953,
     "longitude": -74.8591333,
-    "scraped_at": "2026-03-12T07:06:46.112620",
+    "scraped_at": "2026-03-12T14:59:11.811132",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9282,7 +9474,7 @@
     "items": []
   },
   {
-    "id": 274,
+    "id": 272,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9318,7 +9510,7 @@
     "image_urls": [],
     "latitude": 34.1069927,
     "longitude": -117.934214,
-    "scraped_at": "2026-03-12T07:06:48.151187",
+    "scraped_at": "2026-03-12T14:59:14.184190",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9330,7 +9522,7 @@
     "items": []
   },
   {
-    "id": 275,
+    "id": 273,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9366,7 +9558,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:49.123669",
+    "scraped_at": "2026-03-12T14:59:14.773369",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9378,7 +9570,7 @@
     "items": []
   },
   {
-    "id": 276,
+    "id": 274,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9414,7 +9606,7 @@
     "image_urls": [],
     "latitude": 28.0394654,
     "longitude": -81.9498042,
-    "scraped_at": "2026-03-12T07:06:51.003020",
+    "scraped_at": "2026-03-12T14:59:17.011005",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9426,7 +9618,7 @@
     "items": []
   },
   {
-    "id": 277,
+    "id": 275,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9462,7 +9654,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:51.980379",
+    "scraped_at": "2026-03-12T14:59:17.601585",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9474,7 +9666,7 @@
     "items": []
   },
   {
-    "id": 278,
+    "id": 276,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9484,7 +9676,7 @@
     },
     "external_id": "bscpau10367",
     "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10367",
-    "title": "SALE #2 BOSTON - HIGH END RETAIL FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM  SETS - CHANDELIERS - DECOR - FIXTURES",
+    "title": "SALE #2 BOSTON -  HIGH END RETAIL CIRCLE FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM SETS - CHANDELIERS - DECOR -FIXTURE",
     "description": "SALE #2 BOSTON - FURNITURE & DECOR - CIRCLE FURNITURE RETAIL STYLE AUCTION",
     "category": "furniture",
     "condition": null,
@@ -9510,7 +9702,7 @@
     "image_urls": [],
     "latitude": 42.3588336,
     "longitude": -71.0578303,
-    "scraped_at": "2026-03-12T07:06:53.700917",
+    "scraped_at": "2026-03-12T14:59:19.709754",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9524,7 +9716,7 @@
     "items": []
   },
   {
-    "id": 280,
+    "id": 278,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9554,13 +9746,13 @@
     "city": "Dallas",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-13T13:29:00-05:00",
+    "sale_ends_at": "2026-03-13T13:14:00-05:00",
     "sale_starts_at": "2026-02-20T20:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/sam-au10169/images/141d0f6a-42c1-4f5e-a4bd-b3f70160bcaf.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.7762719,
     "longitude": -96.7968559,
-    "scraped_at": "2026-03-12T07:06:56.617305",
+    "scraped_at": "2026-03-12T14:59:22.676503",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9572,7 +9764,7 @@
     "items": []
   },
   {
-    "id": 281,
+    "id": 279,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9608,7 +9800,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:06:57.385581",
+    "scraped_at": "2026-03-12T14:59:23.117024",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9620,7 +9812,7 @@
     "items": []
   },
   {
-    "id": 282,
+    "id": 280,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9656,7 +9848,7 @@
     "image_urls": [],
     "latitude": 40.5484233,
     "longitude": -76.3846781,
-    "scraped_at": "2026-03-12T07:06:59.634609",
+    "scraped_at": "2026-03-12T14:59:25.501625",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9668,7 +9860,7 @@
     "items": []
   },
   {
-    "id": 284,
+    "id": 282,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9704,7 +9896,7 @@
     "image_urls": [],
     "latitude": 28.6732806,
     "longitude": -81.5116471,
-    "scraped_at": "2026-03-12T07:07:02.645481",
+    "scraped_at": "2026-03-12T14:59:28.332503",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9716,7 +9908,7 @@
     "items": []
   },
   {
-    "id": 285,
+    "id": 283,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9752,7 +9944,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:03.406641",
+    "scraped_at": "2026-03-12T14:59:28.829708",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9764,7 +9956,7 @@
     "items": []
   },
   {
-    "id": 291,
+    "id": 289,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9800,7 +9992,7 @@
     "image_urls": [],
     "latitude": 41.8975152,
     "longitude": -84.0373054,
-    "scraped_at": "2026-03-12T07:07:16.043206",
+    "scraped_at": "2026-03-12T14:59:37.029384",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9812,7 +10004,7 @@
     "items": []
   },
   {
-    "id": 292,
+    "id": 290,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9848,7 +10040,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:18.929174",
+    "scraped_at": "2026-03-12T14:59:39.251014",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9860,7 +10052,7 @@
     "items": []
   },
   {
-    "id": 294,
+    "id": 292,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9896,7 +10088,7 @@
     "image_urls": [],
     "latitude": 41.2587459,
     "longitude": -95.9383758,
-    "scraped_at": "2026-03-12T07:07:21.786852",
+    "scraped_at": "2026-03-12T14:59:45.372417",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9908,7 +10100,7 @@
     "items": []
   },
   {
-    "id": 296,
+    "id": 294,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9944,7 +10136,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:24.799068",
+    "scraped_at": "2026-03-12T14:59:53.193932",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -9956,7 +10148,7 @@
     "items": []
   },
   {
-    "id": 298,
+    "id": 296,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -9992,7 +10184,7 @@
     "image_urls": [],
     "latitude": 40.9636685,
     "longitude": -81.3312195,
-    "scraped_at": "2026-03-12T07:07:27.499462",
+    "scraped_at": "2026-03-12T14:59:55.887544",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10004,7 +10196,7 @@
     "items": []
   },
   {
-    "id": 299,
+    "id": 297,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10040,7 +10232,7 @@
     "image_urls": [],
     "latitude": 43.7982806,
     "longitude": -73.087913,
-    "scraped_at": "2026-03-12T07:07:28.330313",
+    "scraped_at": "2026-03-12T14:59:56.548758",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10052,7 +10244,7 @@
     "items": []
   },
   {
-    "id": 300,
+    "id": 298,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10088,7 +10280,55 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:07:30.203506",
+    "scraped_at": "2026-03-12T14:59:58.580971",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 299,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bsctho10713",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/thompson-auctioneers/catalogue-id-bsctho10713",
+    "title": "Brinly-Hardy Co.",
+    "description": "Well-Maintained Fabricating, Wire & Tube Machinery - Surplus Due to Facility Consolidation",
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": null,
+    "state": null,
+    "zip_code": null,
+    "sale_ends_at": "2026-03-17T11:41:00-04:00",
+    "sale_starts_at": "2026-02-03T10:00:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bsctho10713/images/b373c520-c392-40f1-b313-a4f2ecbd5c8c.jpg?h=1000",
+    "image_urls": [],
+    "latitude": null,
+    "longitude": null,
+    "scraped_at": "2026-03-12T14:59:59.391021",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10136,7 +10376,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:34.515307",
+    "scraped_at": "2026-03-12T15:00:05.342961",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10148,7 +10388,7 @@
     "items": []
   },
   {
-    "id": 306,
+    "id": 305,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10184,7 +10424,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:40.077675",
+    "scraped_at": "2026-03-12T15:00:09.776392",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10196,7 +10436,7 @@
     "items": []
   },
   {
-    "id": 307,
+    "id": 306,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10220,7 +10460,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": null,
@@ -10232,7 +10472,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:41.462683",
+    "scraped_at": "2026-03-12T15:00:11.006185",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10244,55 +10484,7 @@
     "items": []
   },
   {
-    "id": 308,
-    "platform": {
-      "id": 5,
-      "name": "bidspotter",
-      "display_name": "BidSpotter",
-      "base_url": "https://www.bidspotter.com",
-      "logo_url": null
-    },
-    "external_id": "bscbt10733",
-    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
-    "title": "3/12/26 New-In-Box - MRO Surplus",
-    "description": null,
-    "category": null,
-    "condition": null,
-    "listing_type": "auction",
-    "item_type": "individual_item",
-    "current_price": null,
-    "buy_now_price": null,
-    "estimate_low": null,
-    "estimate_high": null,
-    "final_price": null,
-    "is_completed": false,
-    "buyers_premium_pct": null,
-    "total_cost_estimate": null,
-    "auction_status": "live",
-    "pickup_only": false,
-    "ships_nationally": true,
-    "city": "Muskegon",
-    "state": "MI",
-    "zip_code": null,
-    "sale_ends_at": "2026-03-12T10:24:00-04:00",
-    "sale_starts_at": "2026-02-12T00:10:00-05:00",
-    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
-    "image_urls": [],
-    "latitude": 43.2341813,
-    "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:07:42.930849",
-    "is_sponsored": false,
-    "maker": null,
-    "brand": null,
-    "collaboration_brands": [],
-    "period": null,
-    "country_of_origin": null,
-    "sub_category": null,
-    "attributes": {},
-    "items": []
-  },
-  {
-    "id": 309,
+    "id": 307,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10316,7 +10508,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Middleburg",
@@ -10328,7 +10520,7 @@
     "image_urls": [],
     "latitude": 30.0688512,
     "longitude": -81.8603778,
-    "scraped_at": "2026-03-12T07:07:44.487462",
+    "scraped_at": "2026-03-12T15:00:12.602618",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10340,7 +10532,7 @@
     "items": []
   },
   {
-    "id": 310,
+    "id": 308,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10376,7 +10568,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:07:45.786960",
+    "scraped_at": "2026-03-12T15:00:13.706063",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10388,7 +10580,7 @@
     "items": []
   },
   {
-    "id": 312,
+    "id": 309,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10424,7 +10616,7 @@
     "image_urls": [],
     "latitude": 26.1223084,
     "longitude": -80.1433786,
-    "scraped_at": "2026-03-12T07:07:48.795386",
+    "scraped_at": "2026-03-12T15:00:15.432993",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10436,7 +10628,7 @@
     "items": []
   },
   {
-    "id": 313,
+    "id": 310,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10472,7 +10664,7 @@
     "image_urls": [],
     "latitude": 40.0942664,
     "longitude": -75.9113306,
-    "scraped_at": "2026-03-12T07:07:50.351992",
+    "scraped_at": "2026-03-12T15:00:16.673909",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10486,7 +10678,7 @@
     "items": []
   },
   {
-    "id": 314,
+    "id": 311,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10522,7 +10714,7 @@
     "image_urls": [],
     "latitude": 42.4858692,
     "longitude": -83.1052028,
-    "scraped_at": "2026-03-12T07:07:51.649288",
+    "scraped_at": "2026-03-12T15:00:18.396353",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10534,7 +10726,55 @@
     "items": []
   },
   {
-    "id": 315,
+    "id": 312,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bscbt10733",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscbt/catalogue-id-bscbt10733",
+    "title": "3/12/26 New-In-Box - MRO Surplus",
+    "description": null,
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": "Muskegon",
+    "state": "MI",
+    "zip_code": null,
+    "sale_ends_at": "2026-03-12T11:06:41-04:00",
+    "sale_starts_at": "2026-02-12T00:10:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscbt10733/images/858c8a10-e525-4db1-a0bd-54fd20843cf0.PNG?h=1000",
+    "image_urls": [],
+    "latitude": 43.2341813,
+    "longitude": -86.2483921,
+    "scraped_at": "2026-03-12T15:00:19.365126",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 313,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10570,7 +10810,7 @@
     "image_urls": [],
     "latitude": 41.4996574,
     "longitude": -81.6936772,
-    "scraped_at": "2026-03-12T07:07:53.203867",
+    "scraped_at": "2026-03-12T15:00:21.225425",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10582,7 +10822,7 @@
     "items": []
   },
   {
-    "id": 316,
+    "id": 314,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10612,13 +10852,13 @@
     "city": "Mansfield",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:34:00-05:00",
+    "sale_ends_at": "2026-03-12T15:35:00-05:00",
     "sale_starts_at": "2026-02-02T15:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bscinv10332/images/b64b8707-5a4a-440e-9cf4-ab12b6686e9b.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.563487,
     "longitude": -97.1420308,
-    "scraped_at": "2026-03-12T07:07:54.349265",
+    "scraped_at": "2026-03-12T15:00:22.331071",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10630,7 +10870,7 @@
     "items": []
   },
   {
-    "id": 317,
+    "id": 315,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10666,7 +10906,7 @@
     "image_urls": [],
     "latitude": 43.1790768,
     "longitude": -88.1170784,
-    "scraped_at": "2026-03-12T07:07:56.059684",
+    "scraped_at": "2026-03-12T15:00:24.057951",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10678,7 +10918,7 @@
     "items": []
   },
   {
-    "id": 318,
+    "id": 316,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10708,13 +10948,13 @@
     "city": "Auburn Hills",
     "state": "MI",
     "zip_code": null,
-    "sale_ends_at": "2026-03-12T15:19:30-04:00",
+    "sale_ends_at": "2026-03-12T15:20:00-04:00",
     "sale_starts_at": "2026-03-05T11:00:00-05:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/levy-r10181/images/42d25639-b0d6-4f87-8b09-51d08149c4c4.JPG?h=1000",
     "image_urls": [],
     "latitude": 42.6875323,
     "longitude": -83.2341028,
-    "scraped_at": "2026-03-12T07:07:57.253754",
+    "scraped_at": "2026-03-12T15:00:25.020332",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10726,7 +10966,7 @@
     "items": []
   },
   {
-    "id": 319,
+    "id": 317,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10762,7 +11002,7 @@
     "image_urls": [],
     "latitude": 39.1928853,
     "longitude": -76.7241371,
-    "scraped_at": "2026-03-12T07:07:59.068948",
+    "scraped_at": "2026-03-12T15:00:27.025302",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10774,7 +11014,7 @@
     "items": []
   },
   {
-    "id": 320,
+    "id": 318,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10810,7 +11050,7 @@
     "image_urls": [],
     "latitude": 40.7596198,
     "longitude": -111.886797,
-    "scraped_at": "2026-03-12T07:08:00.110770",
+    "scraped_at": "2026-03-12T15:00:27.711129",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10822,7 +11062,7 @@
     "items": []
   },
   {
-    "id": 321,
+    "id": 319,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10858,7 +11098,7 @@
     "image_urls": [],
     "latitude": 37.970495,
     "longitude": -87.5715641,
-    "scraped_at": "2026-03-12T07:08:01.767187",
+    "scraped_at": "2026-03-12T15:00:29.853582",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10870,7 +11110,7 @@
     "items": []
   },
   {
-    "id": 323,
+    "id": 321,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10894,7 +11134,7 @@
     "is_completed": false,
     "buyers_premium_pct": null,
     "total_cost_estimate": null,
-    "auction_status": "upcoming",
+    "auction_status": "ended",
     "pickup_only": false,
     "ships_nationally": true,
     "city": "Auburn",
@@ -10906,7 +11146,7 @@
     "image_urls": [],
     "latitude": 32.6098566,
     "longitude": -85.4807825,
-    "scraped_at": "2026-03-12T07:08:04.783078",
+    "scraped_at": "2026-03-12T15:00:32.600381",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10918,7 +11158,7 @@
     "items": []
   },
   {
-    "id": 324,
+    "id": 322,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -10954,7 +11194,7 @@
     "image_urls": [],
     "latitude": 39.7589478,
     "longitude": -84.1916069,
-    "scraped_at": "2026-03-12T07:08:05.828759",
+    "scraped_at": "2026-03-12T15:00:33.518982",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -10966,7 +11206,7 @@
     "items": []
   },
   {
-    "id": 326,
+    "id": 324,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11002,7 +11242,7 @@
     "image_urls": [],
     "latitude": 26.5625742,
     "longitude": -81.9438802,
-    "scraped_at": "2026-03-12T07:08:08.869211",
+    "scraped_at": "2026-03-12T15:00:36.343335",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11014,7 +11254,7 @@
     "items": []
   },
   {
-    "id": 327,
+    "id": 325,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11050,7 +11290,7 @@
     "image_urls": [],
     "latitude": 35.7803977,
     "longitude": -78.6390989,
-    "scraped_at": "2026-03-12T07:08:10.341018",
+    "scraped_at": "2026-03-12T15:00:38.125687",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11062,7 +11302,7 @@
     "items": []
   },
   {
-    "id": 328,
+    "id": 326,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11098,7 +11338,7 @@
     "image_urls": [],
     "latitude": 33.5386858,
     "longitude": -112.185994,
-    "scraped_at": "2026-03-12T07:08:11.879050",
+    "scraped_at": "2026-03-12T15:00:39.306455",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11110,7 +11350,7 @@
     "items": []
   },
   {
-    "id": 330,
+    "id": 328,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11146,7 +11386,7 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:08:14.889001",
+    "scraped_at": "2026-03-12T15:00:42.270771",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11158,7 +11398,7 @@
     "items": []
   },
   {
-    "id": 331,
+    "id": 329,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11194,7 +11434,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:16.207079",
+    "scraped_at": "2026-03-12T15:00:43.916487",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11206,7 +11446,7 @@
     "items": []
   },
   {
-    "id": 332,
+    "id": 330,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11242,7 +11482,7 @@
     "image_urls": [],
     "latitude": 34.0553813,
     "longitude": -117.7517496,
-    "scraped_at": "2026-03-12T07:08:17.746658",
+    "scraped_at": "2026-03-12T15:00:45.096704",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11254,7 +11494,7 @@
     "items": []
   },
   {
-    "id": 333,
+    "id": 331,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11290,7 +11530,7 @@
     "image_urls": [],
     "latitude": 40.5130953,
     "longitude": -74.8591333,
-    "scraped_at": "2026-03-12T07:08:19.218611",
+    "scraped_at": "2026-03-12T15:00:46.614143",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11302,7 +11542,7 @@
     "items": []
   },
   {
-    "id": 334,
+    "id": 332,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11338,7 +11578,7 @@
     "image_urls": [],
     "latitude": 34.1069927,
     "longitude": -117.934214,
-    "scraped_at": "2026-03-12T07:08:20.759774",
+    "scraped_at": "2026-03-12T15:00:47.787104",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11350,7 +11590,7 @@
     "items": []
   },
   {
-    "id": 335,
+    "id": 333,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11386,7 +11626,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:22.232242",
+    "scraped_at": "2026-03-12T15:00:49.574429",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11398,7 +11638,7 @@
     "items": []
   },
   {
-    "id": 336,
+    "id": 334,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11434,7 +11674,7 @@
     "image_urls": [],
     "latitude": 28.0394654,
     "longitude": -81.9498042,
-    "scraped_at": "2026-03-12T07:08:23.459024",
+    "scraped_at": "2026-03-12T15:00:50.618876",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11446,7 +11686,7 @@
     "items": []
   },
   {
-    "id": 337,
+    "id": 335,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11482,7 +11722,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:25.250165",
+    "scraped_at": "2026-03-12T15:00:52.410281",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11494,7 +11734,7 @@
     "items": []
   },
   {
-    "id": 338,
+    "id": 336,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11504,7 +11744,7 @@
     },
     "external_id": "bscpau10367",
     "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/bscpau/catalogue-id-bscpau10367",
-    "title": "SALE #2 BOSTON - HIGH END RETAIL FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM  SETS - CHANDELIERS - DECOR - FIXTURES",
+    "title": "SALE #2 BOSTON -  HIGH END RETAIL CIRCLE FURNITURE STORE - LIVING ROOM SETS - SOFAS - DINING ROOMS - BEDROOM SETS - CHANDELIERS - DECOR -FIXTURE",
     "description": "SALE #2 BOSTON - FURNITURE & DECOR - CIRCLE FURNITURE RETAIL STYLE AUCTION",
     "category": "furniture",
     "condition": null,
@@ -11530,7 +11770,7 @@
     "image_urls": [],
     "latitude": 42.3588336,
     "longitude": -71.0578303,
-    "scraped_at": "2026-03-12T07:08:26.468239",
+    "scraped_at": "2026-03-12T15:00:53.447869",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11544,7 +11784,7 @@
     "items": []
   },
   {
-    "id": 340,
+    "id": 338,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11574,13 +11814,13 @@
     "city": "Dallas",
     "state": "TX",
     "zip_code": null,
-    "sale_ends_at": "2026-03-13T13:29:00-05:00",
+    "sale_ends_at": "2026-03-13T13:14:00-05:00",
     "sale_starts_at": "2026-02-20T20:00:00-06:00",
     "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/sam-au10169/images/141d0f6a-42c1-4f5e-a4bd-b3f70160bcaf.jpg?h=1000",
     "image_urls": [],
     "latitude": 32.7762719,
     "longitude": -96.7968559,
-    "scraped_at": "2026-03-12T07:08:29.477505",
+    "scraped_at": "2026-03-12T15:00:56.139327",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11592,7 +11832,7 @@
     "items": []
   },
   {
-    "id": 341,
+    "id": 339,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11628,7 +11868,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:31.115976",
+    "scraped_at": "2026-03-12T15:00:58.074405",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11640,7 +11880,7 @@
     "items": []
   },
   {
-    "id": 342,
+    "id": 340,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11676,7 +11916,7 @@
     "image_urls": [],
     "latitude": 40.5484233,
     "longitude": -76.3846781,
-    "scraped_at": "2026-03-12T07:08:32.177932",
+    "scraped_at": "2026-03-12T15:00:58.964632",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11688,7 +11928,7 @@
     "items": []
   },
   {
-    "id": 344,
+    "id": 342,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11724,7 +11964,7 @@
     "image_urls": [],
     "latitude": 28.6732806,
     "longitude": -81.5116471,
-    "scraped_at": "2026-03-12T07:08:35.032503",
+    "scraped_at": "2026-03-12T15:01:01.657613",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11736,7 +11976,7 @@
     "items": []
   },
   {
-    "id": 345,
+    "id": 343,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11772,7 +12012,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:36.829242",
+    "scraped_at": "2026-03-12T15:01:03.463194",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11784,7 +12024,7 @@
     "items": []
   },
   {
-    "id": 351,
+    "id": 349,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11820,7 +12060,7 @@
     "image_urls": [],
     "latitude": 41.8975152,
     "longitude": -84.0373054,
-    "scraped_at": "2026-03-12T07:08:45.558932",
+    "scraped_at": "2026-03-12T15:01:11.674674",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11832,7 +12072,7 @@
     "items": []
   },
   {
-    "id": 352,
+    "id": 350,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11868,7 +12108,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:46.605025",
+    "scraped_at": "2026-03-12T15:01:12.980971",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11880,7 +12120,7 @@
     "items": []
   },
   {
-    "id": 354,
+    "id": 352,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11916,7 +12156,7 @@
     "image_urls": [],
     "latitude": 41.2587459,
     "longitude": -95.9383758,
-    "scraped_at": "2026-03-12T07:08:49.460027",
+    "scraped_at": "2026-03-12T15:01:15.950858",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11928,7 +12168,7 @@
     "items": []
   },
   {
-    "id": 356,
+    "id": 354,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -11964,7 +12204,7 @@
     "image_urls": [],
     "latitude": null,
     "longitude": null,
-    "scraped_at": "2026-03-12T07:08:52.313932",
+    "scraped_at": "2026-03-12T15:01:18.779553",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -11976,7 +12216,7 @@
     "items": []
   },
   {
-    "id": 358,
+    "id": 356,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -12012,7 +12252,7 @@
     "image_urls": [],
     "latitude": 40.9636685,
     "longitude": -81.3312195,
-    "scraped_at": "2026-03-12T07:08:55.168018",
+    "scraped_at": "2026-03-12T15:01:21.470148",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -12024,7 +12264,7 @@
     "items": []
   },
   {
-    "id": 359,
+    "id": 357,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -12060,7 +12300,7 @@
     "image_urls": [],
     "latitude": 43.7982806,
     "longitude": -73.087913,
-    "scraped_at": "2026-03-12T07:09:00.394274",
+    "scraped_at": "2026-03-12T15:01:22.873913",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
@@ -12072,7 +12312,7 @@
     "items": []
   },
   {
-    "id": 360,
+    "id": 358,
     "platform": {
       "id": 5,
       "name": "bidspotter",
@@ -12108,7 +12348,55 @@
     "image_urls": [],
     "latitude": 43.2341813,
     "longitude": -86.2483921,
-    "scraped_at": "2026-03-12T07:09:05.909925",
+    "scraped_at": "2026-03-12T15:01:24.306114",
+    "is_sponsored": false,
+    "maker": null,
+    "brand": null,
+    "collaboration_brands": [],
+    "period": null,
+    "country_of_origin": null,
+    "sub_category": null,
+    "attributes": {},
+    "items": []
+  },
+  {
+    "id": 359,
+    "platform": {
+      "id": 5,
+      "name": "bidspotter",
+      "display_name": "BidSpotter",
+      "base_url": "https://www.bidspotter.com",
+      "logo_url": null
+    },
+    "external_id": "bsctho10713",
+    "external_url": "https://www.bidspotter.com/en-us/auction-catalogues/thompson-auctioneers/catalogue-id-bsctho10713",
+    "title": "Brinly-Hardy Co.",
+    "description": "Well-Maintained Fabricating, Wire & Tube Machinery - Surplus Due to Facility Consolidation",
+    "category": null,
+    "condition": null,
+    "listing_type": "auction",
+    "item_type": "individual_item",
+    "current_price": null,
+    "buy_now_price": null,
+    "estimate_low": null,
+    "estimate_high": null,
+    "final_price": null,
+    "is_completed": false,
+    "buyers_premium_pct": null,
+    "total_cost_estimate": null,
+    "auction_status": "live",
+    "pickup_only": false,
+    "ships_nationally": true,
+    "city": null,
+    "state": null,
+    "zip_code": null,
+    "sale_ends_at": "2026-03-17T11:41:00-04:00",
+    "sale_starts_at": "2026-02-03T10:00:00-05:00",
+    "primary_image_url": "https://cdn.globalauctionplatform.com/auctions-2026/bsctho10713/images/b373c520-c392-40f1-b313-a4f2ecbd5c8c.jpg?h=1000",
+    "image_urls": [],
+    "latitude": null,
+    "longitude": null,
+    "scraped_at": "2026-03-12T15:01:25.706905",
     "is_sponsored": false,
     "maker": null,
     "brand": null,
