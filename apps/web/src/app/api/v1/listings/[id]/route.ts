@@ -2,11 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const listing = getListings().find((l) => l.id === parseInt(id));
+  const numId = parseInt(id);
+  if (isNaN(numId)) {
+    return NextResponse.json({ detail: "Invalid listing ID" }, { status: 400 });
+  }
+
+  // ── Proxy to FastAPI backend when configured ────────────────────────────────
+  // The backend uses PostgreSQL auto-increment IDs which differ from the
+  // sequential IDs reassigned in the local JSON bundle. Proxy first so that
+  // IDs from search results (which also proxy to the backend) always resolve.
+  const backendUrl = process.env.BACKEND_API_URL;
+  if (backendUrl) {
+    try {
+      const upstream = await fetch(
+        `${backendUrl}/api/v1/listings/${numId}`,
+        { next: { revalidate: 60 } }
+      );
+      if (upstream.ok) return NextResponse.json(await upstream.json());
+      // 404 from backend → fall through to JSON bundle (dev data may differ)
+    } catch {
+      // Backend unavailable — fall through to JSON bundle
+    }
+  }
+
+  // ── Fallback: local JSON bundle ─────────────────────────────────────────────
+  const listing = getListings().find((l) => l.id === numId);
   if (!listing) {
     return NextResponse.json({ detail: "Listing not found" }, { status: 404 });
   }
