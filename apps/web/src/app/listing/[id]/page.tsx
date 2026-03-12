@@ -1,6 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
+import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight } from "lucide-react";
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { categoryToSlug } from "@/lib/category-meta";
@@ -9,12 +10,49 @@ import { PriceCheckerWidget } from "@/components/price-checker/price-checker-wid
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
 import { TrackedCta } from "@/components/listings/tracked-cta";
+import { SaveButton } from "@/components/listings/save-button";
+import { RelatedListings } from "@/components/listings/related-listings";
 
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: { id: string };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const id = Number(params.id);
+  if (isNaN(id)) return {};
+
+  try {
+    const listing = await getListing(id);
+    const platform = listing.platform?.display_name ?? "Auction Platform";
+    const price =
+      listing.current_price ?? listing.buy_now_price ?? listing.estimate_low;
+    const priceStr = price != null ? ` — ${formatPrice(price)}` : "";
+    const description =
+      listing.description?.slice(0, 160) ??
+      `${listing.category ?? "Antique"} listed on ${platform}. View details, AI price estimate, and bid or buy.`;
+
+    return {
+      title: `${listing.title}${priceStr} | Estate Scout`,
+      description,
+      openGraph: {
+        title: listing.title,
+        description,
+        images: listing.primary_image_url ? [listing.primary_image_url] : [],
+        type: "website",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: listing.title,
+        description,
+        images: listing.primary_image_url ? [listing.primary_image_url] : [],
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 export default async function ListingPage({ params }: PageProps) {
@@ -32,6 +70,7 @@ export default async function ListingPage({ params }: PageProps) {
   const status = getAuctionStatus(listing);
   const countdown = timeUntil(listing.sale_ends_at);
   const platform = listing.platform?.display_name ?? "Auction Platform";
+  const catSlug = categoryToSlug(listing.category ?? "");
 
   // CTA configuration based on listing type + status
   let cta: { label: string; className: string };
@@ -86,6 +125,26 @@ export default async function ListingPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* Breadcrumb */}
+      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1 text-sm text-antique-text-mute flex-wrap">
+        <Link href="/" className="hover:text-antique-accent transition-colors">Home</Link>
+        <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+        {catSlug && listing.category ? (
+          <>
+            <Link href={`/categories/${catSlug}`} className="hover:text-antique-accent transition-colors">
+              {listing.category}
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+          </>
+        ) : (
+          <>
+            <Link href="/search" className="hover:text-antique-accent transition-colors">Search</Link>
+            <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+          </>
+        )}
+        <span className="text-antique-text-sec truncate max-w-[200px] sm:max-w-xs">{listing.title}</span>
+      </nav>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* 3D Rotational Viewer + Lens Panel */}
         <SphericalViewer
@@ -179,16 +238,30 @@ export default async function ListingPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* CTA — always goes to source platform, click tracked for ad revenue */}
-          <TrackedCta
-            href={listing.external_url}
-            label={cta.label}
-            className={cta.className}
-            listingId={listing.id}
-            platform={listing.platform.name}
-            category={listing.category}
-            listingType={lt}
-          />
+          {/* CTA + Save row */}
+          <div className="flex gap-3">
+            <TrackedCta
+              href={listing.external_url}
+              label={cta.label}
+              className={cta.className + " flex-1"}
+              listingId={listing.id}
+              platform={listing.platform.name}
+              category={listing.category}
+              listingType={lt}
+            />
+            <SaveButton
+              item={{
+                id: listing.id,
+                title: listing.title,
+                primary_image_url: listing.primary_image_url ?? null,
+                current_price: listing.current_price ?? listing.buy_now_price ?? null,
+                external_url: listing.external_url,
+                platform_name: listing.platform?.display_name ?? "",
+                category: listing.category ?? null,
+                sale_ends_at: listing.sale_ends_at ?? null,
+              }}
+            />
+          </div>
 
           {/* Meta */}
           <div className="space-y-2 text-sm">
@@ -207,7 +280,6 @@ export default async function ListingPage({ params }: PageProps) {
               </div>
             )}
             {listing.category && (() => {
-              const catSlug = categoryToSlug(listing.category);
               return (
                 <div className="flex items-center gap-2 text-antique-text-sec">
                   <Tag className="w-4 h-4 text-antique-text-mute" />
@@ -309,6 +381,9 @@ export default async function ListingPage({ params }: PageProps) {
       <div className="mt-10">
         <PriceCheckerWidget listing={listing} />
       </div>
+
+      {/* Related / similar listings */}
+      <RelatedListings listing={listing} />
     </div>
   );
 }
