@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight } from "lucide-react";
-import { getListing, ApiError } from "@/lib/api-client";
+import { getSupabaseListing, isSupabaseConfigured } from "@/lib/supabase-search";
+import { getListings } from "@/lib/scraped-data";
+import type { Listing } from "@/types";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { categoryToSlug } from "@/lib/category-meta";
 import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
@@ -17,6 +19,40 @@ import { MarketContextStrip } from "@/components/market/market-context-strip";
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
 
+/**
+ * Server-side listing fetch — calls data sources directly, no HTTP self-loop.
+ * Priority: FastAPI backend → Supabase → local JSON bundle.
+ */
+async function fetchListingServer(id: number): Promise<Listing | null> {
+  // 1. FastAPI backend (when configured)
+  const backendUrl = process.env.BACKEND_API_URL;
+  if (backendUrl) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`${backendUrl}/api/v1/listings/${id}`, {
+        signal: controller.signal,
+        next: { revalidate: 0 },
+      });
+      clearTimeout(timer);
+      if (res.ok) return res.json() as Promise<Listing>;
+      if (res.status === 404) return null; // definitively not found
+    } catch {
+      // backend down — fall through
+    }
+  }
+
+  // 2. Direct Supabase (no HTTP self-call)
+  if (isSupabaseConfigured()) {
+    const listing = await getSupabaseListing(id);
+    if (listing) return listing;
+  }
+
+  // 3. Local JSON bundle
+  const all = getListings();
+  return (all.find((l) => l.id === id) as Listing | undefined) ?? null;
+}
+
 interface PageProps {
   params: { id: string };
 }
@@ -26,7 +62,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (isNaN(id)) return {};
 
   try {
-    const listing = await getListing(id);
+    const listing = await fetchListingServer(id);
+    if (!listing) return {};
     const platform = listing.platform?.display_name ?? "Auction Platform";
     const price =
       listing.current_price ?? listing.buy_now_price ?? listing.estimate_low;
@@ -60,16 +97,9 @@ export default async function ListingPage({ params }: PageProps) {
   const id = Number(params.id);
   if (isNaN(id)) notFound();
 
-  let listing;
-  try {
-    listing = await getListing(id);
-  } catch (err) {
-    // Only map a true "not found" (404) to Next.js notFound().
-    // Other errors (503, network timeouts) should propagate so the error.tsx
-    // boundary shows a "try again" page rather than a misleading 404.
-    if (err instanceof ApiError && err.status === 404) notFound();
-    throw err;
-  }
+  // Direct server-side fetch — no HTTP self-call, no Vercel timeout cascade.
+  const listing = await fetchListingServer(id);
+  if (!listing) notFound();
 
   const lt = listing.listing_type ?? "auction";
   const status = getAuctionStatus(listing);
