@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BookMarked, Bell, Trash2, ToggleLeft,
-  ToggleRight, Plus, Loader2,
+  ToggleRight, Plus, Loader2, Bookmark, ExternalLink, Clock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -13,6 +13,8 @@ import {
   getAlerts, createAlert, toggleAlert, deleteAlert,
   type SavedSearch, type AlertItem,
 } from "@/lib/api-client";
+import { getWatchlist, removeFromWatchlist, type WatchItem } from "@/lib/watchlist";
+import { formatPrice, timeUntil } from "@/lib/format";
 
 // ── Unauthenticated splash ────────────────────────────────────────────────────
 
@@ -55,6 +57,117 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       className="w-full border border-antique-border rounded-lg px-3 py-2 text-sm bg-antique-surface text-antique-text placeholder-antique-text-mute focus:ring-2 focus:ring-antique-accent/40 focus:border-antique-accent outline-none transition"
     />
+  );
+}
+
+// ── Watchlist panel ───────────────────────────────────────────────────────────
+
+function WatchlistPanel() {
+  const [items, setItems] = useState<WatchItem[]>([]);
+
+  useEffect(() => {
+    setItems(getWatchlist());
+  }, []);
+
+  function handleRemove(id: number) {
+    removeFromWatchlist(id);
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  return (
+    <div className="bg-antique-surface border border-antique-border rounded-xl p-6">
+      <h2 className="font-display font-semibold text-antique-text flex items-center gap-2 mb-5">
+        <Bookmark className="w-4 h-4 text-antique-accent" />
+        Watchlist
+        {items.length > 0 && (
+          <span className="ml-auto text-xs font-normal text-antique-text-mute">
+            {items.length} item{items.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </h2>
+
+      {items.length === 0 ? (
+        <div className="py-8 text-center space-y-3">
+          <p className="text-sm text-antique-text-mute">No saved listings yet.</p>
+          <Link
+            href="/search"
+            className="inline-block text-sm text-antique-accent hover:text-antique-accent-hover font-medium transition-colors"
+          >
+            Browse listings →
+          </Link>
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {items.map((item) => {
+            const countdown = timeUntil(item.sale_ends_at);
+            return (
+              <li
+                key={item.id}
+                className="flex items-start gap-3 p-3 rounded-lg border border-antique-border hover:border-antique-accent/40 transition-colors"
+              >
+                {/* Thumbnail */}
+                {item.primary_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.primary_image_url}
+                    alt={item.title}
+                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-antique-muted"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-lg bg-antique-muted flex-shrink-0" />
+                )}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <Link
+                    href={`/listing/${item.id}`}
+                    className="text-sm font-medium text-antique-text line-clamp-2 leading-snug hover:text-antique-accent transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {item.current_price != null && (
+                      <span className="text-sm font-bold text-antique-accent">
+                        {formatPrice(item.current_price)}
+                      </span>
+                    )}
+                    {item.platform_name && (
+                      <span className="text-xs text-antique-text-mute">{item.platform_name}</span>
+                    )}
+                    {countdown && (
+                      <span className="text-xs text-antique-text-mute flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {countdown}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <a
+                    href={item.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on platform"
+                    className="p-1.5 text-antique-text-mute hover:text-antique-accent transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <button
+                    onClick={() => handleRemove(item.id)}
+                    title="Remove from watchlist"
+                    className="p-1.5 text-antique-text-mute hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -327,19 +440,29 @@ export default function SavedPage() {
     );
   }
 
-  if (!user) return <AuthPrompt />;
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-2xl font-bold text-antique-text">Saved</h1>
-        <span className="text-xs text-antique-text-sec">
-          {user.email} &middot; {user.tier} plan
-        </span>
+        {user && (
+          <span className="text-xs text-antique-text-sec">
+            {user.email} &middot; {user.tier} plan
+          </span>
+        )}
       </div>
       <div className="space-y-5">
-        <SavedSearchesPanel />
-        <AlertsPanel />
+        {/* Watchlist — always visible, no auth required */}
+        <WatchlistPanel />
+
+        {/* Saved searches + alerts — require authentication */}
+        {user ? (
+          <>
+            <SavedSearchesPanel />
+            <AlertsPanel />
+          </>
+        ) : (
+          <AuthPrompt />
+        )}
       </div>
     </div>
   );

@@ -38,7 +38,7 @@ export function Navbar() {
     { href: "/library",      label: "Library",       icon: <Library       className="w-4 h-4" /> },
     { href: "/valuation",    label: "Price Check",   icon: <MessageSquare className="w-4 h-4" /> },
     { href: "/prices",       label: "Price Guide",   icon: <TrendingUp    className="w-4 h-4" /> },
-    { href: "/saved-searches", label: "Saved Searches", icon: <BookMarked className="w-4 h-4" /> },
+    { href: "/saved",          label: "Saved",          icon: <BookMarked className="w-4 h-4" /> },
     ...(loggedIn ? [{ href: "/catalog", label: "My Catalog", icon: <BookOpen className="w-4 h-4" /> }] : []),
     ...(isAdmin  ? [{ href: "/admin",   label: "Admin",      icon: <BarChart3 className="w-4 h-4" /> }] : []),
   ];
