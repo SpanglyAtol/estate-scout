@@ -93,39 +93,41 @@ class EbthScraper(BaseScraper):
                     break
 
     async def _fetch_category_page(self, category: str, page: int) -> list[dict]:
-        """Try JSON API first, fall back to HTML scraping."""
-        # Attempt 1: JSON search API
-        try:
-            params = {
-                "category": category,
-                "page": page,
-                "per_page": 48,
-                "status": "active",
-                "sort": "ending_soon",
-            }
-            response = await self._fetch(
-                EBTH_SEARCH_API,
-                params=params,
-                headers={
-                    **self._browser_headers(referer=f"{EBTH_BASE}/categories/{category}"),
-                    "Accept": "application/json",
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-            )
-            data = response.json()
-            items = (
-                data.get("products")
-                or data.get("items")
-                or data.get("data")
-                or []
-            )
-            if items:
-                self.logger.info(f"EBTH JSON API {category} p{page}: {len(items)} items")
-                return items
-        except Exception as exc:
-            self.logger.debug(f"EBTH JSON API failed ({exc}), trying HTML fallback")
+        """Try JSON API endpoints first, fall back to HTML scraping."""
+        # Attempt 1: JSON search API (try multiple endpoint patterns)
+        api_endpoints = [
+            (EBTH_SEARCH_API, {"category": category, "page": page, "per_page": 48, "status": "active", "sort": "ending_soon"}),
+            (f"{EBTH_BASE}/api/v2/products", {"category": category, "page": page, "per_page": 48}),
+            (f"{EBTH_BASE}/api/items", {"category_slug": category, "page": page, "limit": 48}),
+        ]
+        for api_url, params in api_endpoints:
+            try:
+                response = await self._fetch(
+                    api_url,
+                    params=params,
+                    headers={
+                        **self._browser_headers(referer=f"{EBTH_BASE}/categories/{category}"),
+                        "Accept": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    items = (
+                        data.get("products")
+                        or data.get("items")
+                        or data.get("data")
+                        or data.get("results")
+                        or []
+                    )
+                    if items:
+                        self.logger.info(f"EBTH API {api_url} {category} p{page}: {len(items)} items")
+                        return items
+            except Exception as exc:
+                self.logger.debug(f"EBTH API {api_url} failed ({exc})")
 
         # Attempt 2: HTML category page with embedded JSON
+        self.logger.debug(f"EBTH JSON API failed for {category} p{page}, trying HTML fallback")
         try:
             url = f"{EBTH_BASE}/categories/{category}?page={page}"
             response = await self._fetch(
@@ -157,8 +159,19 @@ class EbthScraper(BaseScraper):
                     ["listings"],
                     ["catalog", "products"],
                     ["initialData", "products"],
+                    ["categoryPage", "products"],
+                    ["searchResults", "items"],
+                    ["data", "products"],
+                    ["data", "items"],
                 ]:
                     node = pp
+                    for key in path:
+                        node = node.get(key, {}) if isinstance(node, dict) else {}
+                    if isinstance(node, list) and node:
+                        return node
+                # Also check top-level nd (some builds put data outside pageProps)
+                for path in [["props", "items"], ["props", "products"]]:
+                    node = nd
                     for key in path:
                         node = node.get(key, {}) if isinstance(node, dict) else {}
                     if isinstance(node, list) and node:

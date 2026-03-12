@@ -40,6 +40,15 @@ jobs:
             --max-pages 20 \
             --out apps/web/src/data/scraped-listings-ebay.json
 
+      - name: Validate minimum listing count
+        run: |
+          COUNT=$(python -c "import json,sys; d=json.load(open('apps/web/src/data/scraped-listings-ebay.json')); print(len(d) if isinstance(d, list) else len(d.get('listings', d.get('results', []))))")
+          echo "Scraped $COUNT listings"
+          if [ "$COUNT" -lt 10 ]; then
+            echo "ERROR: Only $COUNT listings scraped (minimum: 10). Possible scraper failure."
+            exit 1
+          fi
+
       - name: Commit if changed
         run: |
           git config user.name  "github-actions[bot]"
