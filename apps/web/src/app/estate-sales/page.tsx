@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
+import { useState, useEffect, useCallback, useRef, forwardRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   MapPin, Search, ExternalLink, Calendar, Navigation, Loader2,
   ChevronRight, LayoutGrid, LayoutList, SlidersHorizontal, X,
-  ArrowUpDown, ChevronDown, ChevronUp,
+  ArrowUpDown, ChevronDown, ChevronUp, Map as MapIcon,
 } from "lucide-react";
 import type { Listing } from "@/types";
 import { formatPrice } from "@/lib/format";
@@ -14,6 +15,20 @@ import { CATEGORIES } from "@/lib/category-meta";
 import { AdUnit } from "@/components/ads/ad-unit";
 import { trackAffiliateClick } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
+
+// Leaflet is browser-only — never SSR
+const AuctionMapDynamic = dynamic(
+  () => import("@/components/map/auction-map").then((m) => m.AuctionMap),
+  { ssr: false, loading: () => <MapLoadingPlaceholder /> }
+);
+
+function MapLoadingPlaceholder() {
+  return (
+    <div className="h-full w-full bg-antique-muted flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-antique-accent animate-spin" />
+    </div>
+  );
+}
 
 // ── Amazon affiliate ───────────────────────────────────────────────────────────
 
@@ -68,6 +83,12 @@ const STATUS_OPTIONS = [
   { label: "Ending this week",value: "ending_soon" },
 ];
 
+const SALE_MODE_OPTIONS = [
+  { label: "All sales",    value: "all" },
+  { label: "In Person",    value: "in_person" },
+  { label: "Online Only",  value: "online" },
+];
+
 const SORT_OPTIONS = [
   { label: "Default order",      value: "" },
   { label: "Starting soonest",   value: "ending_soon" },
@@ -78,6 +99,8 @@ const SORT_OPTIONS = [
 
 const RADIUS_OPTIONS = [10, 25, 50, 100, 250];
 const PAGE_SIZE = 24;
+const DEFAULT_MAP_CENTER: [number, number] = [39.5, -98.35]; // geographic center of US
+const DEFAULT_MAP_ZOOM = 4;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,14 +114,18 @@ interface Filters {
   radiusMiles: number;
   sort: string;
   page: number;
+  saleMode: "all" | "in_person" | "online";
 }
 
 interface Location { lat: number; lon: number; label: string }
 
 const DEFAULT_FILTERS: Filters = {
   q: "", status: "", category: "", minPrice: "", maxPrice: "",
-  platformIds: [], radiusMiles: 50, sort: "", page: 1,
+  platformIds: [], radiusMiles: 50, sort: "", page: 1, saleMode: "all",
 };
+
+type ViewMode = "card" | "list" | "map";
+const VIEW_KEY = "es_estate_view";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -144,6 +171,14 @@ function buildApiParams(filters: Filters, loc: Location | null): URLSearchParams
   return p;
 }
 
+function radiusToZoom(miles: number): number {
+  if (miles <= 10) return 13;
+  if (miles <= 25) return 12;
+  if (miles <= 50) return 10;
+  if (miles <= 100) return 9;
+  return 7;
+}
+
 // ── Filter sidebar (estate-sale specific) ─────────────────────────────────────
 
 function FilterSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -177,6 +212,7 @@ function EstateSaleFilters({
     filters.minPrice,
     filters.maxPrice,
     filters.platformIds.length > 0,
+    filters.saleMode !== "all",
     hasLocation && filters.radiusMiles !== 50,
   ].filter(Boolean).length;
 
@@ -186,13 +222,33 @@ function EstateSaleFilters({
         <h2 className="text-base font-bold text-antique-text">Filters</h2>
         {activeCount > 0 && (
           <button
-            onClick={() => onChange({ status: "", category: "", minPrice: "", maxPrice: "", platformIds: [], radiusMiles: 50 })}
+            onClick={() => onChange({ status: "", category: "", minPrice: "", maxPrice: "", platformIds: [], radiusMiles: 50, saleMode: "all" })}
             className="text-xs text-antique-accent hover:text-antique-accent-h font-medium"
           >
             Clear all ({activeCount})
           </button>
         )}
       </div>
+
+      {/* Sale Type */}
+      <FilterSection title="Sale Type">
+        <div className="space-y-1.5">
+          {SALE_MODE_OPTIONS.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+              <input
+                type="radio"
+                name="es_sale_mode"
+                checked={filters.saleMode === opt.value}
+                onChange={() => onChange({ saleMode: opt.value as Filters["saleMode"], page: 1 })}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-antique-text-sec group-hover:text-antique-accent transition-colors">
+                {opt.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </FilterSection>
 
       {/* Status */}
       <FilterSection title="Sale Status">
@@ -313,29 +369,112 @@ function EstateSaleFilters({
   );
 }
 
+// ── Map side card ──────────────────────────────────────────────────────────────
+
+const MapSideCard = forwardRef<
+  HTMLDivElement,
+  { listing: Listing; selected: boolean; onClick: () => void }
+>(function MapSideCard({ listing, selected, onClick }, ref) {
+  const startLabel = daysUntil(listing.sale_starts_at as string | null);
+  const isSoon = startLabel === "Active" || startLabel === "Tomorrow";
+
+  return (
+    <div
+      ref={ref}
+      onClick={onClick}
+      className={cn(
+        "flex gap-3 p-3 border-b border-antique-border cursor-pointer transition-colors",
+        selected
+          ? "bg-antique-accent-s border-l-4 border-l-antique-accent"
+          : "hover:bg-antique-muted"
+      )}
+    >
+      <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-antique-muted">
+        {listing.primary_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={listing.primary_image_url}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-2xl">🏡</div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-0.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold text-antique-accent uppercase tracking-wide">
+            {listing.platform?.display_name ?? "Estate Sale"}
+          </span>
+          {isSoon && (
+            <span className="text-[10px] font-bold bg-antique-accent text-white px-1.5 py-px rounded-full">
+              {startLabel}
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-medium text-antique-text line-clamp-2 leading-snug">
+          {listing.title}
+        </p>
+        {(listing.city || listing.state) && (
+          <p className="text-xs text-antique-text-sec">
+            📍 {[listing.city, listing.state].filter(Boolean).join(", ")}
+            {listing.distance_miles != null && (
+              <span className="ml-1 text-antique-text-mute">· {listing.distance_miles.toFixed(1)} mi</span>
+            )}
+          </p>
+        )}
+        {(listing.sale_starts_at || listing.sale_ends_at) && (
+          <p className="text-xs text-antique-text-mute flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {fmtDate(listing.sale_starts_at as string | null)}
+            {listing.sale_ends_at && ` – ${fmtDate(listing.sale_ends_at as string | null)}`}
+          </p>
+        )}
+        <div className="flex items-center justify-between pt-0.5">
+          {listing.current_price != null && (
+            <span className="text-sm font-bold text-antique-accent">
+              {formatPrice(listing.current_price)}
+            </span>
+          )}
+          <a
+            href={`/listing/${listing.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="ml-auto text-xs text-antique-accent hover:text-antique-accent-h flex items-center gap-0.5"
+          >
+            Details <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-type ViewMode = "card" | "list";
-const VIEW_KEY = "es_estate_view";
-
 export default function EstateSalesPage() {
-  const [listings, setListings]         = useState<Listing[]>([]);
-  const [loading, setLoading]           = useState(false);
-  const [geoLoading, setGeoLoading]     = useState(false);
-  const [error, setError]               = useState("");
-  const [filters, setFilters]           = useState<Filters>(DEFAULT_FILTERS);
-  const [location, setLocation]         = useState<Location | null>(null);
-  const [zip, setZip]                   = useState("");
-  const [viewMode, setViewMode]         = useState<ViewMode>("card");
+  const [listings, setListings]             = useState<Listing[]>([]);
+  const [loading, setLoading]               = useState(false);
+  const [geoLoading, setGeoLoading]         = useState(false);
+  const [error, setError]                   = useState("");
+  const [filters, setFilters]               = useState<Filters>(DEFAULT_FILTERS);
+  const [location, setLocation]             = useState<Location | null>(null);
+  const [zip, setZip]                       = useState("");
+  const [viewMode, setViewMode]             = useState<ViewMode>("card");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [showPlatforms, setShowPlatforms] = useState(false);
-  const [hasMore, setHasMore]           = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+  const [showPlatforms, setShowPlatforms]   = useState(false);
+  const [hasMore, setHasMore]               = useState(false);
+  const [mapCenter, setMapCenter]           = useState<[number, number]>(DEFAULT_MAP_CENTER);
+  const [mapZoom, setMapZoom]               = useState(DEFAULT_MAP_ZOOM);
+  const [selectedMapId, setSelectedMapId]   = useState<number | null>(null);
+  const abortRef      = useRef<AbortController | null>(null);
+  const sideListRefs  = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Restore view mode from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(VIEW_KEY);
-    if (saved === "list" || saved === "card") setViewMode(saved as ViewMode);
+    if (saved === "list" || saved === "card" || saved === "map") setViewMode(saved as ViewMode);
   }, []);
 
   function changeView(mode: ViewMode) {
@@ -343,7 +482,7 @@ export default function EstateSalesPage() {
     localStorage.setItem(VIEW_KEY, mode);
   }
 
-  // Fetch whenever filters or location change
+  // Fetch whenever server-side filters or location change
   useEffect(() => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -372,6 +511,13 @@ export default function EstateSalesPage() {
     setFilters((f) => ({ ...f, ...patch }));
   }
 
+  // Client-side saleMode filter applied on top of API results
+  const displayListings = filters.saleMode === "in_person"
+    ? listings.filter((l) => l.pickup_only || !l.ships_nationally)
+    : filters.saleMode === "online"
+    ? listings.filter((l) => l.ships_nationally)
+    : listings;
+
   // ZIP search
   const handleZipSearch = useCallback(async () => {
     const trimmed = zip.trim();
@@ -379,9 +525,12 @@ export default function EstateSalesPage() {
     setError("");
     const coords = await zipToCoords(trimmed);
     if (!coords) { setError(`Couldn't locate ZIP "${trimmed}".`); return; }
-    setLocation({ ...coords, label: `ZIP ${trimmed}` });
+    const loc: Location = { ...coords, label: `ZIP ${trimmed}` };
+    setLocation(loc);
+    setMapCenter([coords.lat, coords.lon]);
+    setMapZoom(radiusToZoom(filters.radiusMiles));
     patchFilters({ page: 1 });
-  }, [zip]);
+  }, [zip, filters.radiusMiles]);
 
   // Geolocation
   const handleNearMe = useCallback(() => {
@@ -390,7 +539,10 @@ export default function EstateSalesPage() {
     setError("");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "your location" });
+        const loc: Location = { lat: pos.coords.latitude, lon: pos.coords.longitude, label: "your location" };
+        setLocation(loc);
+        setMapCenter([pos.coords.latitude, pos.coords.longitude]);
+        setMapZoom(radiusToZoom(filters.radiusMiles));
         patchFilters({ page: 1 });
         setGeoLoading(false);
       },
@@ -399,18 +551,27 @@ export default function EstateSalesPage() {
         setGeoLoading(false);
       }
     );
-  }, []);
+  }, [filters.radiusMiles]);
 
   function clearLocation() {
     setLocation(null);
     setZip("");
+    setMapCenter(DEFAULT_MAP_CENTER);
+    setMapZoom(DEFAULT_MAP_ZOOM);
     patchFilters({ page: 1 });
+  }
+
+  function handleMarkerClick(id: number) {
+    setSelectedMapId(id);
+    const el = sideListRefs.current.get(id);
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   const isLoading = loading || geoLoading;
   const activeFilterCount = [
     filters.status, filters.category, filters.minPrice, filters.maxPrice,
     filters.platformIds.length > 0,
+    filters.saleMode !== "all",
   ].filter(Boolean).length;
 
   const filterPanel = (
@@ -583,32 +744,39 @@ export default function EstateSalesPage() {
                 </span>
               ) : (
                 <>
-                  <span className="font-semibold text-antique-text">{listings.length}</span>{" "}
-                  estate sale{listings.length !== 1 ? "s" : ""}
+                  <span className="font-semibold text-antique-text">{displayListings.length}</span>{" "}
+                  estate sale{displayListings.length !== 1 ? "s" : ""}
                   {location && <> within <span className="font-medium">{filters.radiusMiles} mi</span> of {location.label}</>}
                 </>
               )}
             </p>
 
-            {/* Sort */}
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown className="w-3.5 h-3.5 text-antique-text-mute" />
-              <select
-                value={filters.sort}
-                onChange={(e) => patchFilters({ sort: e.target.value, page: 1 })}
-                className="bg-antique-surface border border-antique-border rounded-lg px-2.5 py-1.5 text-sm text-antique-text focus:outline-none focus:ring-2 focus:ring-antique-accent cursor-pointer"
-              >
-                {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
+            {/* Sort (hidden in map mode) */}
+            {viewMode !== "map" && (
+              <div className="flex items-center gap-1.5">
+                <ArrowUpDown className="w-3.5 h-3.5 text-antique-text-mute" />
+                <select
+                  value={filters.sort}
+                  onChange={(e) => patchFilters({ sort: e.target.value, page: 1 })}
+                  className="bg-antique-surface border border-antique-border rounded-lg px-2.5 py-1.5 text-sm text-antique-text focus:outline-none focus:ring-2 focus:ring-antique-accent cursor-pointer"
+                >
+                  {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            )}
 
-            {/* View toggle */}
+            {/* View toggle: Card | List | Map */}
             <div className="flex border border-antique-border rounded-lg overflow-hidden">
-              {(["card", "list"] as ViewMode[]).map((mode) => (
+              {([
+                { mode: "card" as ViewMode, icon: <LayoutGrid className="w-4 h-4" />, label: "Card view" },
+                { mode: "list" as ViewMode, icon: <LayoutList className="w-4 h-4" />, label: "List view" },
+                { mode: "map"  as ViewMode, icon: <MapIcon className="w-4 h-4" />,    label: "Map view" },
+              ]).map(({ mode, icon, label }) => (
                 <button
                   key={mode}
                   onClick={() => changeView(mode)}
-                  aria-label={`${mode} view`}
+                  aria-label={label}
+                  title={label}
                   className={cn(
                     "p-1.5 transition-colors",
                     viewMode === mode
@@ -616,15 +784,21 @@ export default function EstateSalesPage() {
                       : "bg-antique-surface text-antique-text-mute hover:text-antique-text"
                   )}
                 >
-                  {mode === "card" ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
+                  {icon}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Active filter pills */}
-          {(filters.category || filters.status || filters.minPrice || filters.maxPrice || filters.platformIds.length > 0) && (
+          {(filters.category || filters.status || filters.minPrice || filters.maxPrice || filters.platformIds.length > 0 || filters.saleMode !== "all") && (
             <div className="flex flex-wrap gap-1.5 mb-4">
+              {filters.saleMode !== "all" && (
+                <FilterPill
+                  label={SALE_MODE_OPTIONS.find((o) => o.value === filters.saleMode)?.label ?? filters.saleMode}
+                  onRemove={() => patchFilters({ saleMode: "all", page: 1 })}
+                />
+              )}
               {filters.status && (
                 <FilterPill label={STATUS_OPTIONS.find((o) => o.value === filters.status)?.label ?? filters.status}
                   onRemove={() => patchFilters({ status: "", page: 1 })} />
@@ -649,8 +823,84 @@ export default function EstateSalesPage() {
             </div>
           )}
 
-          {/* Results */}
-          {listings.length === 0 && !isLoading ? (
+          {/* ── Map view ── */}
+          {viewMode === "map" ? (
+            <div className="border border-antique-border rounded-2xl overflow-hidden flex h-[calc(100vh-300px)] min-h-[500px]">
+
+              {/* Side list */}
+              <aside className="hidden md:flex flex-col w-72 xl:w-80 flex-shrink-0 border-r border-antique-border bg-antique-surface overflow-y-auto">
+                <div className="px-4 py-2.5 border-b border-antique-border bg-antique-muted flex-shrink-0">
+                  <p className="text-xs font-semibold text-antique-text-sec uppercase tracking-wide">
+                    {isLoading
+                      ? "Loading…"
+                      : `${displayListings.length} sale${displayListings.length !== 1 ? "s" : ""}${location ? ` · ${filters.radiusMiles} mi` : ""}`
+                    }
+                  </p>
+                </div>
+
+                {displayListings.length === 0 && !isLoading ? (
+                  <div className="flex flex-col items-center justify-center flex-1 p-6 text-center text-antique-text-mute">
+                    <MapPin className="w-8 h-8 mb-2 opacity-30" />
+                    <p className="text-sm font-medium text-antique-text-sec">No sales found</p>
+                    <p className="text-xs mt-1">Try a different location or broader filters.</p>
+                  </div>
+                ) : (
+                  displayListings.map((listing) => (
+                    <MapSideCard
+                      key={listing.id}
+                      listing={listing}
+                      selected={listing.id === selectedMapId}
+                      onClick={() => {
+                        setSelectedMapId(listing.id);
+                        if (listing.latitude && listing.longitude) {
+                          setMapCenter([listing.latitude, listing.longitude]);
+                          setMapZoom(14);
+                        }
+                      }}
+                      ref={(el) => {
+                        if (el) sideListRefs.current.set(listing.id, el);
+                        else sideListRefs.current.delete(listing.id);
+                      }}
+                    />
+                  ))
+                )}
+              </aside>
+
+              {/* Map */}
+              <div className="flex-1 relative">
+                <AuctionMapDynamic
+                  listings={displayListings}
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  selectedId={selectedMapId}
+                  onMarkerClick={handleMarkerClick}
+                />
+
+                {/* Prompt when no location set */}
+                {!location && !isLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-antique-surface/95 backdrop-blur-sm rounded-xl shadow-lg border border-antique-border px-6 py-5 text-center max-w-xs pointer-events-auto">
+                      <MapPin className="w-8 h-8 text-antique-accent mx-auto mb-2" />
+                      <p className="font-display font-bold text-antique-text text-base">Find Sales Near You</p>
+                      <p className="text-xs text-antique-text-sec mt-1 leading-relaxed">
+                        Enter a ZIP code or tap &ldquo;Near Me&rdquo; above to see estate sales on the map.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile: "List" button overlay */}
+                <button
+                  onClick={() => changeView("list")}
+                  className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-antique-surface border border-antique-border shadow-lg text-antique-text text-sm font-medium px-4 py-2 rounded-full"
+                >
+                  <LayoutList className="w-4 h-4" />
+                  View as list
+                </button>
+              </div>
+            </div>
+
+          ) : /* ── Card / List view ── */ listings.length === 0 && !isLoading ? (
             <div className="text-center py-20 text-antique-text-mute">
               <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-semibold text-antique-text-sec">No estate sales found</p>
@@ -668,20 +918,20 @@ export default function EstateSalesPage() {
             </div>
           ) : viewMode === "card" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {listings.map((listing) => (
+              {displayListings.map((listing) => (
                 <EstateSaleCard key={listing.id} listing={listing} />
               ))}
             </div>
           ) : (
             <div className="space-y-2">
-              {listings.map((listing) => (
+              {displayListings.map((listing) => (
                 <EstateSaleRow key={listing.id} listing={listing} />
               ))}
             </div>
           )}
 
-          {/* Load more */}
-          {hasMore && !isLoading && listings.length > 0 && (
+          {/* Load more (card/list only) */}
+          {viewMode !== "map" && hasMore && !isLoading && displayListings.length > 0 && (
             <div className="mt-8 text-center">
               <button
                 onClick={() => patchFilters({ page: filters.page + 1 })}
@@ -764,6 +1014,14 @@ function EstateSaleCard({ listing }: { listing: Listing }) {
             Sponsored
           </div>
         )}
+        {/* In person / online badge */}
+        <div className="absolute bottom-2 left-2">
+          {listing.pickup_only && !listing.ships_nationally ? (
+            <span className="bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">In Person</span>
+          ) : listing.ships_nationally ? (
+            <span className="bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">Online</span>
+          ) : null}
+        </div>
       </div>
 
       <div className="p-4 flex flex-col gap-2 flex-1">
@@ -863,6 +1121,12 @@ function EstateSaleRow({ listing }: { listing: Listing }) {
             <span className="text-[10px] font-medium border border-antique-border text-antique-text-mute px-2 py-0.5 rounded-full">
               Sponsored
             </span>
+          )}
+          {listing.pickup_only && !listing.ships_nationally && (
+            <span className="text-[10px] font-medium border border-antique-border text-antique-text-mute px-2 py-0.5 rounded-full">In Person</span>
+          )}
+          {listing.ships_nationally && (
+            <span className="text-[10px] font-medium border border-antique-border text-antique-text-mute px-2 py-0.5 rounded-full">Online</span>
           )}
         </div>
 
