@@ -12,6 +12,7 @@ import { ItemsGrid } from "@/components/listings/items-grid";
 import { TrackedCta } from "@/components/listings/tracked-cta";
 import { SaveButton } from "@/components/listings/save-button";
 import { RelatedListings } from "@/components/listings/related-listings";
+import { MarketContextStrip } from "@/components/market/market-context-strip";
 
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
@@ -377,8 +378,13 @@ export default async function ListingPage({ params }: PageProps) {
         />
       )}
 
+      {/* Market context — category median price + trend from sold comps */}
+      <div className="mt-8">
+        <MarketContextStrip listing={listing} />
+      </div>
+
       {/* AI Price Checker — inline Claude-powered estimate + asking-price verdict */}
-      <div className="mt-10">
+      <div className="mt-6">
         <PriceCheckerWidget listing={listing} />
       </div>
 
