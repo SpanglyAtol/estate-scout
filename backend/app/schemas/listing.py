@@ -63,5 +63,6 @@ class ListingSearchParams(BaseModel):
     ending_hours: int | None = None
     category: str | None = None
     platform_ids: list[int] = Field(default_factory=list)
+    listing_type: str | None = None
     page: int = Field(1, ge=1)
     page_size: int = Field(24, ge=1, le=100)

@@ -1,5 +1,6 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 import dynamic from "next/dynamic";
 import { useState, useCallback, useRef, forwardRef } from "react";
 import { Search, MapPin, Loader2, ExternalLink, ChevronDown, Navigation } from "lucide-react";

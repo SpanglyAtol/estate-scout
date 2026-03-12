@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -12,13 +13,17 @@ import httpx
 class ScrapedItem:
     """
     A single lot / item within an auction or estate sale.
-    Populated by scrapers that can access item-level data (e.g. MaxSold).
-    Stored nested under ScrapedListing.items — no separate storage record needed.
+    Populated by scrapers that can access item-level data (e.g. MaxSold, HiBid).
+    Written to the listing_lots table by storage.py.
     """
     title: str
     lot_number: str | None = None
     description: str | None = None
     current_price: float | None = None
+    hammer_price: float | None = None   # final sold price at lot level
+    is_completed: bool = False
+    sale_ends_at: datetime | None = None
+    bid_count: int | None = None
     estimate_low: float | None = None
     estimate_high: float | None = None
     primary_image_url: str | None = None
@@ -113,17 +118,18 @@ class BaseScraper(ABC):
         self.proxy_pool = proxy_pool
         self.storage = storage
         self._session: httpx.AsyncClient | None = None
+        self._active_proxy: str | None = None  # proxy URL used for this session
 
     async def __aenter__(self):
-        proxy = self.proxy_pool.get_next() if self.proxy_pool else None
+        self._active_proxy = self.proxy_pool.get_next() if self.proxy_pool else None
         # httpx >= 0.24 removed the `proxies` kwarg; use `mounts` instead.
         client_kwargs: dict = {
             "headers": {"User-Agent": self._user_agent()},
             "timeout": httpx.Timeout(30.0, connect=10.0),
             "follow_redirects": True,
         }
-        if proxy:
-            transport = httpx.AsyncHTTPTransport(proxy=proxy)
+        if self._active_proxy:
+            transport = httpx.AsyncHTTPTransport(proxy=self._active_proxy)
             client_kwargs["mounts"] = {
                 "http://": transport,
                 "https://": transport,
@@ -139,7 +145,7 @@ class BaseScraper(ABC):
         return (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/122.0.0.0 Safari/537.36"
+            "Chrome/124.0.0.0 Safari/537.36"
         )
 
     def _browser_headers(self, referer: str = "") -> dict:
@@ -159,7 +165,7 @@ class BaseScraper(ABC):
             "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "none" if not referer else "same-origin",
-            "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Windows"',
         }
@@ -168,15 +174,18 @@ class BaseScraper(ABC):
         return h
 
     async def _fetch(self, url: str, **kwargs) -> httpx.Response:
-        """Rate-limited fetch with exponential backoff on 429/503."""
-        if self.rate_limiter:
-            await self.rate_limiter.acquire(self.platform_slug)
+        """Rate-limited fetch with exponential backoff on 429/503.
 
+        Rate limiter is acquired on every attempt (including retries) so that
+        a 429 sleep followed by an immediate retry doesn't bypass the limiter.
+        """
         # Inject browser headers unless caller already provided headers
         if "headers" not in kwargs:
             kwargs["headers"] = self._browser_headers()
 
         for attempt in range(3):
+            if self.rate_limiter:
+                await self.rate_limiter.acquire(self.platform_slug)
             try:
                 response = await self._session.get(url, **kwargs)
                 if response.status_code in (429, 503):
@@ -185,12 +194,87 @@ class BaseScraper(ABC):
                     await asyncio.sleep(wait)
                     continue
                 response.raise_for_status()
+                if self.proxy_pool and self._active_proxy:
+                    self.proxy_pool.report_success(self._active_proxy)
                 return response
             except httpx.HTTPStatusError:
                 if attempt == 2:
                     raise
                 await asyncio.sleep(2 ** attempt)
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ProxyError) as exc:
+                # Connection-level failures indicate the proxy itself is broken,
+                # not a server-side response — report and stop retrying.
+                if self.proxy_pool and self._active_proxy:
+                    self.proxy_pool.report_failure(self._active_proxy)
+                    self.logger.warning(
+                        f"Proxy {self._active_proxy} failed ({exc}); marked unhealthy"
+                    )
+                raise
         raise RuntimeError(f"Failed to fetch {url} after 3 attempts")
+
+    # ── Shared parsing helpers ─────────────────────────────────────────────────
+    # Defined here so scrapers don't each maintain their own copy.
+
+    @staticmethod
+    def _parse_price(value) -> float | None:
+        """Parse a price value from any common representation.
+
+        Handles: None, int/float, '$1,234.56', '£800', 'N/A', '-', '—',
+        '10 to 20' ranges (takes the lower bound).
+        """
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        text = str(value).strip()
+        if not text or text in ("N/A", "-", "—", "n/a", "TBD", "tbd"):
+            return None
+        # Handle "X to Y" ranges — take the lower (first) bound
+        text = text.split(" to ")[0].strip()
+        cleaned = re.sub(r"[^\d.]", "", text)
+        try:
+            return float(cleaned) if cleaned else None
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_dt(value) -> datetime | None:
+        """Parse a datetime from ISO strings, common date formats, or human-readable text.
+
+        Tries structured formats first (fast, no import), then falls back to
+        dateutil for human-readable strings like 'Dec 15, 2024'.
+        """
+        if not value:
+            return None
+        s = str(value).strip()
+        for fmt in (
+            "%Y-%m-%dT%H:%M:%SZ",
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            "%Y-%m-%dT%H:%M:%S%z",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+        ):
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                continue
+        # dateutil fallback for human-readable strings
+        try:
+            from dateutil import parser as dtp
+            return dtp.parse(s)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _parse_iso(value) -> datetime | None:
+        """Strict ISO-8601 parse. Use when the input is known to be ISO format."""
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return None
 
     @abstractmethod
     async def scrape_listings(self, **kwargs) -> AsyncIterator[ScrapedListing]:

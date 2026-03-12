@@ -25,6 +25,7 @@ async def search_listings(
     ending_hours: int | None = Query(None, description="Items ending within N hours"),
     category: str | None = Query(None),
     platform_ids: list[int] = Query(default=[]),
+    listing_type: str | None = Query(None, description="Filter by type: auction, estate_sale, individual_item"),
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -41,6 +42,7 @@ async def search_listings(
         ending_hours=ending_hours,
         category=category,
         platform_ids=platform_ids,
+        listing_type=listing_type,
         page=page,
         page_size=page_size,
     )

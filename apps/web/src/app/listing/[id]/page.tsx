@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
+import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar } from "lucide-react";
 import { getListing } from "@/lib/api-client";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
-import { AmazonAssociates } from "@/components/ads/amazon-associates";
+import { categoryToSlug } from "@/lib/category-meta";
+import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
+import { PriceCheckerWidget } from "@/components/price-checker/price-checker-widget";
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
+import { TrackedCta } from "@/components/listings/tracked-cta";
 
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
@@ -28,7 +31,7 @@ export default async function ListingPage({ params }: PageProps) {
   const lt = listing.listing_type ?? "auction";
   const status = getAuctionStatus(listing);
   const countdown = timeUntil(listing.sale_ends_at);
-  const platform = listing.platform.display_name;
+  const platform = listing.platform?.display_name ?? "Auction Platform";
 
   // CTA configuration based on listing type + status
   let cta: { label: string; className: string };
@@ -176,16 +179,16 @@ export default async function ListingPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* CTA — always goes to source platform */}
-          <a
+          {/* CTA — always goes to source platform, click tracked for ad revenue */}
+          <TrackedCta
             href={listing.external_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            label={cta.label}
             className={cta.className}
-          >
-            {cta.label}
-            <ExternalLink className="w-5 h-5" />
-          </a>
+            listingId={listing.id}
+            platform={listing.platform.name}
+            category={listing.category}
+            listingType={lt}
+          />
 
           {/* Meta */}
           <div className="space-y-2 text-sm">
@@ -203,12 +206,24 @@ export default async function ListingPage({ params }: PageProps) {
                   ` · Ends ${formatDate(listing.sale_ends_at)}`}
               </div>
             )}
-            {listing.category && (
-              <div className="flex items-center gap-2 text-antique-text-sec">
-                <Tag className="w-4 h-4 text-antique-text-mute" />
-                {listing.category}
-              </div>
-            )}
+            {listing.category && (() => {
+              const catSlug = categoryToSlug(listing.category);
+              return (
+                <div className="flex items-center gap-2 text-antique-text-sec">
+                  <Tag className="w-4 h-4 text-antique-text-mute" />
+                  {catSlug ? (
+                    <Link
+                      href={`/categories/${catSlug}`}
+                      className="hover:text-antique-accent hover:underline transition-colors"
+                    >
+                      {listing.category}
+                    </Link>
+                  ) : (
+                    listing.category
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Description */}
@@ -276,8 +291,8 @@ export default async function ListingPage({ params }: PageProps) {
             );
           })()}
 
-          {/* Amazon Associates — contextual supply links */}
-          <AmazonAssociates category={listing.category} />
+          {/* Contextual affiliate panel — keywords built from all enriched listing fields */}
+          <ContextualAffiliatePanel listing={listing} />
         </div>
       </div>
 
@@ -290,18 +305,9 @@ export default async function ListingPage({ params }: PageProps) {
         />
       )}
 
-      {/* Price check CTA */}
-      <div className="mt-10 bg-antique-accent-s border border-antique-accent-lt rounded-2xl p-6 text-center">
-        <h2 className="font-bold text-lg text-antique-text mb-2">Is this a good deal?</h2>
-        <p className="text-antique-text-sec text-sm mb-4">
-          Use our AI price check to see what similar items sold for.
-        </p>
-        <Link
-          href={`/valuation?q=${encodeURIComponent(listing.title)}`}
-          className="inline-block bg-antique-accent text-white px-6 py-3 rounded-xl font-semibold hover:bg-antique-accent-h transition-colors"
-        >
-          Check Price
-        </Link>
+      {/* AI Price Checker — inline Claude-powered estimate + asking-price verdict */}
+      <div className="mt-10">
+        <PriceCheckerWidget listing={listing} />
       </div>
     </div>
   );

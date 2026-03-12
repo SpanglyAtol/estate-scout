@@ -1,0 +1,49 @@
+name: Scrape — National (LiveAuctioneers + Discovery)
+
+# LiveAuctioneers: highest-volume auction aggregator — 3-layer anti-403 strategy.
+# Discovery: finds and scrapes small regional auction sites not on major platforms.
+# Both are the most thorough (and slowest) scrapers. Runs once daily at 3 AM UTC.
+# At 80 pages, LiveAuctioneers alone targets ~16,000 listings per run.
+#
+# Output: apps/web/src/data/scraped-listings.json  (the legacy fallback slot)
+# Vercel redeploys automatically on push via GitHub integration.
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 3:00 AM UTC daily (1 hour after slow workflow)
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
+
+      - name: Scrape LiveAuctioneers + regional discovery sites
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python backend/scrapers/hydrate.py \
+            --targets la,dc \
+            --state "" \
+            --max-pages 80 \
+            --out apps/web/src/data/scraped-listings.json
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/data/scraped-listings.json
+          git diff --staged --quiet || git commit -m "chore: refresh national listings (la+dc) [skip ci]"
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin ${{ github.ref_name }}

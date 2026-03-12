@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     openai_embedding_model: str = "text-embedding-3-small"
     openai_chat_model: str = "gpt-4o-mini"
     anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-4-6"  # Opus 4.6 with adaptive thinking
 
     # Scraping
     proxy_urls: str = ""  # comma-separated: http://user:pass@host:port,...
@@ -67,7 +68,11 @@ class Settings(BaseSettings):
 
     @property
     def ai_enabled(self) -> bool:
-        return bool(self.openai_api_key)
+        return bool(self.openai_api_key) or bool(self.anthropic_api_key)
+
+    @property
+    def claude_enabled(self) -> bool:
+        return bool(self.anthropic_api_key)
 
 
 settings = Settings()

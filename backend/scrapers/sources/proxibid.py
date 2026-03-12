@@ -23,11 +23,9 @@ Rate limit: 0.5 req/s — conservative for a moderately trafficked site.
 
 import json
 import re
-from datetime import datetime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
-from dateutil import parser as dtp
 
 from scrapers.base import BaseScraper, ScrapedListing
 
@@ -228,20 +226,7 @@ class ProxibidScraper(BaseScraper):
             self.logger.debug(f"Proxibid normalize error: {exc}")
             return None
 
-    @staticmethod
-    def _parse_dt(value) -> datetime | None:
-        if not value:
-            return None
-        try:
-            return dtp.parse(str(value))
-        except Exception:
-            pass
-        for fmt in ("%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d"):
-            try:
-                return datetime.strptime(str(value), fmt)
-            except ValueError:
-                continue
-        return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
         return None

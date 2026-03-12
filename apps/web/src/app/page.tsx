@@ -35,6 +35,18 @@ export default async function HomePage() {
     // Backend not running yet — show empty state gracefully
   }
 
+  // Fallback: if all time-filtered sections returned empty, load recent listings
+  // regardless of status so the homepage always has content to show.
+  let recentFallback: Listing[] = [];
+  const totalTimeFiltered = featured.length + endingSoon.length + live.length + upcoming.length;
+  if (totalTimeFiltered === 0) {
+    try {
+      recentFallback = await searchListings({ sort: "newest", page_size: 24 });
+    } catch {
+      // silently skip
+    }
+  }
+
   return (
     <div className="container mx-auto px-4">
 
@@ -196,21 +208,35 @@ export default async function HomePage() {
       {/* ── Ornamental divider ────────────────────────────────────────────────── */}
       {estateSales.length > 0 && (
         <div className="ornament-divider mb-12 text-xs text-antique-text-mute tracking-widest uppercase">
-          Estate Sales &amp; Lots
+          Estate Sales
         </div>
       )}
 
-      {/* ── Estate Sales & Lots ───────────────────────────────────────────────── */}
+      {/* ── Estate Sales preview ──────────────────────────────────────────────── */}
       {estateSales.length > 0 && (
         <section className="mb-14">
           <SectionHeader
             icon={<MapPin className="w-5 h-5 text-antique-accent" />}
-            title="Estate Sales &amp; Lots"
-            subtitle="In-person sales and multi-item lot auctions"
-            href="/search?listing_type=estate_sale"
-            linkLabel="Browse estate sales"
+            title="Estate Sales Near You"
+            subtitle="In-person sales — browse all 8 platforms in one place"
+            href="/estate-sales"
+            linkLabel="Find estate sales →"
           />
           <ListingGrid listings={estateSales} showAds={false} />
+        </section>
+      )}
+
+      {/* ── Recent Listings fallback (shown when time-filtered sections are empty) */}
+      {recentFallback.length > 0 && (
+        <section className="mb-14">
+          <SectionHeader
+            icon={<Package className="w-5 h-5 text-antique-accent" />}
+            title="Recent Listings"
+            subtitle={`${recentFallback.length} listings from all platforms`}
+            href="/search"
+            linkLabel="Browse all"
+          />
+          <ListingGrid listings={recentFallback} />
         </section>
       )}
 

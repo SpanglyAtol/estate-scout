@@ -85,6 +85,20 @@ class Listing(Base):
     # Raw scrape payload - schema flexible
     raw_data: Mapped[dict] = mapped_column(JSONB, default=dict)
 
+    # Classification (added in migration 0004)
+    listing_type: Mapped[str] = mapped_column(String(50), default="auction")
+    item_type: Mapped[str] = mapped_column(String(50), default="individual_item")
+    auction_status: Mapped[str] = mapped_column(String(50), default="upcoming")
+
+    # Estimate columns (added in migration 0004)
+    estimate_low: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    estimate_high: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+
+    # Archive (added in migration 0004): set when moved to archive.listings
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+
     # Metadata
     scraped_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

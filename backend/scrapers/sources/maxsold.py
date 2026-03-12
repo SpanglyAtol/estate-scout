@@ -14,7 +14,6 @@ Lot external URL:  https://maxsold.com/auction/{amAuctionId}
 
 import json
 import re
-from datetime import datetime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
@@ -38,7 +37,80 @@ _US_METRO_COORDS = [
     (44.9778,   -93.2650),   # Minneapolis, MN
     (33.7490,   -84.3880),   # Atlanta, GA
     (25.7617,   -80.1918),   # Miami, FL
+    (45.5051,  -122.6750),   # Portland, OR
+    (36.1627,   -86.7816),   # Nashville, TN
+    (39.1031,   -84.5120),   # Cincinnati, OH
+    (43.0481,   -76.1474),   # Syracuse, NY (upstate coverage)
+    (35.2271,   -80.8431),   # Charlotte, NC
+    (38.2527,   -85.7585),   # Louisville, KY
+    (36.0726,   -79.7920),   # Greensboro, NC
+    (30.3322,   -81.6557),   # Jacksonville, FL
+    (38.8951,   -77.0364),   # Washington, DC
+    (43.6591,   -70.2568),   # Portland, ME (New England coverage)
+    (35.4676,   -97.5164),   # Oklahoma City, OK
+    (35.1495,   -90.0490),   # Memphis, TN
+    (30.6954,   -88.0399),   # Mobile, AL (Gulf coverage)
+    (43.0389,   -76.1422),   # Buffalo / Syracuse corridor
+    (46.8772,  -113.9962),   # Missoula, MT (Mountain West)
+    (43.6150,  -116.2023),   # Boise, ID
+    (36.1540,  -115.1537),   # Las Vegas, NV
+    (44.0805,   -92.4637),   # Rochester, MN
 ]
+
+# State → best representative metro coordinates (for state-specific mode)
+_STATE_COORDS: dict[str, tuple[float, float]] = {
+    "AK": (61.2181, -149.9003),  # Anchorage
+    "AL": (33.5207,  -86.8025),  # Birmingham
+    "AR": (34.7465,  -92.2896),  # Little Rock
+    "AZ": (33.4484, -112.0740),  # Phoenix
+    "CA": (34.0522, -118.2437),  # Los Angeles
+    "CO": (39.7392, -104.9903),  # Denver
+    "CT": (41.7658,  -72.6851),  # Hartford
+    "DC": (38.8951,  -77.0364),  # Washington DC
+    "DE": (39.7447,  -75.5484),  # Wilmington
+    "FL": (25.7617,  -80.1918),  # Miami
+    "GA": (33.7490,  -84.3880),  # Atlanta
+    "HI": (21.3069, -157.8583),  # Honolulu
+    "IA": (41.5868,  -93.6250),  # Des Moines
+    "ID": (43.6150, -116.2023),  # Boise
+    "IL": (41.8781,  -87.6298),  # Chicago
+    "IN": (39.7684,  -86.1581),  # Indianapolis
+    "KS": (37.6872,  -97.3301),  # Wichita
+    "KY": (38.2527,  -85.7585),  # Louisville
+    "LA": (29.9511,  -90.0715),  # New Orleans
+    "MA": (42.3601,  -71.0589),  # Boston
+    "MD": (39.2904,  -76.6122),  # Baltimore
+    "ME": (43.6591,  -70.2568),  # Portland
+    "MI": (42.3314,  -83.0458),  # Detroit
+    "MN": (44.9778,  -93.2650),  # Minneapolis
+    "MO": (38.6270,  -90.1994),  # St. Louis
+    "MS": (32.2988,  -90.1848),  # Jackson
+    "MT": (46.8772, -113.9962),  # Missoula
+    "NC": (35.2271,  -80.8431),  # Charlotte
+    "ND": (46.8772, -100.7896),  # Bismarck
+    "NE": (41.2565,  -95.9345),  # Omaha
+    "NH": (42.9956,  -71.4548),  # Manchester
+    "NJ": (40.7282,  -74.0776),  # Newark
+    "NM": (35.0844, -106.6504),  # Albuquerque
+    "NV": (36.1540, -115.1537),  # Las Vegas
+    "NY": (40.7128,  -74.0060),  # New York City
+    "OH": (39.9612,  -82.9988),  # Columbus
+    "OK": (35.4676,  -97.5164),  # Oklahoma City
+    "OR": (45.5051, -122.6750),  # Portland
+    "PA": (39.9526,  -75.1652),  # Philadelphia
+    "RI": (41.8240,  -71.4128),  # Providence
+    "SC": (32.7765,  -79.9311),  # Charleston
+    "SD": (44.0805,  -98.4902),  # Aberdeen
+    "TN": (36.1627,  -86.7816),  # Nashville
+    "TX": (29.7604,  -95.3698),  # Houston
+    "UT": (40.7608, -111.8910),  # Salt Lake City
+    "VA": (37.5407,  -77.4360),  # Richmond
+    "VT": (44.4759,  -73.2121),  # Burlington
+    "WA": (47.6062, -122.3321),  # Seattle
+    "WI": (43.0389,  -88.0399),  # Milwaukee
+    "WV": (38.3498,  -81.6326),  # Charleston WV
+    "WY": (41.1400, -104.8202),  # Cheyenne
+}
 
 
 class MaxSoldScraper(BaseScraper):
@@ -62,40 +134,30 @@ class MaxSoldScraper(BaseScraper):
         only tries metro coordinates in or near that state.
         """
         # Build the list of geo-search URLs to try
-        if state.upper() == "":
+        if not state:
             # National mode: hit every metro coordinate for maximum coverage
             pages_to_try = [
                 f"https://maxsold.com/?lat={lat}&lng={lng}&radius=150000"
                 for lat, lng in _US_METRO_COORDS
             ]
         else:
-            # State-specific mode: only use metros roughly matching that state
-            # Fall through to WA (Seattle) coords as default fallback
-            pages_to_try = [self.HOME_URL]
-            if state.upper() == "WA":
-                pages_to_try.append("https://maxsold.com/?lat=47.6062&lng=-122.3321&radius=150000")
-            elif state.upper() in ("NY", "NJ", "CT"):
-                pages_to_try.append("https://maxsold.com/?lat=40.7128&lng=-74.0060&radius=150000")
-            elif state.upper() in ("CA",):
-                pages_to_try.append("https://maxsold.com/?lat=34.0522&lng=-118.2437&radius=150000")
-            elif state.upper() in ("IL",):
-                pages_to_try.append("https://maxsold.com/?lat=41.8781&lng=-87.6298&radius=150000")
-            elif state.upper() in ("TX",):
-                pages_to_try.append("https://maxsold.com/?lat=29.7604&lng=-95.3698&radius=150000")
-            elif state.upper() in ("PA",):
-                pages_to_try.append("https://maxsold.com/?lat=39.9526&lng=-75.1652&radius=150000")
-            elif state.upper() in ("AZ",):
-                pages_to_try.append("https://maxsold.com/?lat=33.4484&lng=-112.0740&radius=150000")
-            elif state.upper() in ("CO",):
-                pages_to_try.append("https://maxsold.com/?lat=39.7392&lng=-104.9903&radius=150000")
-            elif state.upper() in ("MA",):
-                pages_to_try.append("https://maxsold.com/?lat=42.3601&lng=-71.0589&radius=150000")
-            elif state.upper() in ("MN",):
-                pages_to_try.append("https://maxsold.com/?lat=44.9778&lng=-93.2650&radius=150000")
-            elif state.upper() in ("GA",):
-                pages_to_try.append("https://maxsold.com/?lat=33.7490&lng=-84.3880&radius=150000")
-            elif state.upper() in ("FL",):
-                pages_to_try.append("https://maxsold.com/?lat=25.7617&lng=-80.1918&radius=150000")
+            # State-specific mode: use the state's representative coordinates
+            state_upper = state.upper()
+            coords = _STATE_COORDS.get(state_upper)
+            if coords:
+                lat, lng = coords
+                pages_to_try = [
+                    f"https://maxsold.com/?lat={lat}&lng={lng}&radius=200000"
+                ]
+            else:
+                self.logger.warning(
+                    f"MaxSold: no coordinate mapping for state '{state}'; "
+                    f"falling back to national mode"
+                )
+                pages_to_try = [
+                    f"https://maxsold.com/?lat={lat}&lng={lng}&radius=150000"
+                    for lat, lng in _US_METRO_COORDS
+                ]
 
         seen_ids: set = set()
 
@@ -152,50 +214,6 @@ class MaxSoldScraper(BaseScraper):
         except json.JSONDecodeError:
             return None
 
-    def _lot_to_listing(self, lot, sale):
-        """Convert a MaxSold lot object to ScrapedListing."""
-        try:
-            auction_id = str(lot.get("amAuctionId", ""))
-            lot_id = str(lot.get("amLotId", ""))
-            if not auction_id or not lot_id:
-                return None
-
-            external_url = f"{self.base_url}/auction/{auction_id}"
-
-            images = lot.get("imagePaths", [])
-            primary_img = images[0] if images else None
-
-            addr = lot.get("address") or sale.get("address") or {}
-            city = addr.get("city", "")
-            region_code = addr.get("regionCode", "")
-            state = region_code.upper() if region_code else ""
-
-            bid_info = lot.get("currentBid") or {}
-            price_raw = bid_info.get("amount")
-            current_price = float(price_raw) if price_raw else None
-
-            return ScrapedListing(
-                platform_slug=self.platform_slug,
-                external_id=lot_id,
-                external_url=external_url,
-                title=lot.get("title") or lot.get("auctionTitle") or "MaxSold Lot",
-                description=lot.get("description"),
-                category=lot.get("saleCategory") or sale.get("saleCategory"),
-                current_price=current_price,
-                pickup_only=True,
-                ships_nationally=False,
-                city=city,
-                state=state,
-                sale_starts_at=self._parse_iso(lot.get("openTime") or sale.get("openTime")),
-                sale_ends_at=self._parse_iso(lot.get("closeTime") or sale.get("closeTime")),
-                primary_image_url=primary_img,
-                image_urls=images,
-                raw_data={"lot": lot, "sale": sale},
-            )
-        except Exception as exc:
-            self.logger.debug(f"MaxSold lot parse error: {exc}")
-            return None
-
     def _sale_to_listing(self, sale, lots=None):
         """Convert a MaxSold sale (auction) to a ScrapedListing.
 
@@ -220,9 +238,10 @@ class MaxSoldScraper(BaseScraper):
                 external_id=f"sale_{auction_id}",
                 external_url=external_url,
                 title=sale.get("title") or f"MaxSold Auction #{auction_id}",
+                listing_type="auction",
                 category=sale.get("saleCategory"),
                 pickup_only=True,
-                ships_nationally=not sale.get("hasShipping", False),
+                ships_nationally=sale.get("hasShipping", False),
                 city=addr.get("city", ""),
                 state=state,
                 sale_starts_at=self._parse_iso(sale.get("openTime")),
@@ -235,8 +254,17 @@ class MaxSoldScraper(BaseScraper):
             # Populate individual lot items
             for lot in (lots or []):
                 try:
-                    lot_images = lot.get("imagePaths", [])
-                    bid_info = lot.get("currentBid") or {}
+                    raw_paths = lot.get("imagePaths") or []
+                    # Prefix relative paths with the CDN/base URL
+                    lot_images = [
+                        p if p.startswith("http") else f"https://maxsold.com{p}"
+                        for p in raw_paths
+                        if p
+                    ]
+                    # currentBid may be 0 (falsy but valid) — don't use `or {}`
+                    bid_info = lot.get("currentBid")
+                    if not isinstance(bid_info, dict):
+                        bid_info = {}
                     price_raw = bid_info.get("amount")
                     lot_title = lot.get("title") or lot.get("name") or ""
                     if not lot_title:
@@ -245,9 +273,9 @@ class MaxSoldScraper(BaseScraper):
                         title=lot_title,
                         lot_number=str(lot.get("amLotId") or lot.get("id") or "") or None,
                         description=lot.get("description"),
-                        current_price=float(price_raw) if price_raw is not None else None,
-                        estimate_low=float(lot["estimateLow"]) if lot.get("estimateLow") else None,
-                        estimate_high=float(lot["estimateHigh"]) if lot.get("estimateHigh") else None,
+                        current_price=self._parse_price(price_raw),
+                        estimate_low=self._parse_price(lot.get("estimateLow")),
+                        estimate_high=self._parse_price(lot.get("estimateHigh")),
                         primary_image_url=lot_images[0] if lot_images else None,
                         image_urls=lot_images,
                         category=lot.get("saleCategory"),
@@ -266,14 +294,7 @@ class MaxSoldScraper(BaseScraper):
             self.logger.debug(f"MaxSold sale parse error: {exc}")
             return None
 
-    @staticmethod
-    def _parse_iso(value):
-        if not value:
-            return None
-        try:
-            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        except Exception:
-            return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     async def scrape_listing_detail(self, external_id):
         """Best-effort fetch of a detail page using JSON-LD."""

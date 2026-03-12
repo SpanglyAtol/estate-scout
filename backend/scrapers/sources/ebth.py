@@ -16,7 +16,6 @@ Category pages:    https://www.ebth.com/categories/antiques-collectibles?page=N
 
 import json
 import re
-from datetime import datetime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
@@ -71,7 +70,7 @@ class EbthScraper(BaseScraper):
                         Defaults to top antique/estate categories.
             max_pages:  Pages per category (default 5; each page ≈ 48 items).
         """
-        cats = categories or _EBTH_CATEGORIES[:6]  # top 6 by default
+        cats = categories or _EBTH_CATEGORIES  # all estate/antique categories
 
         seen_ids: set[str] = set()
 
@@ -142,8 +141,37 @@ class EbthScraper(BaseScraper):
         """Extract items from EBTH HTML category page (JSON-LD or embedded JSON)."""
         items: list[dict] = []
 
+        # Try __NEXT_DATA__ (Next.js SSR — EBTH's actual framework)
+        nd_match = re.search(
+            r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
+            html,
+            re.DOTALL,
+        )
+        if nd_match:
+            try:
+                nd = json.loads(nd_match.group(1))
+                pp = nd.get("props", {}).get("pageProps", {})
+                for path in [
+                    ["products"],
+                    ["items"],
+                    ["listings"],
+                    ["catalog", "products"],
+                    ["initialData", "products"],
+                ]:
+                    node = pp
+                    for key in path:
+                        node = node.get(key, {}) if isinstance(node, dict) else {}
+                    if isinstance(node, list) and node:
+                        return node
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
         # Try window.__INITIAL_STATE__ or similar embedded JSON
-        match = re.search(r'window\.__(?:INITIAL_STATE|APP_STATE|DATA)__\s*=\s*({.*?});', html, re.DOTALL)
+        match = re.search(
+            r'window\.__(?:INITIAL_STATE|APP_STATE)__\s*=\s*({.*?});',
+            html,
+            re.DOTALL,
+        )
         if match:
             try:
                 state = json.loads(match.group(1))
@@ -245,10 +273,23 @@ class EbthScraper(BaseScraper):
                         images.insert(0, src)
 
             # Pricing — EBTH has estimate + current bid + final hammer
-            current_bid = self._parse_price(str(item.get("current_bid") or item.get("currentBid") or ""))
-            hammer_price = self._parse_price(str(item.get("hammer_price") or item.get("final_price") or ""))
-            est_low = self._parse_price(str(item.get("estimate_low") or item.get("low_estimate") or ""))
-            est_high = self._parse_price(str(item.get("estimate_high") or item.get("high_estimate") or ""))
+            # Use _parse_price directly on raw values to avoid `or ""` eating 0
+            current_bid = self._parse_price(
+                item.get("current_bid") if item.get("current_bid") is not None
+                else item.get("currentBid")
+            )
+            hammer_price = self._parse_price(
+                item.get("hammer_price") if item.get("hammer_price") is not None
+                else item.get("final_price")
+            )
+            est_low = self._parse_price(
+                item.get("estimate_low") if item.get("estimate_low") is not None
+                else item.get("low_estimate")
+            )
+            est_high = self._parse_price(
+                item.get("estimate_high") if item.get("estimate_high") is not None
+                else item.get("high_estimate")
+            )
 
             is_completed = bool(item.get("ended") or item.get("sold") or item.get("status") == "ended")
 
@@ -292,7 +333,7 @@ class EbthScraper(BaseScraper):
                 estimate_high=est_high,
                 is_completed=is_completed,
                 auction_status="ended" if is_completed else "live",
-                listing_type="auction",
+                listing_type="estate_sale",
                 pickup_only=bool(item.get("pickup_only") or item.get("local_pickup_only")),
                 ships_nationally=bool(item.get("shipping_available", True)),
                 city=city_str or None,
@@ -357,31 +398,4 @@ class EbthScraper(BaseScraper):
             self.logger.error(f"EBTH detail error for {external_id}: {exc}")
             return None
 
-    @staticmethod
-    def _parse_price(value: str) -> float | None:
-        """Parse a price string like '$1,234.56' → 1234.56."""
-        if not value:
-            return None
-        cleaned = re.sub(r"[^\d.]", "", value.strip())
-        try:
-            return float(cleaned) if cleaned else None
-        except ValueError:
-            return None
-
-    @staticmethod
-    def _parse_dt(value) -> datetime | None:
-        if not value:
-            return None
-        for fmt in (
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d",
-        ):
-            try:
-                return datetime.strptime(str(value), fmt)
-            except ValueError:
-                continue
-        return None
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper

@@ -1,8 +1,9 @@
-name: Scrape — Medium (EstateSales + MaxSold + Proxibid)
+name: Scrape — Medium (EstateSales + MaxSold + Proxibid + AuctionZip)
 
-# HTML scrapers with rate limiting — typically 8-12 minutes.
+# HTML scrapers with rate limiting — typically 15-25 minutes at full depth.
 # EstateSales.NET covers 20 US states; MaxSold hits 13 metro geo-searches;
-# Proxibid scrapes the auction calendar.  Runs every 8 hours.
+# Proxibid scrapes the auction calendar; AuctionZip covers local auctioneers.
+# At 50 pages each, targets ~8,000 listings per run. Runs every 8 hours.
 #
 # Output: apps/web/src/data/scraped-listings-estate.json
 # Vercel redeploys automatically on push via GitHub integration.
@@ -14,6 +15,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: write
 
@@ -27,14 +29,14 @@ jobs:
       - name: Install dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
-      - name: Scrape EstateSales.NET + MaxSold + Proxibid
+      - name: Scrape EstateSales.NET + MaxSold + Proxibid + AuctionZip
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python backend/scrapers/hydrate.py \
-            --targets es,ms,pb \
+            --targets es,ms,pb,az \
             --state "" \
-            --max-pages 10 \
+            --max-pages 50 \
             --out apps/web/src/data/scraped-listings-estate.json
 
       - name: Commit if changed

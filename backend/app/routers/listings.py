@@ -20,7 +20,11 @@ async def get_listings(
     result = await db.execute(
         select(Listing)
         .options(selectinload(Listing.platform))
-        .where(Listing.is_active == True, Listing.is_completed == False)  # noqa: E712
+        .where(
+            Listing.is_active == True,       # noqa: E712
+            Listing.is_completed == False,   # noqa: E712
+            Listing.archived_at.is_(None),   # exclude listings moved to archive schema
+        )
         .order_by(Listing.sale_ends_at.asc().nulls_last())
         .offset(offset)
         .limit(page_size)

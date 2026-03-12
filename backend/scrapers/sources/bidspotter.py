@@ -10,16 +10,17 @@ Search URL (state-filtered):
   https://www.bidspotter.com/en-us/auction-catalogues?country=us&state=WA&p=1
 Search URL (country-wide, state=None):
   https://www.bidspotter.com/en-us/auction-catalogues?country=us&p=1
+
+Lot listing URL for a catalog:
+  https://www.bidspotter.com/en-us/auction-catalogues/{slug}/lots?lot-page=N
 """
 
 import json
-import re
-from datetime import datetime
 from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
 
-from scrapers.base import BaseScraper, ScrapedListing
+from scrapers.base import BaseScraper, ScrapedItem, ScrapedListing
 
 
 class BidSpotterScraper(BaseScraper):
@@ -39,7 +40,8 @@ class BidSpotterScraper(BaseScraper):
         Pass state="WA" to restrict to one US state.
         Omit state (or pass None) to scrape all US listings.
         """
-        max_pages = kwargs.get("max_pages", 3)
+        max_pages = kwargs.get("max_pages", 20)
+        fetch_lots = kwargs.get("fetch_lots", True)
         page = 1
 
         while page <= max_pages:
@@ -53,7 +55,8 @@ class BidSpotterScraper(BaseScraper):
                     headers=self._browser_headers(referer=self.base_url + "/"),
                 )
                 soup = BeautifulSoup(response.text, "lxml")
-                articles = soup.select("article[data-auction-id]")
+                # BidSpotter uses data-auction-ref on article elements
+                articles = soup.select("article[data-auction-ref]")
 
                 if not articles:
                     self.logger.info(f"BidSpotter: no more articles at page {page}")
@@ -62,6 +65,10 @@ class BidSpotterScraper(BaseScraper):
                 for article in articles:
                     listing = self._parse_article(article)
                     if listing:
+                        if fetch_lots and listing.external_url:
+                            lots = await self._fetch_lots(listing.external_url)
+                            if lots:
+                                listing.items = lots
                         yield listing
 
                 page += 1
@@ -116,12 +123,15 @@ class BidSpotterScraper(BaseScraper):
                 if len(parts) >= 2:
                     city = parts[0]
                     raw_state = parts[1].strip()
-                    # Convert full state names to abbreviations
                     state_abbr = self._state_abbrev(raw_state)
 
             # Dates from JSON-LD
             sale_starts_at = self._parse_iso(ld_data.get("startDate"))
             sale_ends_at = self._parse_iso(ld_data.get("endDate"))
+
+            # Organizer name
+            organizer = ld_data.get("organizer") or {}
+            organizer_name = organizer.get("name") if isinstance(organizer, dict) else None
 
             return ScrapedListing(
                 platform_slug=self.platform_slug,
@@ -129,27 +139,166 @@ class BidSpotterScraper(BaseScraper):
                 external_url=external_url,
                 title=title,
                 description=description,
-                pickup_only=False,      # BidSpotter auctions usually allow shipping
+                listing_type="auction",
+                pickup_only=False,
                 ships_nationally=True,
                 city=city,
                 state=state_abbr,
                 sale_starts_at=sale_starts_at,
                 sale_ends_at=sale_ends_at,
                 primary_image_url=image_url,
-                raw_data={"json_ld": ld_data},
+                raw_data={"json_ld": ld_data, "organizer": organizer_name},
             )
         except Exception as exc:
             self.logger.debug(f"BidSpotter article parse error: {exc}")
             return None
 
-    @staticmethod
-    def _parse_iso(value: str | None) -> datetime | None:
-        if not value:
-            return None
+    async def _fetch_lots(
+        self, catalog_url: str, max_lot_pages: int = 10
+    ) -> list[ScrapedItem]:
+        """Fetch lot-level items from a BidSpotter catalog detail page."""
+        items: list[ScrapedItem] = []
+        lots_base = catalog_url.rstrip("/") + "/lots"
+
+        for lot_page in range(1, max_lot_pages + 1):
+            try:
+                resp = await self._fetch(
+                    lots_base,
+                    params={"lot-page": lot_page},
+                    headers=self._browser_headers(referer=catalog_url),
+                )
+                soup = BeautifulSoup(resp.text, "lxml")
+
+                lot_cards = soup.select("article.lot-card, div.lot-item, li.lot-row")
+                if not lot_cards:
+                    # Try JSON-LD products embedded on page
+                    for ld_el in soup.find_all("script", type="application/ld+json"):
+                        try:
+                            ld = json.loads(ld_el.string or "")
+                        except (json.JSONDecodeError, AttributeError):
+                            continue
+                        if isinstance(ld, dict) and ld.get("@type") == "ItemList":
+                            for elem in ld.get("itemListElement") or []:
+                                item = self._ld_to_item(elem.get("item") or elem)
+                                if item:
+                                    items.append(item)
+                        elif isinstance(ld, dict) and ld.get("@type") in ("Product", "Offer"):
+                            item = self._ld_to_item(ld)
+                            if item:
+                                items.append(item)
+                    # No more pages if nothing found
+                    break
+
+                for card in lot_cards:
+                    item = self._parse_lot_card(card, catalog_url)
+                    if item:
+                        items.append(item)
+
+                # If fewer cards than a full page, we're done
+                if len(lot_cards) < 20:
+                    break
+
+            except Exception as exc:
+                self.logger.debug(f"BidSpotter lot page {lot_page} error: {exc}")
+                break
+
+        return items
+
+    def _parse_lot_card(self, card, catalog_url: str) -> ScrapedItem | None:
+        """Parse a single BidSpotter lot card element."""
         try:
-            return datetime.fromisoformat(str(value))
+            title_el = card.select_one(".lot-title, h3.lot-name, .lot-description h3")
+            title = title_el.get_text(strip=True) if title_el else ""
+            if not title:
+                return None
+
+            lot_num_el = card.select_one(".lot-number, [data-lot-number]")
+            lot_num = ""
+            if lot_num_el:
+                lot_num = (
+                    lot_num_el.get("data-lot-number")
+                    or lot_num_el.get_text(strip=True)
+                )
+                lot_num = lot_num.replace("Lot", "").replace("#", "").strip()
+
+            # Price
+            price_el = card.select_one(".lot-price, .current-bid, .bid-amount")
+            current_price = None
+            if price_el:
+                current_price = self._parse_price(price_el.get_text(strip=True))
+
+            # Estimate
+            est_el = card.select_one(".lot-estimate, .estimate")
+            est_low, est_high = None, None
+            if est_el:
+                est_text = est_el.get_text(strip=True)
+                # Format: "$100 - $200" or "Est: $100–$200"
+                parts = [p.strip() for p in est_text.replace("–", "-").split("-") if p.strip()]
+                if len(parts) >= 2:
+                    est_low = self._parse_price(parts[-2])
+                    est_high = self._parse_price(parts[-1])
+                elif len(parts) == 1:
+                    est_low = self._parse_price(parts[0])
+
+            # Image
+            img_el = card.select_one("img.lot-image, .lot-thumbnail img")
+            img_url = img_el.get("src") or img_el.get("data-src") if img_el else None
+
+            # URL
+            link_el = card.select_one("a.lot-link, a.lot-title-link, h3 a")
+            lot_url = None
+            if link_el:
+                href = link_el.get("href", "")
+                lot_url = href if href.startswith("http") else self.base_url + href
+
+            # Description
+            desc_el = card.select_one(".lot-description p, .lot-details")
+            description = desc_el.get_text(strip=True) if desc_el else None
+
+            return ScrapedItem(
+                title=title,
+                lot_number=lot_num or None,
+                description=description,
+                current_price=current_price,
+                estimate_low=est_low,
+                estimate_high=est_high,
+                primary_image_url=img_url,
+                image_urls=[img_url] if img_url else [],
+                external_url=lot_url or catalog_url,
+            )
+        except Exception as exc:
+            self.logger.debug(f"BidSpotter lot card parse error: {exc}")
+            return None
+
+    def _ld_to_item(self, ld: dict) -> ScrapedItem | None:
+        """Convert a JSON-LD Product/Offer object to a ScrapedItem."""
+        try:
+            title = ld.get("name", "").strip()
+            if not title:
+                return None
+            offers = ld.get("offers") or {}
+            if isinstance(offers, list):
+                offers = offers[0] if offers else {}
+            price = self._parse_price(offers.get("price"))
+            img = ld.get("image")
+            if isinstance(img, list):
+                img = img[0] if img else None
+            return ScrapedItem(
+                title=title,
+                description=(ld.get("description") or "").strip() or None,
+                current_price=price,
+                primary_image_url=img,
+                image_urls=[img] if img else [],
+                external_url=ld.get("url"),
+            )
         except Exception:
             return None
+
+    async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
+        """Not implemented — catalog-level data from listing search is sufficient."""
+        return None
+
+    # _parse_price, _parse_dt, _parse_iso inherited from BaseScraper
 
     # US state name → 2-letter abbreviation
     _STATES = {
@@ -174,7 +323,3 @@ class BidSpotterScraper(BaseScraper):
         if len(clean) == 2:
             return clean.upper()
         return self._STATES.get(clean.lower(), clean[:2].upper())
-
-    async def scrape_listing_detail(self, external_id: str) -> ScrapedListing | None:
-        """BidSpotter catalog pages have JSON-LD; reuse parse logic."""
-        return None  # Detail scraping not needed for catalog-level listings

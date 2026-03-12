@@ -180,3 +180,34 @@ export const CATEGORY_MAP: Record<string, CategoryMeta> = Object.fromEntries(
 
 /** Ordered slugs for the sidebar filter (must stay in sync with CATEGORIES) */
 export const CATEGORY_SLUGS = CATEGORIES.map((c) => c.slug);
+
+/**
+ * Map a raw scraper category string (e.g. "Jewelry & Watches", "Fine Art",
+ * "Ceramics & Porcelain") to a canonical slug.  Returns null when no match.
+ */
+const _SLUG_KEYWORDS: Array<{ slug: string; keywords: string[] }> = [
+  { slug: "jewelry",      keywords: ["jewel", "gemstone", "necklace", "bracelet", "brooch", "pendant", "earring", "ring"] },
+  { slug: "art",          keywords: ["painting", "fine art", "artwork", "watercolor", "watercolour", "lithograph", "etching", "sculpture", "drawing", "portrait", "oil on", "prints"] },
+  { slug: "ceramics",     keywords: ["ceramic", "porcelain", "pottery", "stoneware", "earthenware", "china", "figurine", "wedgwood", "meissen", "delft", "majolica"] },
+  { slug: "silver",       keywords: ["silver", "pewter", "bronze", "flatware", "hollowware", "metalware"] },
+  { slug: "furniture",    keywords: ["furniture", "cabinet", "dresser", "chest of", "dining table", "armoire", "bookcase", "secretary desk", "highboy", "lowboy", "sideboard"] },
+  { slug: "glass",        keywords: ["glass", "crystal", "glassware", "depression glass", "art glass", "lalique", "steuben", "waterford", "baccarat"] },
+  { slug: "collectibles", keywords: ["collectible", "memorabilia", "advertising", "americana", "militaria", "political", "folk art"] },
+  { slug: "watches",      keywords: ["watch", "clock", "timepiece", "pocket watch", "wristwatch", "horology"] },
+  { slug: "books",        keywords: ["book", "manuscript", "map", "ephemera", "postcard", "first edition", "document", "bible"] },
+  { slug: "coins",        keywords: ["coin", "currency", "medal", "token", "numismatic"] },
+  { slug: "clothing",     keywords: ["clothing", "fashion", "textile", "vintage wear", "apparel", "costume"] },
+  { slug: "tools",        keywords: ["tool", "workshop", "hand tool", "plane", "wrench", "chisel"] },
+  { slug: "electronics",  keywords: ["radio", "camera", "electronics", "audio", "turntable", "hi-fi", "television", "scientific instrument"] },
+  { slug: "toys",         keywords: ["toy", "game", "doll", "cast iron", "tin toy", "board game", "holiday ornament"] },
+];
+
+export function categoryToSlug(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (CATEGORY_MAP[lower]) return lower;  // exact slug match
+  for (const { slug, keywords } of _SLUG_KEYWORDS) {
+    if (keywords.some((kw) => lower.includes(kw))) return slug;
+  }
+  return null;
+}

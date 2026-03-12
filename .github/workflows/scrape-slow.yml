@@ -37,7 +37,7 @@ jobs:
           python backend/scrapers/hydrate.py \
             --targets eb,1d \
             --state "" \
-            --max-pages 5 \
+            --max-pages 20 \
             --out apps/web/src/data/scraped-listings-ebay.json
 
       - name: Commit if changed
