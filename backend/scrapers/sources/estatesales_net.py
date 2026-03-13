@@ -10,7 +10,8 @@ fields we need (name, url, startDate, endDate, image, location).
 
 National mode (state=""):
   Iterates through all 50 US states, fetching pages_per_state pages each.
-  Default: 3 pages per state × 50 states = 150 pages → ~450 listings.
+  pages_per_state defaults to max_pages (e.g. 50 via --max-pages 50),
+  but early-exit on empty pages keeps wall-clock time reasonable.
 
 State mode (e.g. state="WA"):
   Pages through /WA?page=N up to max_pages.
@@ -72,7 +73,10 @@ class EstateSalesNetScraper(BaseScraper):
                                        pages (default False — slow).
         """
         max_pages = kwargs.get("max_pages", 20)
-        pages_per_state = kwargs.get("pages_per_state", 3)
+        # In national mode, pages_per_state defaults to max_pages so that
+        # --max-pages 50 (set in the GitHub workflow) actually takes effect.
+        # Previously it defaulted to 3 regardless, capping output at ~51 listings.
+        pages_per_state = kwargs.get("pages_per_state", max_pages)
         fetch_items = kwargs.get("fetch_items", False)
         seen_ids: set[str] = set()
 
