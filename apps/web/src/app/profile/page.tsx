@@ -27,6 +27,7 @@ import {
   type SellerProfile,
 } from "@/lib/seller-profile";
 import { getCatalogItems, type CatalogItemApi } from "@/lib/api-client";
+import { AdUnit } from "@/components/ads/ad-unit";
 import type { AdminMetrics } from "@/app/api/v1/admin/metrics/route";
 
 type ProfileTab = "accounts" | "selling" | "catalog";
@@ -531,6 +532,9 @@ export default function ProfilePage() {
               ))}
             </ol>
           </div>
+
+          {/* Google Ad */}
+          <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_PROFILE ?? ""} format="rectangle" className="rounded-2xl overflow-hidden" />
 
           {/* Quick links */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">

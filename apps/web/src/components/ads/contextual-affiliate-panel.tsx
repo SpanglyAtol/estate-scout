@@ -1,6 +1,6 @@
 "use client";
 
-import { buildListingKeywords, ESTATE_PREP_LINKS } from "@/lib/ad-keywords";
+import { buildListingKeywords, ESTATE_PREP_LINKS, COMMODITY_CATEGORIES, buildCommodityLinks } from "@/lib/ad-keywords";
 import { trackAffiliateClick } from "@/lib/analytics";
 import type { Listing } from "@/types";
 
@@ -40,18 +40,28 @@ export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelPr
   if (!tag) return null;
 
   const isEstateSale = listing.listing_type === "estate_sale";
-  const links = isEstateSale ? ESTATE_PREP_LINKS : buildListingKeywords(listing);
+  const isCommodity  = !isEstateSale && COMMODITY_CATEGORIES.has(listing.category ?? "");
+
+  const links = isEstateSale
+    ? ESTATE_PREP_LINKS
+    : isCommodity
+      ? buildCommodityLinks(listing)
+      : buildListingKeywords(listing);
   if (links.length === 0) return null;
 
   const title = isEstateSale
     ? "Estate Sale Essentials"
-    : CURATE_CATEGORIES.has(listing.category ?? "")
-      ? "Curate Your Find"
-      : "Care & Display";
+    : isCommodity
+      ? "Get It New on Amazon"
+      : CURATE_CATEGORIES.has(listing.category ?? "")
+        ? "Curate Your Find"
+        : "Care & Display";
 
   const categoryIcon = isEstateSale
     ? "🏡"
-    : CATEGORY_ICONS[listing.category ?? ""] ?? "🛍️";
+    : isCommodity
+      ? "📦"
+      : CATEGORY_ICONS[listing.category ?? ""] ?? "🛍️";
 
   return (
     <div className="border border-antique-border rounded-xl overflow-hidden">
@@ -72,7 +82,9 @@ export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelPr
           const url = buildAmazonUrl(link.keywords, tag);
           const rowIcon = isEstateSale
             ? ESTATE_PREP_ICONS[i] ?? "📦"
-            : CATEGORY_ICONS[listing.category ?? ""] ?? "🛍️";
+            : isCommodity
+              ? "📦"
+              : CATEGORY_ICONS[listing.category ?? ""] ?? "🛍️";
           return (
             <li key={link.keywords}>
               <a
@@ -93,7 +105,7 @@ export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelPr
                   {link.label}
                 </span>
                 <span className="text-antique-text-mute group-hover:text-antique-accent text-xs transition-colors shrink-0">
-                  Shop ↗
+                  {isCommodity ? "New ↗" : "Shop ↗"}
                 </span>
               </a>
             </li>
