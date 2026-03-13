@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   Search, BookMarked, MessageSquare, MapPin,
-  LogIn, LogOut, Menu, X, BarChart3, User, BookOpen, TrendingUp, LayoutGrid, Library,
+  LogIn, LogOut, Menu, X, BarChart3, User, BookOpen, TrendingUp, LayoutGrid, Library, LayoutList,
 } from "lucide-react";
 import { isLoggedIn, logout } from "@/lib/auth";
 import { getConnectedAccounts } from "@/lib/connected-accounts";
@@ -32,7 +32,7 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { href: "/search",       label: "Search",        icon: <Search        className="w-4 h-4" /> },
+    { href: "/search",       label: "Browse Listings", icon: <LayoutList    className="w-4 h-4" /> },
     { href: "/categories",   label: "Categories",    icon: <LayoutGrid    className="w-4 h-4" /> },
     { href: "/estate-sales", label: "Estate Sales",  icon: <MapPin        className="w-4 h-4" /> },
     { href: "/library",      label: "Library",       icon: <Library       className="w-4 h-4" /> },
