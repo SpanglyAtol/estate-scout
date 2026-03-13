@@ -13,7 +13,6 @@ import type { Listing } from "@/types";
 import { formatPrice } from "@/lib/format";
 import { CATEGORIES } from "@/lib/category-meta";
 import { AdUnit } from "@/components/ads/ad-unit";
-import { trackAffiliateClick } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 
 // Leaflet is browser-only — never SSR
@@ -28,19 +27,6 @@ function MapLoadingPlaceholder() {
       <Loader2 className="w-8 h-8 text-antique-accent animate-spin" />
     </div>
   );
-}
-
-// ── Amazon affiliate ───────────────────────────────────────────────────────────
-
-const ESTATE_PREP_TAG = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
-const ESTATE_PREP_LINKS = [
-  { label: "Packing & moving supplies", keywords: "moving boxes packing supplies" },
-  { label: "Storage & organization",    keywords: "storage bins closet organizers" },
-  { label: "Cleaning & restoration",    keywords: "cleaning restoration kit antique" },
-];
-function buildAmazonUrl(k: string) {
-  if (!ESTATE_PREP_TAG) return "#";
-  return `https://www.amazon.com/s?${new URLSearchParams({ k, tag: ESTATE_PREP_TAG, linkCode: "ure" })}`;
 }
 
 // ── Platform directory ─────────────────────────────────────────────────────────
@@ -673,24 +659,8 @@ export default function EstateSalesPage() {
         {error && <p className="text-red-600 text-sm mt-2 font-medium">{error}</p>}
       </div>
 
-      {/* ── Ads + affiliate ── */}
-      <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE ?? ""} format="rectangle" className="mb-4" />
-      {ESTATE_PREP_TAG && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-6 px-4 py-2.5 bg-antique-surface border border-antique-border rounded-xl text-sm">
-          <span className="text-antique-text-mute text-[11px] uppercase tracking-widest font-medium">Sponsored</span>
-          {ESTATE_PREP_LINKS.map((link) => {
-            const url = buildAmazonUrl(link.keywords);
-            return (
-              <a key={link.keywords} href={url} target="_blank" rel="noopener noreferrer sponsored"
-                onClick={() => trackAffiliateClick({ category: "estate_sale", keywords: link.keywords, url })}
-                className="text-antique-accent hover:underline transition-colors font-medium">
-                {link.label}
-              </a>
-            );
-          })}
-          <span className="ml-auto text-antique-text-mute text-[11px]">via Amazon ↗</span>
-        </div>
-      )}
+      {/* ── Google Ads ── */}
+      <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE ?? ""} format="rectangle" className="mb-6" />
 
       {/* ── Platform directory (collapsible) ── */}
       <div className="mb-6 border border-antique-border rounded-2xl overflow-hidden bg-antique-surface">
@@ -945,6 +915,11 @@ export default function EstateSalesPage() {
                 Load more estate sales
               </button>
             </div>
+          )}
+
+          {/* Second Google Ad — below results */}
+          {viewMode !== "map" && displayListings.length > 0 && (
+            <AdUnit slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_ESTATE_RESULTS ?? ""} format="fluid" className="my-6" />
           )}
         </div>
       </div>

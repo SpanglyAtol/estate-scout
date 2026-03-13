@@ -33,31 +33,31 @@
 }
 
 .dark {
-  /* Backgrounds — stone-900 family, clean dark */
-  --bg-primary:   #1C1917;   /* stone-900 */
-  --bg-surface:   #292524;   /* stone-800 */
-  --bg-muted:     #332E2B;   /* stone-750 */
-  --bg-subtle:    #3D3733;   /* stone-700 */
+  /* Backgrounds — cool charcoal grey, draws the eye inward */
+  --bg-primary:   #18181f;   /* deep cool grey-black */
+  --bg-surface:   #21212b;   /* card / panel surface */
+  --bg-muted:     #2b2b38;   /* hover state, inner sections */
+  --bg-subtle:    #363645;   /* dividers, input backgrounds */
 
-  /* Text — high contrast, neutral warm white */
-  --text-primary:   #F5F5F4;   /* stone-100 — bright, readable */
-  --text-secondary: #C8C4C0;   /* stone-300 — good secondary contrast */
-  --text-muted:     #78716C;   /* stone-500 — muted */
+  /* Text — crisp cool-white hierarchy */
+  --text-primary:   #ededf4;   /* near-white with cool tint */
+  --text-secondary: #a8a8be;   /* readable mid-grey */
+  --text-muted:     #64647a;   /* quiet muted grey */
 
-  /* Accent — gold pops on dark stone */
-  --accent:          #D4A017;  /* brighter warm gold */
-  --accent-hover:    #EBB520;  /* highlight gold */
-  --accent-light:    #292008;  /* dark gold tint bg */
-  --accent-surface:  #211C07;  /* dark gold surface */
+  /* Accent — gold stays warm; contrasts beautifully on cool grey */
+  --accent:          #d4a017;  /* warm antique gold */
+  --accent-hover:    #e8b420;  /* lighter gold on hover */
+  --accent-light:    #271e04;  /* dark gold tint bg */
+  --accent-surface:  #1c1502;  /* dark gold surface */
 
-  /* Borders — visible but not glaring */
-  --border:         #44403C;   /* stone-700 */
-  --border-strong:  #57534E;   /* stone-600 */
+  /* Borders — cool grey, softly visible */
+  --border:         #38384a;   /* cool grey border */
+  --border-strong:  #4a4a60;   /* stronger divider */
 
   /* Status */
-  --status-live:    #F87171;   /* red-400 — readable on dark */
-  --status-upcoming:#C8C4C0;
-  --status-ended:   #78716C;
+  --status-live:    #f87171;   /* red-400 — readable on dark */
+  --status-upcoming:#a8a8be;
+  --status-ended:   #64647a;
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────────────────── */

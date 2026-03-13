@@ -1,5 +1,8 @@
 import type { Listing, SearchFilters } from "@/types";
 
+/** Categories where estate-sale items are functional commodities — suggest buying new on Amazon instead. */
+export const COMMODITY_CATEGORIES = new Set(["tools", "electronics", "clothing"]);
+
 export interface AffiliateLink {
   label: string;
   keywords: string;
@@ -142,5 +145,19 @@ export function buildListingKeywords(listing: Listing): AffiliateLink[] {
     primary,
     { label: `${makerLabel} reference books`,    keywords: `${base} book reference collector guide` },
     lifestyleLink(category, isHighValue, isMidValue),
+  ];
+}
+
+/**
+ * Build 3 Amazon affiliate links with "buy new" framing for commodity-category listings.
+ * Uses listing title + category as base keywords to surface equivalent new products.
+ */
+export function buildCommodityLinks(listing: Listing): AffiliateLink[] {
+  const base = listing.title.slice(0, 40).trim();
+  const cat  = humanize(listing.category ?? "item");
+  return [
+    { label: `New ${cat} on Amazon`,            keywords: `${base} new` },
+    { label: `Top-rated ${cat}`,                keywords: `best ${cat}` },
+    { label: `${cat} with warranty & returns`,  keywords: `${cat} new warranty` },
   ];
 }
