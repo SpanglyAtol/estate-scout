@@ -113,9 +113,11 @@ export function ListingCard({ listing, className }: ListingCardProps) {
   const platformColor =
     PLATFORM_COLORS[listing.platform.name] ?? "bg-antique-subtle text-antique-text-sec";
 
+  const href = `/listing/${listing.id}?src=${encodeURIComponent(listing.external_url)}`;
+
   return (
     <Link
-      href={`/listing/${listing.id}`}
+      href={href}
       className={cn(
         "group bg-antique-surface rounded-xl overflow-hidden border border-antique-border",
         "hover:shadow-lg hover:border-antique-accent transition-all duration-200",

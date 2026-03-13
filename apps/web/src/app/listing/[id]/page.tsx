@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight, ExternalLink } from "lucide-react";
 import { getSupabaseListing, isSupabaseConfigured } from "@/lib/supabase-search";
 import { getListings } from "@/lib/scraped-data";
@@ -70,6 +70,7 @@ async function fetchListingServer(id: number): Promise<Listing | null> {
 
 interface PageProps {
   params: { id: string };
+  searchParams?: { src?: string };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -108,13 +109,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function ListingPage({ params }: PageProps) {
+export default async function ListingPage({ params, searchParams }: PageProps) {
   const id = Number(params.id);
   if (isNaN(id)) notFound();
 
   // Direct server-side fetch — no HTTP self-call, no Vercel timeout cascade.
   const listing = await fetchListingServer(id);
-  if (!listing) notFound();
+  if (!listing) {
+    // If the card passed the original platform URL, send the user there directly
+    // rather than showing a dead-end 404.
+    const fallback = searchParams?.src;
+    if (fallback && fallback.startsWith("http")) redirect(fallback);
+    notFound();
+  }
 
   const lt = listing.listing_type ?? "auction";
   const status = getAuctionStatus(listing);

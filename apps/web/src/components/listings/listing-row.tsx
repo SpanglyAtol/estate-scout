@@ -63,9 +63,11 @@ export function ListingRow({ listing }: { listing: Listing }) {
   const platformColor =
     PLATFORM_COLORS[listing.platform.name] ?? "bg-antique-subtle text-antique-text-sec";
 
+  const href = `/listing/${listing.id}?src=${encodeURIComponent(listing.external_url)}`;
+
   return (
     <Link
-      href={`/listing/${listing.id}`}
+      href={href}
       className={cn(
         "group flex items-center gap-3 bg-antique-surface border border-antique-border rounded-xl p-3",
         "hover:border-antique-accent hover:shadow-sm transition-all duration-200",
