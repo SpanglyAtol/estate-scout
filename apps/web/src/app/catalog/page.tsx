@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, BookOpen, Truck, Package, ChevronRight, Sparkles, Loader2, Cloud, HardDrive } from "lucide-react";
+import { Plus, BookOpen, Truck, Loader2, Cloud, HardDrive, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   loadCatalog,
@@ -13,6 +13,7 @@ import {
 } from "@/components/catalog/catalog-types";
 import { CatalogItemCard } from "@/components/catalog/catalog-item-card";
 import { AddItemModal } from "@/components/catalog/add-item-modal";
+import { ListAndShipTab } from "@/components/catalog/list-and-ship-tab";
 
 type Tab = "catalog" | "ship-and-list";
 
@@ -270,100 +271,8 @@ export default function CatalogPage() {
         </>
       )}
 
-      {/* ── List & Ship tab (Coming Soon) ── */}
-      {activeTab === "ship-and-list" && (
-        <div className="py-10 max-w-2xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 bg-antique-accent-lt text-antique-accent text-xs font-semibold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wide">
-              Coming Soon
-            </div>
-            <h2 className="font-display text-2xl font-bold text-antique-text mb-3">
-              List &amp; Ship Your Items
-            </h2>
-            <p className="text-antique-text-sec leading-relaxed">
-              From your catalog, list items directly to multiple selling platforms and get
-              instant shipping quotes — all in one place.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="antique-card p-5 flex gap-4 items-start">
-              <div className="w-10 h-10 bg-antique-accent-lt rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
-                🛍️
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display font-bold text-antique-text">Cross-Platform Listing</h3>
-                  <span className="text-xs bg-antique-muted text-antique-text-sec px-2 py-0.5 rounded-full">Planned</span>
-                </div>
-                <p className="text-sm text-antique-text-sec mt-1 leading-relaxed">
-                  List your catalog items to eBay, Etsy, Facebook Marketplace, and HiBid simultaneously.
-                  AI auto-fills titles, descriptions, and suggested pricing.
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {["eBay", "Etsy", "Facebook Marketplace", "HiBid"].map((p) => (
-                    <span key={p} className="text-xs border border-antique-border text-antique-text-sec px-2 py-0.5 rounded-full">
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="antique-card p-5 flex gap-4 items-start">
-              <div className="w-10 h-10 bg-antique-accent-lt rounded-xl flex items-center justify-center flex-shrink-0">
-                <Package className="w-5 h-5 text-antique-accent" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display font-bold text-antique-text">Shipping Carrier Comparison</h3>
-                  <span className="text-xs bg-antique-muted text-antique-text-sec px-2 py-0.5 rounded-full">Planned</span>
-                </div>
-                <p className="text-sm text-antique-text-sec mt-1 leading-relaxed">
-                  Compare shipping rates from USPS, UPS, and FedEx. Enter item dimensions and
-                  weight to get instant quotes and print labels.
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {["USPS", "UPS", "FedEx"].map((c) => (
-                    <span key={c} className="text-xs border border-antique-border text-antique-text-sec px-2 py-0.5 rounded-full">
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="antique-card p-5 flex gap-4 items-start">
-              <div className="w-10 h-10 bg-antique-accent-lt rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
-                ✍️
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display font-bold text-antique-text">AI-Generated Listings</h3>
-                  <span className="text-xs bg-antique-muted text-antique-text-sec px-2 py-0.5 rounded-full">Planned</span>
-                </div>
-                <p className="text-sm text-antique-text-sec mt-1 leading-relaxed">
-                  Automatically generate compelling listing titles, detailed descriptions, and
-                  optimal pricing suggestions based on recent comparable sales.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-antique-text-sec mb-4">
-              Want to be notified when List &amp; Ship launches?
-            </p>
-            <Link
-              href="/saved"
-              className="inline-flex items-center gap-2 bg-antique-accent text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-antique-accent-h transition-colors"
-            >
-              Set Up Alerts
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* ── List & Ship tab ── */}
+      {activeTab === "ship-and-list" && <ListAndShipTab items={items} />}
 
       {/* Add Item Modal */}
       {showAdd && (
