@@ -311,6 +311,22 @@ function PriceGuidePageInner() {
 
       <PriceGuideSearch initialQuery={initialQuery} />
 
+      {/* Market data link */}
+      <div className="mt-6 p-4 border border-antique-border rounded-xl bg-antique-surface/60 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-sm font-semibold text-antique-text">Browse Category Price Trends</p>
+          <p className="text-xs text-antique-text-mute mt-0.5">
+            See median sold prices, 24-month charts, and market trends for every antique category.
+          </p>
+        </div>
+        <Link
+          href="/pricing-guide"
+          className="shrink-0 text-xs font-semibold text-antique-accent border border-antique-accent px-3 py-1.5 rounded-lg hover:bg-antique-accent hover:text-white transition-colors"
+        >
+          View Market Data →
+        </Link>
+      </div>
+
       {/* Category links */}
       <div className="mt-14">
         <p className="text-xs font-semibold text-antique-text-mute uppercase tracking-wide mb-4">

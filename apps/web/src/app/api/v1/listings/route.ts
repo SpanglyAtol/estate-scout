@@ -21,9 +21,16 @@ export async function GET(req: NextRequest) {
   const pageSize = parseInt(searchParams.get("page_size") ?? "24");
 
   const listings = getListings();
+  const total = listings.length;
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
   const slice = listings.slice(start, end);
 
-  return NextResponse.json(slice);
+  return NextResponse.json({
+    results: slice,
+    total,
+    page,
+    page_size: pageSize,
+    total_pages: Math.ceil(total / pageSize),
+  });
 }

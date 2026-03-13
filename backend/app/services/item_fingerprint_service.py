@@ -133,17 +133,40 @@ def compute_fingerprint_hash(
     title_normalized: str,
     edition_string: str | None,
     reference_number: str | None,
+    model: str | None = None,
+    pattern_name: str | None = None,
 ) -> str:
     """
     Stable SHA-256 hash over the key identity fields.
     Empty / None values are replaced with empty string before hashing.
+
+    When a reference_number is present it dominates identity (most precise).
+    When only brand+model is known (watches without ref), model is included so
+    different models of the same brand hash separately.
+    When only pattern_name is known (ceramics), pattern_name is included.
     """
-    parts = [
-        (maker or "").lower().strip(),
-        title_normalized,
-        (edition_string or "").lower().strip(),
-        (reference_number or "").upper().strip(),
-    ]
+    if reference_number:
+        parts = [
+            (maker or "").lower().strip(),
+            (reference_number or "").upper().strip(),
+        ]
+    elif model:
+        parts = [
+            (maker or "").lower().strip(),
+            (model or "").lower().strip(),
+            (edition_string or "").lower().strip(),
+        ]
+    elif pattern_name:
+        parts = [
+            (maker or "").lower().strip(),
+            (pattern_name or "").lower().strip(),
+        ]
+    else:
+        parts = [
+            (maker or "").lower().strip(),
+            title_normalized,
+            (edition_string or "").lower().strip(),
+        ]
     raw = "|".join(parts)
     return hashlib.sha256(raw.encode()).hexdigest()
 
@@ -156,19 +179,34 @@ _FINGERPRINT_CATEGORIES = {
 }
 
 
-def is_fingerprintable(category: str | None, attributes: dict | None, title: str) -> bool:
+def is_fingerprintable(category: str | None, attributes: dict | None, title: str, maker: str | None = None) -> bool:
     """
     Returns True if this listing is worth fingerprinting.
     We fingerprint:
       - Items in supported categories
-      - AND has a maker, OR is a limited edition, OR has a reference number
+      - AND: has a reference number, OR is a limited edition, OR is a watch
+        with a known brand+model (so we build per-model price histories), OR
+        is a ceramic with an identified pattern name.
     """
     if category not in _FINGERPRINT_CATEGORIES:
         return False
-    if attributes and attributes.get("reference_number"):
+    attrs = attributes or {}
+    # Reference number always wins (most specific identity signal)
+    if attrs.get("reference_number"):
         return True
+    # Limited editions (art, coins, prints)
     edition = parse_edition(title)
     if edition["is_limited_edition"]:
+        return True
+    # Watches: fingerprint by brand+model even without a reference number.
+    # brand_slug is promoted to top-level maker by enrich(), so check maker param.
+    if category == "watches" and maker and attrs.get("model"):
+        return True
+    # Ceramics: fingerprint if we know both maker and pattern
+    if category == "ceramics" and attrs.get("pattern_name"):
+        return True
+    # Art: fingerprint signed works with a known maker
+    if category == "art" and attrs.get("is_signed") and (maker or attrs.get("maker")):
         return True
     return False
 
@@ -203,19 +241,23 @@ async def upsert_fingerprint(
       4. INSERT OR UPDATE item_fingerprints (update price stats + last_seen)
       5. INSERT fingerprint_listings row (the specific auction appearance)
     """
-    if not is_fingerprintable(category, attributes, title):
+    if not is_fingerprintable(category, attributes, title, maker=maker):
         return None
 
     attrs = attributes or {}
-    title_norm = _normalize_text(title)
-    edition    = parse_edition(title)
-    ref_num    = extract_reference_number(title, attrs)
+    title_norm   = _normalize_text(title)
+    edition      = parse_edition(title)
+    ref_num      = extract_reference_number(title, attrs)
+    model_val    = model or attrs.get("model")
+    pattern_name = attrs.get("pattern_name")
 
     fp_hash = compute_fingerprint_hash(
         maker=maker,
         title_normalized=title_norm,
         edition_string=edition["edition_string"],
         reference_number=ref_num,
+        model=model_val,
+        pattern_name=pattern_name,
     )
 
     # --- Upsert item_fingerprints ---

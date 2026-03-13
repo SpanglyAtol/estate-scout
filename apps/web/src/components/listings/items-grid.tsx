@@ -10,9 +10,10 @@ interface ItemsGridProps {
   items: AuctionItem[];
   auctionUrl: string;
   platform: string;
+  isEstateSale?: boolean;
 }
 
-export function ItemsGrid({ items, auctionUrl, platform }: ItemsGridProps) {
+export function ItemsGrid({ items, auctionUrl, platform, isEstateSale }: ItemsGridProps) {
   const [search, setSearch] = useState("");
 
   const query = search.trim().toLowerCase();
@@ -30,9 +31,9 @@ export function ItemsGrid({ items, auctionUrl, platform }: ItemsGridProps) {
       {/* Section header */}
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <h2 className="text-xl font-bold text-antique-text font-display">
-          Items in this Auction
+          {isEstateSale ? "Items in this Estate Sale" : "Items in this Auction"}
           <span className="ml-2 text-base font-normal text-antique-text-mute">
-            ({items.length} lots)
+            ({items.length} {isEstateSale ? "items" : "lots"})
           </span>
         </h2>
 
@@ -75,7 +76,7 @@ export function ItemsGrid({ items, auctionUrl, platform }: ItemsGridProps) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm text-antique-accent hover:text-antique-accent-h hover:underline"
         >
-          Browse all {items.length} lots on {platform}
+          Browse all {items.length} {isEstateSale ? "items" : "lots"} on {platform}
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>

@@ -499,7 +499,9 @@ export default function EstateSalesPage() {
         const params = buildApiParams(filters, location);
         const res = await fetch(`/api/v1/search?${params}`, { signal: ctrl.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: Listing[] = await res.json();
+        // API returns SearchResult { results, total, page, ... } — not a bare array
+        const json = await res.json();
+        const data: Listing[] = Array.isArray(json) ? json : (json.results ?? []);
         setListings(data);
         setHasMore(data.length >= PAGE_SIZE);
       } catch (e) {

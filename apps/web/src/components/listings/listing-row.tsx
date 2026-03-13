@@ -63,9 +63,11 @@ export function ListingRow({ listing }: { listing: Listing }) {
   const platformColor =
     PLATFORM_COLORS[listing.platform.name] ?? "bg-antique-subtle text-antique-text-sec";
 
+  const href = `/listing/${listing.id}?src=${encodeURIComponent(listing.external_url)}`;
+
   return (
     <Link
-      href={`/listing/${listing.id}`}
+      href={href}
       className={cn(
         "group flex items-center gap-3 bg-antique-surface border border-antique-border rounded-xl p-3",
         "hover:border-antique-accent hover:shadow-sm transition-all duration-200",
@@ -86,8 +88,13 @@ export function ListingRow({ listing }: { listing: Listing }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xl text-antique-text-mute">
-            {lt === "estate_sale" ? "🏡" : lt === "buy_now" ? "🛍️" : "🏺"}
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-antique-muted px-1 text-center">
+            <span className="text-lg opacity-40">
+              {lt === "estate_sale" ? "🏡" : lt === "buy_now" ? "🛍️" : "🏺"}
+            </span>
+            <span className="text-[9px] font-semibold text-antique-text-mute uppercase tracking-wide leading-tight line-clamp-2">
+              {listing.platform.display_name}
+            </span>
           </div>
         )}
         {listing.is_sponsored && (

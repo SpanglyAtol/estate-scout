@@ -5,6 +5,13 @@ export interface AffiliateLink {
   keywords: string;
 }
 
+/** Static estate-sale prep links — shown when viewing an estate_sale listing. */
+export const ESTATE_PREP_LINKS: AffiliateLink[] = [
+  { label: "Packing & moving supplies",  keywords: "moving boxes packing supplies tape" },
+  { label: "Storage & organization",     keywords: "storage bins closet organizers containers" },
+  { label: "Antique cleaning & care",    keywords: "antique cleaning restoration care kit" },
+];
+
 const HIGH_VALUE = 200;
 const MID_VALUE = 50;
 

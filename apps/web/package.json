@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "TS_NODE_PROJECT=tsconfig.test.json node --test --require /opt/node22/lib/node_modules/ts-node/register/transpile-only 'src/__tests__/**/*.test.ts'"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",

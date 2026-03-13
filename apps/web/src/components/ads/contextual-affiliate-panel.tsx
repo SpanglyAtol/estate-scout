@@ -1,6 +1,6 @@
 "use client";
 
-import { buildListingKeywords } from "@/lib/ad-keywords";
+import { buildListingKeywords, ESTATE_PREP_LINKS } from "@/lib/ad-keywords";
 import { trackAffiliateClick } from "@/lib/analytics";
 import type { Listing } from "@/types";
 
@@ -14,34 +14,65 @@ function buildAmazonUrl(keywords: string, tag: string): string {
 
 const CURATE_CATEGORIES = new Set(["watches", "jewelry", "silver", "art", "ceramics"]);
 
+const CATEGORY_ICONS: Record<string, string> = {
+  watches: "🕰️",
+  jewelry: "💍",
+  silver: "🍽️",
+  art: "🖼️",
+  furniture: "🪑",
+  ceramics: "🏺",
+  coins: "🪙",
+  collectibles: "📦",
+  estate_sale: "🏡",
+};
+
+const ESTATE_PREP_ICONS = ["📦", "🗄️", "✨"];
+
 /**
- * Replaces the generic AmazonAssociates panel on listing detail pages.
- * Keywords are assembled from all enriched listing fields: maker, brand, period,
- * country_of_origin, category-specific attributes (model, piece_type, pattern_name, etc.)
- * and price tier — so links are as specific and relevant as possible.
+ * Contextual Amazon affiliate panel for listing detail pages.
+ *
+ * For estate_sale listings: shows estate-prep supplies (packing, storage, cleaning).
+ * For auction/individual items: shows category-specific collector care / lifestyle links
+ * assembled from enriched fields (maker, brand, period, attributes, price tier).
  */
 export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelProps) {
   const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
   if (!tag) return null;
 
-  const links = buildListingKeywords(listing);
+  const isEstateSale = listing.listing_type === "estate_sale";
+  const links = isEstateSale ? ESTATE_PREP_LINKS : buildListingKeywords(listing);
   if (links.length === 0) return null;
 
-  const title = CURATE_CATEGORIES.has(listing.category ?? "")
-    ? "Curate Your Find"
-    : "Care & Display";
+  const title = isEstateSale
+    ? "Estate Sale Essentials"
+    : CURATE_CATEGORIES.has(listing.category ?? "")
+      ? "Curate Your Find"
+      : "Care & Display";
+
+  const categoryIcon = isEstateSale
+    ? "🏡"
+    : CATEGORY_ICONS[listing.category ?? ""] ?? "🛍️";
 
   return (
     <div className="border border-antique-border rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between bg-antique-muted px-4 py-2.5">
-        <span className="text-xs font-semibold text-antique-text-sec uppercase tracking-wide">
-          {title}
-        </span>
-        <span className="text-[11px] text-antique-text-mute">via Amazon</span>
+      {/* Header */}
+      <div className="flex items-center justify-between bg-antique-muted px-4 py-3 border-b border-antique-border">
+        <div className="flex items-center gap-2">
+          <span className="text-lg leading-none">{categoryIcon}</span>
+          <span className="text-xs font-semibold text-antique-text-sec uppercase tracking-wide">
+            {title}
+          </span>
+        </div>
+        <span className="text-[11px] text-antique-text-mute">Sponsored · via Amazon</span>
       </div>
-      <ul className="divide-y divide-antique-border">
-        {links.map((link) => {
+
+      {/* Product rows */}
+      <ul className="divide-y divide-antique-border bg-antique-surface">
+        {links.map((link, i) => {
           const url = buildAmazonUrl(link.keywords, tag);
+          const rowIcon = isEstateSale
+            ? ESTATE_PREP_ICONS[i] ?? "📦"
+            : CATEGORY_ICONS[listing.category ?? ""] ?? "🛍️";
           return (
             <li key={link.keywords}>
               <a
@@ -55,11 +86,14 @@ export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelPr
                     url,
                   })
                 }
-                className="flex items-center justify-between px-4 py-3 text-sm text-antique-text hover:bg-antique-accent-s hover:text-antique-accent transition-colors group"
+                className="flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-antique-accent-s transition-colors group"
               >
-                <span>{link.label}</span>
-                <span className="text-antique-text-mute group-hover:text-antique-accent text-xs">
-                  ↗
+                <span className="text-base leading-none shrink-0">{rowIcon}</span>
+                <span className="flex-1 font-medium text-antique-text group-hover:text-antique-accent transition-colors">
+                  {link.label}
+                </span>
+                <span className="text-antique-text-mute group-hover:text-antique-accent text-xs transition-colors shrink-0">
+                  Shop ↗
                 </span>
               </a>
             </li>

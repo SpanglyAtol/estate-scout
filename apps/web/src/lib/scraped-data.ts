@@ -29,7 +29,17 @@ const GARBAGE_CITY_RE =
 // Off-topic titles that slipped through the scraper-level filter.
 // BidSpotter/HiBid list ALL auction types — these patterns catch commercial/industrial junk.
 const GARBAGE_TITLE_RE =
-  /\b(van clearance|site closure|site clearance|liquidation sale|clearance auction|vehicle auction|car auction|truck auction|fleet auction|auto auction|plant hire|pallet lot|truckload|cnc machin|machining|fabricat|welding|manufacturing|facility closure|plant closure|surplus to (?:the )?ongoing operation|warehouse auction|surplus assets|MRO surplus|gov.t (?:surplus|fleet)|dealer auction ring|training auction|ecom authority|ironring|invest in land|beverage.*canning|garment printing|apparel manufactur|knife mf|restaurant.*equipment|medical equipment auction|office furniture liquidat|forklift|industrial equipment|heavy equipment|construction equipment)\b/i;
+  /\b(van clearance|site closure|site clearance|liquidation sale|clearance auction|vehicle auction|car auction|truck auction|fleet auction|auto auction|plant hire|pallet lot|truckload|cnc machin|machining|fabricat|welding|manufacturing|facility closure|plant closure|surplus to (?:the )?ongoing operation|warehouse auction|surplus assets|MRO surplus|gov.t (?:surplus|fleet)|dealer auction ring|training auction|ecom authority|ironring|invest in land|beverage.*canning|garment printing|apparel manufactur|knife mf|restaurant.*equipment|medical equipment auction|office furniture liquidat|forklift|industrial equipment|heavy equipment|construction equipment|power tool|saw blade|drill press|table saw|band saw|radial arm|lathe|milling machine|angle grinder|impact driver|nail gun|spray gun|air compressor|pressure washer|generator rental|lawn mower|riding mower|snow blower|chain saw|leaf blower|terms and conditions|privacy policy|terms of service|about us|contact us|faq page|returns policy|shipping policy|cookie policy)\b/i;
+
+// Category-to-keyword mismatch detector — rejects listings that the enricher mis-categorized.
+// Each entry is [category, forbiddenPattern]. If the title matches the forbidden pattern,
+// the listing is almost certainly miscategorized.
+const CATEGORY_MISMATCHES: [string, RegExp][] = [
+  ["jewelry",   /\b(saw blade|circular saw|diamond blade|cutting wheel|power tool|abrasive disc|grinding disc|router bit|drill bit set|masonry bit)\b/i],
+  ["art",       /\b(spray can|paint roller|paintbrush set|drop cloth|masking tape|wall primer|deck stain|house paint|paint sprayer)\b/i],
+  ["furniture", /\b(dumpster|skip bin|portable toilet|storage container|shipping container|forklift|pallet rack)\b/i],
+  ["coins",     /\b(casino chip set|poker chip|slot machine|vending machine token|arcade token)\b/i],
+];
 
 // Keywords that signal an antique/collectible/estate-relevant listing.
 // BidSpotter/HiBid general auction items must have at least one of these signals
@@ -42,8 +52,32 @@ const ESTATE_PLATFORMS = new Set(["estatesales_net", "maxsold", "proxibid", "ebt
 
 function isMeaningful(listing: MockListing): boolean {
   if (!listing.external_url?.startsWith("http")) return false;
-  if (!listing.title?.trim()) return false;
-  if (GARBAGE_TITLE_RE.test(listing.title)) return false;
+  const title = listing.title?.trim() ?? "";
+  if (!title) return false;
+  // Very short titles are usually scraper artifacts (e.g. "N/A", "Lot 1", "---")
+  if (title.length < 6) return false;
+  if (GARBAGE_TITLE_RE.test(title)) return false;
+
+  // Reject known category mismatches (e.g. "diamond saw blade" categorized as "jewelry")
+  if (listing.category) {
+    for (const [cat, pattern] of CATEGORY_MISMATCHES) {
+      if (listing.category.toLowerCase() === cat && pattern.test(title)) return false;
+    }
+  }
+
+  // Reject placeholder / example domain URLs that sneak through the scraper
+  const urlHost = (() => {
+    try { return new URL(listing.external_url).hostname; } catch { return ""; }
+  })();
+  if (
+    urlHost === "example.com" ||
+    urlHost === "example-auction.com" ||
+    urlHost === "example-estate.com" ||
+    urlHost.endsWith(".example.com") ||
+    urlHost.includes("example-") ||
+    urlHost === "localhost" ||
+    urlHost === ""
+  ) return false;
 
   // For general auction platforms (BidSpotter, HiBid, AuctionZip, Discovery),
   // require a positive antique/collectible signal in the title, description,

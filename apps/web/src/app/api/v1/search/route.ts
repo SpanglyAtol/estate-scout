@@ -1,84 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getListings } from "@/lib/scraped-data";
 import { searchSupabase, isSupabaseConfigured } from "@/lib/supabase-search";
+import { haversineKm, KM_PER_MILE } from "@/lib/geo";
+import type { SearchResult } from "@/types";
 
-// When BACKEND_API_URL is configured, proxy search to the FastAPI backend which
-// serves 40k+ listings from PostgreSQL. Falls back to bundled JSON files.
+// When BACKEND_API_URL is configured, proxy search to the FastAPI backend.
+// Timeout after 8 s so Vercel never hits its 10-s function limit waiting on backend.
 async function tryBackendSearch(req: NextRequest): Promise<NextResponse | null> {
   const backendUrl = process.env.BACKEND_API_URL;
   if (!backendUrl) return null;
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
     const upstream = await fetch(
       `${backendUrl}/api/v1/search?${req.nextUrl.searchParams.toString()}`,
-      { next: { revalidate: 60 } }
+      { next: { revalidate: 60 }, signal: controller.signal }
     );
+    clearTimeout(timer);
     if (upstream.ok) return NextResponse.json(await upstream.json());
   } catch {
-    // Backend unavailable — fall through to JSON bundle
+    // Backend unavailable or timed out — fall through to Supabase / JSON
   }
   return null;
 }
 
-// ── Haversine distance (km) between two lat/lon points ────────────────────────
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 export async function GET(req: NextRequest) {
-  // Priority 1: FastAPI backend proxy (when deployed to Railway/Render)
+  // Priority 1: FastAPI backend proxy
   const proxied = await tryBackendSearch(req);
   if (proxied) return proxied;
 
-  // Priority 2: Direct Supabase query (same DB scrapers write to, no backend needed)
+  // Priority 2: Direct Supabase query
   if (isSupabaseConfigured()) {
-    const supabaseResults = await searchSupabase(req.nextUrl.searchParams);
-    if (supabaseResults !== null) return NextResponse.json(supabaseResults);
+    const supabaseResult = await searchSupabase(req.nextUrl.searchParams);
+    if (supabaseResult !== null) return NextResponse.json(supabaseResult);
   }
 
+  // ── Priority 3: Local JSON bundle (dev / fallback) ──────────────────────────
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q")?.toLowerCase() ?? "";
-  const category = searchParams.get("category")?.toLowerCase() ?? "";
-  const minPrice = parseFloat(searchParams.get("min_price") ?? "0") || 0;
-  const maxPrice = parseFloat(searchParams.get("max_price") ?? "0") || Infinity;
-  const pickupOnly = searchParams.get("pickup_only") === "true";
-  const endingHours = parseInt(searchParams.get("ending_hours") ?? "0") || 0;
-  const page = parseInt(searchParams.get("page") ?? "1");
-  const pageSize = parseInt(searchParams.get("page_size") ?? "24");
-  const platformIds = searchParams.getAll("platform_ids").map(Number).filter(Boolean);
-  // Geographic radius search
-  const lat = parseFloat(searchParams.get("lat") ?? "") || null;
-  const lon = parseFloat(searchParams.get("lon") ?? "") || null;
-  const radiusMiles = parseFloat(searchParams.get("radius_miles") ?? "") || null;
+  const q             = searchParams.get("q")?.toLowerCase() ?? "";
+  const category      = searchParams.get("category")?.toLowerCase() ?? "";
+  const minPrice      = parseFloat(searchParams.get("min_price") ?? "0") || 0;
+  const maxPrice      = parseFloat(searchParams.get("max_price") ?? "0") || Infinity;
+  const pickupOnly    = searchParams.get("pickup_only") === "true";
+  const endingHours   = parseInt(searchParams.get("ending_hours") ?? "0") || 0;
+  const page          = Math.max(1, parseInt(searchParams.get("page") ?? "1") || 1);
+  const pageSize      = Math.min(100, Math.max(1, parseInt(searchParams.get("page_size") ?? "24") || 24));
+  const platformIds   = searchParams.getAll("platform_ids").map(Number).filter(Boolean);
+  const lat           = parseFloat(searchParams.get("lat") ?? "") || null;
+  const lon           = parseFloat(searchParams.get("lon") ?? "") || null;
+  const radiusMiles   = parseFloat(searchParams.get("radius_miles") ?? "") || null;
+  // Enriched field filters
+  const subCategory   = searchParams.get("sub_category")?.toLowerCase() ?? "";
+  const maker         = searchParams.get("maker")?.toLowerCase() ?? "";
+  const period        = searchParams.get("period")?.toLowerCase() ?? "";
+  const countryOrigin = searchParams.get("country_of_origin")?.toLowerCase() ?? "";
+  const condition     = searchParams.get("condition")?.toLowerCase() ?? "";
 
-  let results = [...getListings()];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let results: any[] = [...getListings()];
 
-  // ── Estate sale separation ─────────────────────────────────────────────────
-  // Estate sale EVENTS are shown on the /estate-sales page; the main /search
-  // page only shows auction/buy_now items (no estate sale events).
-  // When the caller explicitly passes listing_type=... we apply it below
-  // in the listing type filter block. Only exclude estate sales from the
-  // implicit (no filter) case when this is a general catalog search.
+  // ── Estate sale separation ──────────────────────────────────────────────────
   const explicitListingType = searchParams.get("listing_type");
-  const isEstateSalesPage = explicitListingType === "estate_sale" ||
+  const isEstateSalesPage   = explicitListingType === "estate_sale" ||
     searchParams.get("estate_sales_page") === "1";
   if (!explicitListingType && !isEstateSalesPage) {
-    // General search / catalog: hide estate sale events (they live on /estate-sales)
     results = results.filter((l) => {
-      const lt = (l.listing_type as string | undefined) ?? "auction";
-      const it = (l as unknown as { item_type?: string }).item_type ?? "";
+      const lt = l.listing_type ?? "auction";
+      const it = l.item_type ?? "";
       return lt !== "estate_sale" && it !== "estate_sale";
     });
   }
 
+  // ── Text search ─────────────────────────────────────────────────────────────
   if (q) {
     results = results.filter(
       (l) =>
@@ -88,40 +81,48 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (category) {
-    results = results.filter((l) => l.category?.toLowerCase().includes(category));
-  }
+  // ── Category ────────────────────────────────────────────────────────────────
+  if (category) results = results.filter((l) => l.category?.toLowerCase().includes(category));
 
-  const subCategory = searchParams.get("sub_category")?.toLowerCase() ?? "";
-  if (subCategory) {
+  // ── Subcategory ─────────────────────────────────────────────────────────────
+  if (subCategory) results = results.filter((l) => l.sub_category?.toLowerCase() === subCategory);
+
+  // ── Maker / Brand ───────────────────────────────────────────────────────────
+  if (maker) {
     results = results.filter(
-      (l) => (l as unknown as { sub_category?: string | null }).sub_category?.toLowerCase() === subCategory
+      (l) =>
+        l.maker?.toLowerCase().includes(maker) ||
+        l.brand?.toLowerCase().includes(maker) ||
+        l.title.toLowerCase().includes(maker)
     );
   }
 
-  if (minPrice > 0) {
-    results = results.filter((l) => l.current_price !== null && l.current_price >= minPrice);
-  }
+  // ── Period / Era ────────────────────────────────────────────────────────────
+  if (period) results = results.filter((l) => l.period?.toLowerCase() === period);
 
-  if (maxPrice < Infinity) {
-    results = results.filter((l) => l.current_price !== null && l.current_price <= maxPrice);
-  }
+  // ── Country of Origin ───────────────────────────────────────────────────────
+  if (countryOrigin) results = results.filter((l) => l.country_of_origin?.toLowerCase() === countryOrigin);
 
-  if (pickupOnly) {
-    results = results.filter((l) => l.pickup_only);
-  }
+  // ── Condition ───────────────────────────────────────────────────────────────
+  if (condition) results = results.filter((l) => l.condition?.toLowerCase().includes(condition));
 
+  // ── Price ───────────────────────────────────────────────────────────────────
+  if (minPrice > 0) results = results.filter((l) => l.current_price != null && l.current_price >= minPrice);
+  if (maxPrice < Infinity) results = results.filter((l) => l.current_price != null && l.current_price <= maxPrice);
+
+  // ── Pickup ──────────────────────────────────────────────────────────────────
+  if (pickupOnly) results = results.filter((l) => l.pickup_only);
+
+  // ── Ending hours ────────────────────────────────────────────────────────────
   if (endingHours > 0) {
     const cutoff = Date.now() + endingHours * 3_600_000;
-    results = results.filter(
-      (l) => l.sale_ends_at && new Date(l.sale_ends_at).getTime() < cutoff
-    );
+    results = results.filter((l) => l.sale_ends_at && new Date(l.sale_ends_at).getTime() < cutoff);
   }
 
-  if (platformIds.length > 0) {
-    results = results.filter((l) => platformIds.includes(l.platform.id));
-  }
+  // ── Platforms ───────────────────────────────────────────────────────────────
+  if (platformIds.length > 0) results = results.filter((l) => platformIds.includes(l.platform.id));
 
+  // ── Status ──────────────────────────────────────────────────────────────────
   const statusFilter = searchParams.get("status") ?? "";
   if (statusFilter) {
     const now = Date.now();
@@ -130,54 +131,37 @@ export async function GET(req: NextRequest) {
       const starts = l.sale_starts_at ? new Date(l.sale_starts_at).getTime() : null;
       const ends   = l.sale_ends_at   ? new Date(l.sale_ends_at).getTime()   : null;
       switch (statusFilter) {
-        case "upcoming":
-          return starts !== null && starts > now;
-        case "ended":
-          return ends !== null && ends < now;
-        case "ending_soon":
-          return ends !== null && ends > now && ends - now < 86_400_000;
-        case "live":
-          return (starts === null || starts <= now) && (ends === null || ends >= now);
-        default:
-          return true;
+        case "upcoming":     return starts != null && starts > now;
+        case "ended":        return ends != null && ends < now;
+        case "ending_soon":  return ends != null && ends > now && ends - now < 86_400_000;
+        case "live":         return (starts == null || starts <= now) && (ends == null || ends >= now);
+        default:             return true;
       }
     });
   }
 
-  // ── Listing type filter ────────────────────────────────────────────────────
-  const listingType = searchParams.get("listing_type");
-  if (listingType) {
-    results = results.filter(
-      (l) => ((l.listing_type as string | undefined) ?? "auction") === listingType
-    );
+  // ── Listing type ────────────────────────────────────────────────────────────
+  if (explicitListingType) {
+    results = results.filter((l) => (l.listing_type ?? "auction") === explicitListingType);
   }
 
-  // ── Item type filter ───────────────────────────────────────────────────────
+  // ── Item type ───────────────────────────────────────────────────────────────
   const itemType = searchParams.get("item_type");
-  if (itemType) {
-    results = results.filter(
-      (l) => (l as unknown as { item_type?: string }).item_type === itemType
-    );
-  }
+  if (itemType) results = results.filter((l) => l.item_type === itemType);
 
-  // ── Geographic radius filter ───────────────────────────────────────────────
+  // ── Geographic radius ───────────────────────────────────────────────────────
   if (lat != null && lon != null && radiusMiles != null) {
-    const radiusKm = radiusMiles * 1.60934;
+    const radiusKm = radiusMiles * KM_PER_MILE;
     results = results
-      .filter(
-        (l) =>
-          l.latitude != null &&
-          l.longitude != null &&
-          haversineKm(lat, lon, l.latitude, l.longitude) <= radiusKm
-      )
+      .filter((l) => l.latitude != null && l.longitude != null &&
+        haversineKm(lat, lon, l.latitude, l.longitude) <= radiusKm)
       .map((l) => ({
         ...l,
-        distance_miles:
-          haversineKm(lat, lon, l.latitude!, l.longitude!) / 1.60934,
+        distance_miles: haversineKm(lat, lon, l.latitude, l.longitude) / KM_PER_MILE,
       }));
   }
 
-  // ── Sort ───────────────────────────────────────────────────────────────────
+  // ── Sort ────────────────────────────────────────────────────────────────────
   const sort = searchParams.get("sort") ?? "";
   switch (sort) {
     case "price_asc":
@@ -195,18 +179,25 @@ export async function GET(req: NextRequest) {
       break;
     case "newest":
       results.sort((a, b) => {
-        // Prefer scraped_at (always set) over sale_starts_at (often null)
-        const aT = a.scraped_at ? new Date(a.scraped_at).getTime()
-                 : a.sale_starts_at ? new Date(a.sale_starts_at).getTime() : 0;
-        const bT = b.scraped_at ? new Date(b.scraped_at).getTime()
-                 : b.sale_starts_at ? new Date(b.sale_starts_at).getTime() : 0;
+        const aT = a.scraped_at ? new Date(a.scraped_at).getTime() : 0;
+        const bT = b.scraped_at ? new Date(b.scraped_at).getTime() : 0;
         return bT - aT;
       });
       break;
-    // default: preserve scraped order (BidSpotter / HiBid already ordered by
-    // relevance / end date on their platforms)
   }
 
-  const start = (page - 1) * pageSize;
-  return NextResponse.json(results.slice(start, start + pageSize));
+  // ── Paginate — return total so client knows the full result count ────────────
+  const total       = results.length;
+  const totalPages  = Math.ceil(total / pageSize);
+  const start       = (page - 1) * pageSize;
+  const pageResults = results.slice(start, start + pageSize);
+
+  const body: SearchResult = {
+    results:     pageResults,
+    total,
+    page,
+    page_size:   pageSize,
+    total_pages: totalPages,
+  };
+  return NextResponse.json(body);
 }

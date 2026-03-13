@@ -3,10 +3,14 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, ArrowUpDown, LayoutGrid, LayoutList, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft, Loader2, ArrowUpDown, LayoutGrid, LayoutList, TrendingUp,
+  ChevronLeft, ChevronRight,
+} from "lucide-react";
 import Link from "next/link";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { FilterSidebar } from "@/components/filters/filter-sidebar";
+import { CategoryAffiliateStrip } from "@/components/ads/homepage-affiliate-strip";
 import { searchListings } from "@/lib/api-client";
 import { CATEGORY_MAP } from "@/lib/category-meta";
 import type { SearchFilters } from "@/types";
@@ -34,7 +38,6 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
     page:      1,
     page_size: PAGE_SIZE,
   });
-  const [activeSubCat, setActiveSubCat] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
 
   useEffect(() => {
@@ -66,33 +69,24 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
     }));
   }
 
-  function loadMore() {
-    setFilters((f) => ({ ...f, page_size: (f.page_size ?? PAGE_SIZE) + PAGE_SIZE }));
+  function goToPage(p: number) {
+    setFilters((f) => ({ ...f, page: Math.max(1, Math.min(totalPages, p)) }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const { data: allListings = [], isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["category", slug, filters],
     queryFn:  () => searchListings(filters),
+    placeholderData: (prev) => prev,
   });
 
-  // Derive available sub-categories from fetched results and filter client-side
-  const availableSubCats: string[] = Array.from(
-    new Set(
-      allListings
-        .map((l) => (l as unknown as { sub_category?: string | null }).sub_category)
-        .filter((s): s is string => !!s)
-    )
-  ).sort();
+  const listings    = data?.results ?? [];
+  const total       = data?.total ?? 0;
+  const totalPages  = data?.total_pages ?? 1;
+  const currentPage = filters.page ?? 1;
 
-  const listings = activeSubCat
-    ? allListings.filter(
-        (l) => (l as unknown as { sub_category?: string | null }).sub_category === activeSubCat
-      )
-    : allListings;
-
-  const currentPageSize = filters.page_size ?? PAGE_SIZE;
-  const hasMore         = allListings.length >= currentPageSize;
-  const isLoadingMore   = isFetching && allListings.length > 0;
+  const showingFrom = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const showingTo   = Math.min(currentPage * PAGE_SIZE, total);
 
   if (!meta) {
     return (
@@ -147,12 +141,15 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
         </div>
       </div>
 
+      {/* ── Category-aware affiliate strip ───────────────────────────────────── */}
+      <CategoryAffiliateStrip slug={slug} />
+
       {/* ── Sidebar + results ─────────────────────────────────────────────────── */}
       <div className="flex gap-8 items-start">
         <FilterSidebar filters={filters} onChange={handleFiltersChange} />
 
         <div className="flex-1 min-w-0">
-          {isLoading ? (
+          {isLoading && !data ? (
             <div className="text-center py-20 text-antique-text-mute">
               <div className="text-4xl mb-3">{meta.icon}</div>
               <p>Loading {meta.label.toLowerCase()}…</p>
@@ -160,42 +157,57 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
           ) : (
             <>
               {/* Sub-category pills */}
-              {availableSubCats.length > 0 && (
+              {meta.subcategories && meta.subcategories.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   <button
-                    onClick={() => setActiveSubCat(null)}
+                    onClick={() => setFilters({ ...filters, sub_category: undefined, page: 1 })}
                     className={cn(
                       "text-xs px-3 py-1 rounded-full border transition-colors font-medium",
-                      activeSubCat === null
+                      !filters.sub_category
                         ? "bg-antique-accent text-white border-antique-accent"
                         : "bg-antique-surface border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent"
                     )}
                   >
                     All
                   </button>
-                  {availableSubCats.map((sc) => (
+                  {meta.subcategories.map((sc) => (
                     <button
-                      key={sc}
-                      onClick={() => setActiveSubCat(activeSubCat === sc ? null : sc)}
+                      key={sc.slug}
+                      onClick={() => setFilters({ ...filters, sub_category: sc.slug, page: 1 })}
                       className={cn(
                         "text-xs px-3 py-1 rounded-full border transition-colors font-medium capitalize",
-                        activeSubCat === sc
+                        filters.sub_category === sc.slug
                           ? "bg-antique-accent text-white border-antique-accent"
                           : "bg-antique-surface border-antique-border text-antique-text-sec hover:border-antique-accent hover:text-antique-accent"
                       )}
                     >
-                      {sc.replace(/_/g, " ")}
+                      {sc.label}
                     </button>
                   ))}
                 </div>
               )}
 
               <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                <p className="text-sm text-antique-text-mute">
-                  {listings.length > 0
-                    ? `${listings.length} ${meta.label.toLowerCase()} listing${listings.length !== 1 ? "s" : ""} found`
-                    : `No ${meta.label.toLowerCase()} listings found — try broadening your filters`}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-antique-text-mute">
+                    {total > 0
+                      ? <>
+                          <span className="font-semibold text-antique-text">
+                            {total.toLocaleString()}
+                          </span>{" "}
+                          {meta.label.toLowerCase()} listing{total !== 1 ? "s" : ""} found
+                          {total > PAGE_SIZE && (
+                            <span className="text-antique-text-mute">
+                              {" "}— showing {showingFrom}–{showingTo}
+                            </span>
+                          )}
+                        </>
+                      : `No ${meta.label.toLowerCase()} listings found — try broadening your filters`}
+                  </p>
+                  {isFetching && data && (
+                    <Loader2 className="w-4 h-4 animate-spin text-antique-text-mute" />
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5 text-sm">
@@ -236,18 +248,59 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
 
               <ListingGrid listings={listings} viewMode={viewMode} />
 
-              {hasMore && (
-                <div className="mt-8 text-center">
+              {/* ── Pagination ── */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
                   <button
-                    onClick={loadMore}
-                    disabled={isLoadingMore}
-                    className="inline-flex items-center gap-2 bg-antique-surface border border-antique-border text-antique-text-sec px-8 py-3 rounded-xl hover:border-antique-accent hover:text-antique-accent hover:shadow-sm transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg border border-antique-border bg-antique-surface text-antique-text-sec text-sm hover:border-antique-accent hover:text-antique-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {isLoadingMore
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading more…</>
-                      : `Load ${PAGE_SIZE} more listings`}
+                    <ChevronLeft className="w-4 h-4" /> Prev
+                  </button>
+
+                  {/* Page number pills */}
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let p: number;
+                    if (totalPages <= 7) {
+                      p = i + 1;
+                    } else if (currentPage <= 4) {
+                      p = i + 1;
+                    } else if (currentPage >= totalPages - 3) {
+                      p = totalPages - 6 + i;
+                    } else {
+                      p = currentPage - 3 + i;
+                    }
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => goToPage(p)}
+                        className={cn(
+                          "w-9 h-9 rounded-lg text-sm font-medium transition-colors border",
+                          p === currentPage
+                            ? "bg-antique-accent text-white border-antique-accent"
+                            : "bg-antique-surface text-antique-text-sec border-antique-border hover:border-antique-accent hover:text-antique-accent"
+                        )}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg border border-antique-border bg-antique-surface text-antique-text-sec text-sm hover:border-antique-accent hover:text-antique-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
+              )}
+
+              {totalPages > 1 && (
+                <p className="text-center text-xs text-antique-text-mute mt-3">
+                  Page {currentPage} of {totalPages.toLocaleString()} ({total.toLocaleString()} total results)
+                </p>
               )}
 
               <div className="mt-10 text-center">

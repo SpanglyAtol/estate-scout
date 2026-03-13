@@ -174,17 +174,30 @@ class MaxSoldScraper(BaseScraper):
 
                 pp = page_data.get("props", {}).get("pageProps", {})
 
-                # Build auction_id → lots mapping from the listings payload
+                # Build auction_id → lots mapping — try multiple __NEXT_DATA__ shapes
                 lots_by_auction: dict[str, list] = {}
-                for lot in pp.get("listings", {}).get("listings", []):
-                    aid = str(lot.get("amAuctionId", ""))
+                raw_lots = (
+                    pp.get("listings", {}).get("listings")       # original shape
+                    or pp.get("lots", {}).get("data")            # v2 shape
+                    or pp.get("pageData", {}).get("lots", {}).get("data")
+                    or pp.get("auctionLots")
+                    or []
+                )
+                for lot in raw_lots:
+                    aid = str(lot.get("amAuctionId", "") or lot.get("auctionId", ""))
                     if aid:
                         lots_by_auction.setdefault(aid, []).append(lot)
 
-                # Yield one listing per unique auction (sale-level only).
-                # Individual lots are stored as nested ScrapedItem objects.
-                for sale in pp.get("sales", {}).get("data", []):
-                    sale_id = str(sale.get("amAuctionId", ""))
+                # Yield one listing per unique auction — multiple __NEXT_DATA__ shapes
+                raw_sales = (
+                    pp.get("sales", {}).get("data")              # original shape
+                    or pp.get("auctions", {}).get("data")        # v2 shape
+                    or pp.get("pageData", {}).get("sales", {}).get("data")
+                    or pp.get("saleData")
+                    or []
+                )
+                for sale in raw_sales:
+                    sale_id = str(sale.get("amAuctionId") or sale.get("id") or "")
                     key = f"sale_{sale_id}"
                     if not sale_id or key in seen_ids:
                         continue
@@ -222,7 +235,7 @@ class MaxSoldScraper(BaseScraper):
         stored in listing.items so the frontend can display a browsable grid.
         """
         try:
-            auction_id = str(sale.get("amAuctionId", ""))
+            auction_id = str(sale.get("amAuctionId") or sale.get("id") or "")
             if not auction_id:
                 return None
 

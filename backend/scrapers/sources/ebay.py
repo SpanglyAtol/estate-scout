@@ -115,22 +115,33 @@ class EbaySoldListingsScraper(BaseScraper):
                 response = await self._fetch(
                     self.SEARCH_URL,
                     params=params,
-                    headers=self._browser_headers(referer="https://www.ebay.com/"),
+                    headers={
+                        **self._browser_headers(referer="https://www.ebay.com/"),
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Cache-Control": "no-cache",
+                        "Pragma": "no-cache",
+                    },
                 )
                 soup = BeautifulSoup(response.text, "lxml")
 
                 # eBay wraps each result in <li class="s-item ...">
                 cards = soup.select("li.s-item, li[id^='item']")
 
-                # Filter out the ghost "Shop on eBay" header card
+                # Filter out the ghost "Shop on eBay" header card.
+                # Require the link href to contain "/itm/" — this is always
+                # present on real listings and absent on the template/ghost card.
                 cards = [
                     c for c in cards
-                    if not c.select_one(".s-item__title--tagblock")
-                    and c.select_one("a.s-item__link")
+                    if c.select_one("a.s-item__link[href*='/itm/']")
+                    and not c.select_one(".s-item__title--tagblock")
                 ]
 
                 if not cards:
-                    self.logger.info(f"eBay [{query}]: no more results at page {page}")
+                    snippet = response.text[:400].replace("\n", " ")
+                    self.logger.warning(
+                        f"eBay [{query}] p{page}: 0 cards — status={response.status_code} "
+                        f"snippet={snippet!r}"
+                    )
                     break
 
                 for card in cards:
@@ -170,11 +181,15 @@ class EbaySoldListingsScraper(BaseScraper):
                     if price:
                         break
 
-            # Image
-            img_el = card.select_one(".s-item__image-img, img.s-item__image-img")
+            # Image — eBay lazy-loads images; real URL is in data-src, not src
+            img_el = card.select_one(".s-item__image-img, img.s-item__image-img, .s-item__image img")
             img_url = None
             if img_el:
-                img_url = img_el.get("src") or img_el.get("data-src")
+                # Prefer data-src (lazy-loaded real URL) over src (placeholder/spinner)
+                raw_src = img_el.get("data-src") or img_el.get("src") or ""
+                # Discard placeholder URIs (base64 blobs, eBay spinner URLs)
+                if raw_src and not raw_src.startswith("data:") and "gif" not in raw_src:
+                    img_url = raw_src
 
             # Condition (e.g. "Pre-Owned", "For parts")
             cond_el = card.select_one(".SECONDARY_INFO, .s-item__subtitle")
@@ -182,7 +197,10 @@ class EbaySoldListingsScraper(BaseScraper):
 
             # Sale date (shown as "Sold  Dec 15, 2024" on completed listings)
             sold_date: datetime | None = None
-            date_el = card.select_one(".s-item__endedDate, .ADDITIONAL_INFO_BOTTOM")
+            date_el = card.select_one(
+                ".s-item__endedDate, .ADDITIONAL_INFO_BOTTOM, "
+                ".s-item__title-tag, [class*=endedDate], [class*=ended-date]"
+            )
             if date_el:
                 date_text = date_el.get_text(strip=True)
                 sold_date = self._parse_sold_date(date_text)
