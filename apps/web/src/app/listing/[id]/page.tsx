@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight } from "lucide-react";
+import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight, ExternalLink } from "lucide-react";
 import { getSupabaseListing, isSupabaseConfigured } from "@/lib/supabase-search";
 import { getListings } from "@/lib/scraped-data";
 import type { Listing } from "@/types";
@@ -15,6 +15,20 @@ import { TrackedCta } from "@/components/listings/tracked-cta";
 import { SaveButton } from "@/components/listings/save-button";
 import { RelatedListings } from "@/components/listings/related-listings";
 import { MarketContextStrip } from "@/components/market/market-context-strip";
+
+/** Format estate sale dates with weekday names: "Fri, Mar 14 – Sun, Mar 16" */
+function formatSaleEvent(startsAt: string | null, endsAt: string | null): string {
+  if (!startsAt) return "";
+  const opts: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  const start = new Intl.DateTimeFormat("en-US", opts).format(new Date(startsAt));
+  if (!endsAt) return start;
+  // If same day, just return one date
+  const s = new Date(startsAt);
+  const e = new Date(endsAt);
+  if (s.toDateString() === e.toDateString()) return start;
+  const end = new Intl.DateTimeFormat("en-US", opts).format(e);
+  return `${start} – ${end}`;
+}
 
 // Always fetch fresh scraped data on each visit
 export const dynamic = "force-dynamic";
@@ -180,6 +194,50 @@ export default async function ListingPage({ params }: PageProps) {
         <span className="text-antique-text-sec truncate max-w-[200px] sm:max-w-xs">{listing.title}</span>
       </nav>
 
+      {/* Estate Sale Event Banner — full-width header above the detail grid */}
+      {lt === "estate_sale" && (
+        <div className="mb-8 bg-emerald-50 dark:bg-emerald-950/25 rounded-2xl border border-emerald-200 dark:border-emerald-800 p-6">
+          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">
+            Estate Sale Event
+          </p>
+          <div className="flex flex-wrap gap-x-8 gap-y-3 items-center">
+            {listing.sale_starts_at && (
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
+                <span className="text-lg font-bold text-emerald-800 dark:text-emerald-300">
+                  {formatSaleEvent(listing.sale_starts_at, listing.sale_ends_at)}
+                </span>
+              </div>
+            )}
+            {listing.city && (
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
+                <span className="text-base font-medium text-emerald-700 dark:text-emerald-400">
+                  {listing.city}{listing.state ? `, ${listing.state}` : ""}
+                </span>
+              </div>
+            )}
+            {listing.items && listing.items.length > 0 && (
+              <span className="ml-auto bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-sm font-semibold px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+                {listing.items.length.toLocaleString()} items
+              </span>
+            )}
+          </div>
+          {/* Directions link */}
+          {listing.city && (
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(`estate sale ${listing.city}${listing.state ? " " + listing.state : ""}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-500 hover:text-emerald-800 dark:hover:text-emerald-300 hover:underline"
+            >
+              <MapPin className="w-4 h-4" /> Get directions
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* 3D Rotational Viewer + Lens Panel */}
         <SphericalViewer
@@ -199,16 +257,9 @@ export default async function ListingPage({ params }: PageProps) {
 
           {/* Price / info box — type-aware */}
           {lt === "estate_sale" ? (
-            <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-4 space-y-1 border border-emerald-200 dark:border-emerald-800">
-              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">In-Person Estate Sale</p>
-              {listing.sale_starts_at && (
-                <p className="text-sm text-emerald-700 dark:text-emerald-500">
-                  {formatDate(listing.sale_starts_at)}
-                  {listing.sale_ends_at && ` – ${formatDate(listing.sale_ends_at)}`}
-                </p>
-              )}
-              <p className="text-xs text-emerald-600 dark:text-emerald-500">Pricing is set at the sale — browse items in person</p>
-            </div>
+            <p className="text-sm text-antique-text-mute italic">
+              Pricing is set at the sale — browse items in person or online.
+            </p>
           ) : lt === "buy_now" && listing.buy_now_price != null ? (
             <div className="bg-antique-muted rounded-xl p-4 space-y-1 border border-antique-border">
               <div className="flex items-baseline gap-2">
@@ -300,7 +351,8 @@ export default async function ListingPage({ params }: PageProps) {
 
           {/* Meta */}
           <div className="space-y-2 text-sm">
-            {listing.city && (
+            {/* Location shown in event banner for estate sales; keep for auctions */}
+            {lt !== "estate_sale" && listing.city && (
               <div className="flex items-center gap-2 text-antique-text-sec">
                 <MapPin className="w-4 h-4 text-antique-text-mute" />
                 {listing.city}, {listing.state}
@@ -333,26 +385,34 @@ export default async function ListingPage({ params }: PageProps) {
             })()}
           </div>
 
-          {/* Description */}
+          {/* Description — full text for estate sales, 500-char preview for items */}
           {listing.description && (
             <div className="prose prose-sm max-w-none text-antique-text-sec">
-              <h3 className="font-semibold text-antique-text not-prose">Description</h3>
-              <p className="mt-1 whitespace-pre-wrap">{listing.description.slice(0, 500)}</p>
-              {listing.description.length > 500 && (
-                <a
-                  href={listing.external_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-antique-accent not-prose text-sm hover:text-antique-accent-h"
-                >
-                  Read full description on {platform} →
-                </a>
+              <h3 className="font-semibold text-antique-text not-prose">
+                {lt === "estate_sale" ? "About this Sale" : "Description"}
+              </h3>
+              {lt === "estate_sale" ? (
+                <p className="mt-1 whitespace-pre-wrap">{listing.description}</p>
+              ) : (
+                <>
+                  <p className="mt-1 whitespace-pre-wrap">{listing.description.slice(0, 500)}</p>
+                  {listing.description.length > 500 && (
+                    <a
+                      href={listing.external_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-antique-accent not-prose text-sm hover:text-antique-accent-h"
+                    >
+                      Read full description on {platform} →
+                    </a>
+                  )}
+                </>
               )}
             </div>
           )}
 
-          {/* Enriched attributes panel */}
-          {(() => {
+          {/* Enriched attributes panel — not shown for estate sale events */}
+          {lt !== "estate_sale" && (() => {
             const rows: { label: string; value: string }[] = [];
             if (listing.sub_category) rows.push({ label: "Type", value: listing.sub_category.replace(/_/g, " ") });
             if (listing.maker) rows.push({ label: "Maker", value: listing.maker.replace(/_/g, " ") });
@@ -409,18 +469,40 @@ export default async function ListingPage({ params }: PageProps) {
           items={listing.items}
           auctionUrl={listing.external_url}
           platform={platform}
+          isEstateSale={lt === "estate_sale"}
         />
       )}
 
-      {/* Market context — category median price + trend from sold comps */}
-      <div className="mt-8">
-        <MarketContextStrip listing={listing} />
-      </div>
+      {/* Estate sales: "no items listed" fallback + direct platform link */}
+      {lt === "estate_sale" && (!listing.items || listing.items.length === 0) && (
+        <div className="mt-8 rounded-2xl border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/10 p-8 text-center">
+          <p className="text-antique-text-sec text-sm mb-4">
+            Individual items for this estate sale are not listed here yet.<br />
+            Browse the full sale on the platform for photos and pricing.
+          </p>
+          <a
+            href={listing.external_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
+          >
+            Browse items on {platform}
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
+      )}
 
-      {/* AI Price Checker — inline Claude-powered estimate + asking-price verdict */}
-      <div className="mt-6">
-        <PriceCheckerWidget listing={listing} />
-      </div>
+      {/* Market context and AI price checker — only for individual auction items */}
+      {lt !== "estate_sale" && (
+        <>
+          <div className="mt-8">
+            <MarketContextStrip listing={listing} />
+          </div>
+          <div className="mt-6">
+            <PriceCheckerWidget listing={listing} />
+          </div>
+        </>
+      )}
 
       {/* Related / similar listings */}
       <RelatedListings listing={listing} />
