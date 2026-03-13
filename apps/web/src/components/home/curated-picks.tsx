@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 interface CuratedListing {
   id: number;
   title: string;
+  external_url: string;
   primary_image_url: string | null;
   current_price: number | null;
   buy_now_price: number | null;
@@ -51,7 +52,7 @@ function CuratedCard({ listing }: { listing: CuratedListing }) {
 
   return (
     <Link
-      href={`/listing/${listing.id}`}
+      href={`/listing/${listing.id}?src=${encodeURIComponent(listing.external_url)}`}
       className="group flex flex-col bg-antique-surface border border-antique-border rounded-xl overflow-hidden hover:border-antique-accent hover:shadow-lg transition-all duration-200"
     >
       {/* Image */}

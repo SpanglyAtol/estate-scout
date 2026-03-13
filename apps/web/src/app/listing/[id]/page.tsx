@@ -37,8 +37,12 @@ export const dynamic = "force-dynamic";
 /**
  * Server-side listing fetch — calls data sources directly, no HTTP self-loop.
  * Priority: FastAPI backend → Supabase → local JSON bundle.
+ *
+ * srcUrl: the original platform URL from the ?src= query param. When present,
+ * we prefer matching by external_url in the local bundle — this handles stale
+ * curated-picks IDs that shift when scrapers regenerate sequential IDs.
  */
-async function fetchListingServer(id: number): Promise<Listing | null> {
+async function fetchListingServer(id: number, srcUrl?: string): Promise<Listing | null> {
   // 1. FastAPI backend (when configured)
   const backendUrl = process.env.BACKEND_API_URL;
   if (backendUrl) {
@@ -65,6 +69,15 @@ async function fetchListingServer(id: number): Promise<Listing | null> {
 
   // 3. Local JSON bundle
   const all = getListings();
+
+  // If the caller supplied a platform URL, prefer an exact external_url match.
+  // This protects against stale sequential IDs (e.g. curated picks regenerated
+  // separately from the main listings bundle).
+  if (srcUrl) {
+    const byUrl = all.find((l) => l.external_url === srcUrl) as Listing | undefined;
+    if (byUrl) return byUrl;
+  }
+
   return (all.find((l) => l.id === id) as Listing | undefined) ?? null;
 }
 
@@ -113,13 +126,15 @@ export default async function ListingPage({ params, searchParams }: PageProps) {
   const id = Number(params.id);
   if (isNaN(id)) notFound();
 
+  const srcUrl = searchParams?.src?.startsWith("http") ? searchParams.src : undefined;
+
   // Direct server-side fetch — no HTTP self-call, no Vercel timeout cascade.
-  const listing = await fetchListingServer(id);
+  // Pass srcUrl so stale curated-pick IDs resolve via external_url match.
+  const listing = await fetchListingServer(id, srcUrl);
   if (!listing) {
     // If the card passed the original platform URL, send the user there directly
     // rather than showing a dead-end 404.
-    const fallback = searchParams?.src;
-    if (fallback && fallback.startsWith("http")) redirect(fallback);
+    if (srcUrl) redirect(srcUrl);
     notFound();
   }
 
