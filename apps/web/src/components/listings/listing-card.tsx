@@ -142,8 +142,18 @@ export function ListingCard({ listing, className }: ListingCardProps) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-antique-text-mute text-4xl">
-            {lt === "estate_sale" ? "🏡" : lt === "buy_now" ? "🛍️" : "🏺"}
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-antique-muted px-3 text-center">
+            <span className="text-3xl opacity-40">
+              {lt === "estate_sale" ? "🏡" : lt === "buy_now" ? "🛍️" : "🏺"}
+            </span>
+            <span className="text-[11px] font-semibold text-antique-text-mute uppercase tracking-wider leading-tight">
+              {listing.platform.display_name}
+            </span>
+            {listing.category && (
+              <span className="text-[10px] text-antique-text-mute capitalize leading-tight">
+                {listing.category}
+              </span>
+            )}
           </div>
         )}
 

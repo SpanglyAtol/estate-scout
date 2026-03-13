@@ -88,8 +88,13 @@ export function ListingRow({ listing }: { listing: Listing }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xl text-antique-text-mute">
-            {lt === "estate_sale" ? "🏡" : lt === "buy_now" ? "🛍️" : "🏺"}
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-antique-muted px-1 text-center">
+            <span className="text-lg opacity-40">
+              {lt === "estate_sale" ? "🏡" : lt === "buy_now" ? "🛍️" : "🏺"}
+            </span>
+            <span className="text-[9px] font-semibold text-antique-text-mute uppercase tracking-wide leading-tight line-clamp-2">
+              {listing.platform.display_name}
+            </span>
           </div>
         )}
         {listing.is_sponsored && (
