@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Search, Clock, Calendar, TrendingUp, Package, MapPin } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { CuratedPicks } from "@/components/home/curated-picks";
+import { HomepageAffiliateStrip } from "@/components/ads/homepage-affiliate-strip";
 import { getStats, searchListingsArray } from "@/lib/api-client";
 import { CATEGORIES } from "@/lib/category-meta";
 import type { StatsResult } from "@/lib/api-client";
@@ -146,6 +147,9 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ── Affiliate strip — collector supplies, unobtrusive horizontal row ──── */}
+      <HomepageAffiliateStrip />
 
       {/* ── Curator's Picks (AI-powered, client-side hydrated) ────────────────── */}
       <CuratedPicks />

@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { FilterSidebar } from "@/components/filters/filter-sidebar";
+import { CategoryAffiliateStrip } from "@/components/ads/homepage-affiliate-strip";
 import { searchListings } from "@/lib/api-client";
 import { CATEGORY_MAP } from "@/lib/category-meta";
 import type { SearchFilters } from "@/types";
@@ -139,6 +140,9 @@ function CategoryBrowserInner({ slug }: { slug: string }) {
           </Link>
         </div>
       </div>
+
+      {/* ── Category-aware affiliate strip ───────────────────────────────────── */}
+      <CategoryAffiliateStrip slug={slug} />
 
       {/* ── Sidebar + results ─────────────────────────────────────────────────── */}
       <div className="flex gap-8 items-start">

@@ -1,6 +1,6 @@
 "use client";
 
-import { buildListingKeywords } from "@/lib/ad-keywords";
+import { buildListingKeywords, ESTATE_PREP_LINKS } from "@/lib/ad-keywords";
 import { trackAffiliateClick } from "@/lib/analytics";
 import type { Listing } from "@/types";
 
@@ -15,21 +15,27 @@ function buildAmazonUrl(keywords: string, tag: string): string {
 const CURATE_CATEGORIES = new Set(["watches", "jewelry", "silver", "art", "ceramics"]);
 
 /**
- * Replaces the generic AmazonAssociates panel on listing detail pages.
- * Keywords are assembled from all enriched listing fields: maker, brand, period,
- * country_of_origin, category-specific attributes (model, piece_type, pattern_name, etc.)
- * and price tier — so links are as specific and relevant as possible.
+ * Contextual Amazon affiliate panel for listing detail pages.
+ *
+ * For estate_sale listings: shows estate-prep supplies (packing, storage, cleaning).
+ * For auction/individual items: shows category-specific collector care / lifestyle links
+ * assembled from enriched fields (maker, brand, period, attributes, price tier).
  */
 export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelProps) {
   const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
   if (!tag) return null;
 
-  const links = buildListingKeywords(listing);
+  const isEstateSale = listing.listing_type === "estate_sale";
+
+  // Estate sales get practical prep links, not collector care
+  const links = isEstateSale ? ESTATE_PREP_LINKS : buildListingKeywords(listing);
   if (links.length === 0) return null;
 
-  const title = CURATE_CATEGORIES.has(listing.category ?? "")
-    ? "Curate Your Find"
-    : "Care & Display";
+  const title = isEstateSale
+    ? "Estate Sale Essentials"
+    : CURATE_CATEGORIES.has(listing.category ?? "")
+      ? "Curate Your Find"
+      : "Care & Display";
 
   return (
     <div className="border border-antique-border rounded-xl overflow-hidden">

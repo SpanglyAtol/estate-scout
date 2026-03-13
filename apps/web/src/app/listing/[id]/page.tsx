@@ -8,6 +8,7 @@ import type { Listing } from "@/types";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { categoryToSlug } from "@/lib/category-meta";
 import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
+import { AdUnit } from "@/components/ads/ad-unit";
 import { PriceCheckerWidget } from "@/components/price-checker/price-checker-widget";
 import { SphericalViewer } from "@/components/viewer/spherical-viewer";
 import { ItemsGrid } from "@/components/listings/items-grid";
@@ -503,6 +504,13 @@ export default async function ListingPage({ params }: PageProps) {
           </div>
         </>
       )}
+
+      {/* AdSense — between AI tools and related listings, naturally between content blocks */}
+      <AdUnit
+        slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_LISTING_DETAIL ?? ""}
+        format="auto"
+        className="my-8"
+      />
 
       {/* Related / similar listings */}
       <RelatedListings listing={listing} />
