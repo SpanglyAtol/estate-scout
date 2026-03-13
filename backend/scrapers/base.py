@@ -57,6 +57,7 @@ class ScrapedListing:
     is_completed: bool = False
     auction_status: str | None = None  # 'upcoming' | 'live' | 'ended' | 'completed'
     listing_type: str = "auction"      # 'auction' | 'estate_sale' | 'buy_now'
+    item_type: str = "individual_item" # 'individual_item' | 'lot' | 'estate_sale' | 'auction_catalog'
     estimate_low: float | None = None  # listing-level price estimate
     estimate_high: float | None = None
     currency: str = "USD"

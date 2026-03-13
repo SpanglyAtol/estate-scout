@@ -19,6 +19,29 @@ def _try_import_market_services():
         return None, None
 
 
+def _lot_params(listing_db_id: int, item) -> dict:
+    """Build the parameter dict for a listing_lots INSERT/UPSERT."""
+    return {
+        "listing_id":       listing_db_id,
+        "lot_number":       item.lot_number,
+        "title":            item.title,
+        "description":      item.description,
+        "category":         item.category,
+        "condition":        item.condition,
+        "current_price":    item.current_price,
+        "hammer_price":     item.hammer_price,
+        "estimate_low":     item.estimate_low,
+        "estimate_high":    item.estimate_high,
+        "is_completed":     item.is_completed,
+        "bid_count":        item.bid_count,
+        "sale_ends_at":     item.sale_ends_at,
+        "primary_image_url": item.primary_image_url,
+        "image_urls":       item.image_urls or [],
+        "external_url":     item.external_url,
+    }
+
+
+
 class ScraperStorage:
     """
     Writes ScrapedListing objects to the database (upsert) and/or JSONL staging file.
@@ -149,7 +172,7 @@ class ScraperStorage:
                     "category": listing.category,
                     "condition": listing.condition,
                     "listing_type": listing.listing_type or "auction",
-                    "item_type": "individual_item",
+                    "item_type": listing.item_type or "individual_item",
                     "auction_status": listing.auction_status or "upcoming",
                     "current_price": listing.current_price,
                     "start_price": listing.start_price,
@@ -202,52 +225,100 @@ class ScraperStorage:
     async def _upsert_lots(self, items: list, listing_db_id: int) -> None:
         """Write individual lot items to listing_lots table.
 
-        Uses lot_number for deduplication when available; falls back to title-
-        based matching.  Failures are logged but never propagate — lot data is
-        supplementary, not critical to the core listing record.
+        Strategy:
+        - Lots WITH a lot_number: ON CONFLICT (listing_id, lot_number) DO UPDATE
+          against the partial unique index from migration 0006.
+        - Lots WITHOUT a lot_number: delete all unnumbered lots for this listing
+          first, then insert fresh — avoids duplicates on re-scrape.
+
+        Failures are logged but never propagate — lot data is supplementary.
         """
         from sqlalchemy import text
 
-        for item in items:
+        numbered   = [i for i in items if i.lot_number]
+        unnumbered = [i for i in items if not i.lot_number]
+
+        # ── delete stale unnumbered lots before re-inserting ─────────────────
+        if unnumbered:
             try:
                 await self.db.execute(
-                    text("""
-                        INSERT INTO listing_lots (
-                            listing_id, lot_number, title, description,
-                            category, condition,
-                            current_price, hammer_price, estimate_low, estimate_high,
-                            is_completed, bid_count, sale_ends_at,
-                            primary_image_url, image_urls, external_url
-                        ) VALUES (
-                            :listing_id, :lot_number, :title, :description,
-                            :category, :condition,
-                            :current_price, :hammer_price, :estimate_low, :estimate_high,
-                            :is_completed, :bid_count, :sale_ends_at,
-                            :primary_image_url, :image_urls, :external_url
-                        )
-                        ON CONFLICT DO NOTHING
-                    """),
-                    {
-                        "listing_id": listing_db_id,
-                        "lot_number": item.lot_number,
-                        "title": item.title,
-                        "description": item.description,
-                        "category": item.category,
-                        "condition": item.condition,
-                        "current_price": item.current_price,
-                        "hammer_price": item.hammer_price,
-                        "estimate_low": item.estimate_low,
-                        "estimate_high": item.estimate_high,
-                        "is_completed": item.is_completed,
-                        "bid_count": item.bid_count,
-                        "sale_ends_at": item.sale_ends_at,
-                        "primary_image_url": item.primary_image_url,
-                        "image_urls": item.image_urls or [],
-                        "external_url": item.external_url,
-                    },
+                    text(
+                        "DELETE FROM listing_lots "
+                        "WHERE listing_id = :lid AND lot_number IS NULL"
+                    ),
+                    {"lid": listing_db_id},
                 )
             except Exception as exc:
-                logger.debug(f"lot upsert failed for listing {listing_db_id}: {exc}")
+                logger.debug(
+                    "delete unnumbered lots failed for listing %s: %s", listing_db_id, exc
+                )
+
+        _UPSERT = text("""
+            INSERT INTO listing_lots (
+                listing_id, lot_number, title, description,
+                category, condition,
+                current_price, hammer_price, estimate_low, estimate_high,
+                is_completed, bid_count, sale_ends_at,
+                primary_image_url, image_urls, external_url
+            ) VALUES (
+                :listing_id, :lot_number, :title, :description,
+                :category, :condition,
+                :current_price, :hammer_price, :estimate_low, :estimate_high,
+                :is_completed, :bid_count, :sale_ends_at,
+                :primary_image_url, :image_urls, :external_url
+            )
+            ON CONFLICT (listing_id, lot_number)
+            WHERE lot_number IS NOT NULL
+            DO UPDATE SET
+                title             = EXCLUDED.title,
+                description       = EXCLUDED.description,
+                category          = EXCLUDED.category,
+                condition         = EXCLUDED.condition,
+                current_price     = EXCLUDED.current_price,
+                hammer_price      = EXCLUDED.hammer_price,
+                estimate_low      = EXCLUDED.estimate_low,
+                estimate_high     = EXCLUDED.estimate_high,
+                is_completed      = EXCLUDED.is_completed,
+                bid_count         = EXCLUDED.bid_count,
+                sale_ends_at      = EXCLUDED.sale_ends_at,
+                primary_image_url = EXCLUDED.primary_image_url,
+                image_urls        = EXCLUDED.image_urls,
+                external_url      = EXCLUDED.external_url,
+                scraped_at        = NOW()
+        """)
+
+        _INSERT = text("""
+            INSERT INTO listing_lots (
+                listing_id, lot_number, title, description,
+                category, condition,
+                current_price, hammer_price, estimate_low, estimate_high,
+                is_completed, bid_count, sale_ends_at,
+                primary_image_url, image_urls, external_url
+            ) VALUES (
+                :listing_id, :lot_number, :title, :description,
+                :category, :condition,
+                :current_price, :hammer_price, :estimate_low, :estimate_high,
+                :is_completed, :bid_count, :sale_ends_at,
+                :primary_image_url, :image_urls, :external_url
+            )
+        """)
+
+        for item in numbered:
+            try:
+                await self.db.execute(_UPSERT, _lot_params(listing_db_id, item))
+            except Exception as exc:
+                logger.debug(
+                    "lot upsert failed for listing %s lot %s: %s",
+                    listing_db_id, item.lot_number, exc,
+                )
+
+        for item in unnumbered:
+            try:
+                await self.db.execute(_INSERT, _lot_params(listing_db_id, item))
+            except Exception as exc:
+                logger.debug(
+                    "lot insert failed for listing %s: %s", listing_db_id, exc
+                )
 
     async def _write_market_hooks(
         self,

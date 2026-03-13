@@ -113,6 +113,11 @@ class Listing(Base):
     embedding: Mapped["EmbeddingCache | None"] = relationship(  # noqa: F821
         back_populates="listing", uselist=False
     )
+    lots: Mapped[list["ListingLot"]] = relationship(  # noqa: F821
+        back_populates="listing",
+        cascade="all, delete-orphan",
+        order_by="ListingLot.lot_number",
+    )
 
     @property
     def total_cost_estimate(self) -> float | None:
