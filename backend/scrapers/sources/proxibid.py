@@ -215,6 +215,7 @@ class ProxibidScraper(BaseScraper):
                 title=title,
                 description=description,
                 listing_type="auction",
+                auction_status=self._infer_auction_status(start_dt, end_dt),
                 city=city,
                 state=state,
                 sale_starts_at=start_dt,

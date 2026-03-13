@@ -467,6 +467,7 @@ class InvaluableScraper(BaseScraper):
                 is_completed=is_completed,
                 auction_status="ended" if is_completed else "upcoming",
                 listing_type="auction",
+                item_type="auction_catalog" if sub_items else "lot",
                 ships_nationally=bool(item.get("supportsShipping", True)),
                 city=city_str or None,
                 state=state_str or None,

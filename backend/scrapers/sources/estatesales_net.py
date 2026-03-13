@@ -207,6 +207,8 @@ class EstateSalesNetScraper(BaseScraper):
                 title=title,
                 description=description,
                 listing_type="estate_sale",
+                item_type="estate_sale",
+                auction_status=self._infer_auction_status(start_date, end_date),
                 pickup_only=True,   # Physical estate sales require in-person
                 ships_nationally=False,
                 city=city,

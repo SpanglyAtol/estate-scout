@@ -21,6 +21,9 @@ class ListingOut(BaseModel):
     description: str | None
     category: str | None
     condition: str | None
+    listing_type: str = "auction"
+    item_type: str = "individual_item"
+    auction_status: str = "upcoming"
     current_price: float | None
     final_price: float | None
     is_completed: bool
@@ -48,6 +51,29 @@ class ListingOut(BaseModel):
     # computed
     distance_miles: float | None = None
     is_sponsored: bool = False
+
+    model_config = {"from_attributes": True}
+
+
+class ListingLotOut(BaseModel):
+    id: int
+    listing_id: int
+    lot_number: str | None
+    title: str
+    description: str | None
+    category: str | None
+    condition: str | None
+    current_price: float | None
+    hammer_price: float | None
+    estimate_low: float | None
+    estimate_high: float | None
+    is_completed: bool
+    bid_count: int | None
+    sale_ends_at: datetime | None
+    primary_image_url: str | None
+    image_urls: list[str]
+    external_url: str | None
+    scraped_at: datetime
 
     model_config = {"from_attributes": True}
 

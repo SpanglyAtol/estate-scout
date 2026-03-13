@@ -82,8 +82,8 @@ const tiers: Array<{
       { label: "Historical price charts by category", included: true },
       { label: "Bulk CSV export of your catalog", included: true },
       { label: "Priority support", included: true },
-      { label: "Cross-listing to eBay & Etsy (coming soon)", included: true },
-      { label: "Shipping carrier comparison (coming soon)", included: true },
+      { label: "AI listing generator for eBay, Etsy, Facebook & HiBid", included: true },
+      { label: "Shipping rate comparison (USPS, UPS, FedEx)", included: true },
     ],
   },
 ];

@@ -267,6 +267,8 @@ class AuctionZipScraper(BaseScraper):
             title=title,
             description=stub.get("description") or None,
             listing_type="auction",
+            item_type="auction_catalog",
+            auction_status=self._infer_auction_status(None, end_at),
             city=city or None,
             state=state or None,
             sale_ends_at=end_at,
