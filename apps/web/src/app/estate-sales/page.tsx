@@ -475,10 +475,12 @@ export default function EstateSalesPage() {
   const abortRef      = useRef<AbortController | null>(null);
   const sideListRefs  = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // Restore view mode from localStorage
+  // Restore view mode from localStorage — but never restore "map" without a location,
+  // since a blank map with a blocking prompt is confusing for new visitors.
   useEffect(() => {
     const saved = localStorage.getItem(VIEW_KEY);
-    if (saved === "list" || saved === "card" || saved === "map") setViewMode(saved as ViewMode);
+    if (saved === "list" || saved === "card") setViewMode(saved as ViewMode);
+    // "map" is only restored if the user has a location saved (future enhancement)
   }, []);
 
   function changeView(mode: ViewMode) {
@@ -844,7 +846,11 @@ export default function EstateSalesPage() {
                   <div className="flex flex-col items-center justify-center flex-1 p-6 text-center text-antique-text-mute">
                     <MapPin className="w-8 h-8 mb-2 opacity-30" />
                     <p className="text-sm font-medium text-antique-text-sec">No sales found</p>
-                    <p className="text-xs mt-1">Try a different location or broader filters.</p>
+                    <p className="text-xs mt-1">
+                      {location
+                        ? "Try a wider radius or clear location filters."
+                        : "Enter a ZIP or tap Near Me to find sales near you."}
+                    </p>
                   </div>
                 ) : (
                   displayListings.map((listing) => (
@@ -878,15 +884,12 @@ export default function EstateSalesPage() {
                   onMarkerClick={handleMarkerClick}
                 />
 
-                {/* Prompt when no location set */}
+                {/* Hint when no location set — non-blocking, sits at top of map */}
                 {!location && !isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-antique-surface/95 backdrop-blur-sm rounded-xl shadow-lg border border-antique-border px-6 py-5 text-center max-w-xs pointer-events-auto">
-                      <MapPin className="w-8 h-8 text-antique-accent mx-auto mb-2" />
-                      <p className="font-display font-bold text-antique-text text-base">Find Sales Near You</p>
-                      <p className="text-xs text-antique-text-sec mt-1 leading-relaxed">
-                        Enter a ZIP code or tap &ldquo;Near Me&rdquo; above to see estate sales on the map.
-                      </p>
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
+                    <div className="bg-antique-surface/90 backdrop-blur-sm rounded-lg shadow border border-antique-border px-4 py-2 flex items-center gap-2 text-sm whitespace-nowrap">
+                      <MapPin className="w-4 h-4 text-antique-accent flex-shrink-0" />
+                      <span className="text-antique-text-sec">Enter a ZIP or tap <strong className="text-antique-text">Near Me</strong> to filter by location</span>
                     </div>
                   </div>
                 )}
