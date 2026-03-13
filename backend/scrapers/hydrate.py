@@ -15,7 +15,7 @@ Options:
   --max-pages 17          Pages per scraper (default: 17)
                             - BidSpotter: 17 × 60  = ~1020 listings
                             - HiBid: 17 × 100      = ~1700 auctions (GraphQL)
-                            - EstateSales.NET: 17 × 3 = ~51 listings (JSON-LD)
+                            - EstateSales.NET: up to 17 pages/state × 50 states (early-exit per state)
                             - eBay: 5 × 48 × 5 cats = ~1200 sold comps (price data)
                             - Proxibid: 10 × ~20   = ~200 auction events
                             - 1stDibs: 3 pages × 6 queries = ~price reference data
