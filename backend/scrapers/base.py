@@ -3,7 +3,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import AsyncIterator
 
 import httpx
@@ -212,6 +212,30 @@ class BaseScraper(ABC):
                     )
                 raise
         raise RuntimeError(f"Failed to fetch {url} after 3 attempts")
+
+
+    @staticmethod
+    def _infer_auction_status(
+        sale_starts_at: datetime | None,
+        sale_ends_at: datetime | None,
+        is_completed: bool = False,
+    ) -> str:
+        """Derive auction_status from timing when the platform doesn't supply it.
+
+        Returns one of: 'upcoming' | 'live' | 'ended'
+        """
+        if is_completed:
+            return "ended"
+        now = datetime.now(timezone.utc)
+
+        def _as_utc(dt: datetime) -> datetime:
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+        if sale_ends_at and _as_utc(sale_ends_at) < now:
+            return "ended"
+        if sale_starts_at and _as_utc(sale_starts_at) > now:
+            return "upcoming"
+        return "live"
 
     # ── Shared parsing helpers ─────────────────────────────────────────────────
     # Defined here so scrapers don't each maintain their own copy.

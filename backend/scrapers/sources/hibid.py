@@ -343,6 +343,7 @@ class HibidScraper(BaseScraper):
                 sale_ends_at=end_date,
                 primary_image_url=img_url,
                 listing_type="auction",
+                item_type="auction_catalog",
                 auction_status=auction_status,
                 pickup_only=pickup_only,
                 ships_nationally=ships_nationally,

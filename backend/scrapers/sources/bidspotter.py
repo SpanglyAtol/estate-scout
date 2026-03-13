@@ -140,6 +140,8 @@ class BidSpotterScraper(BaseScraper):
                 title=title,
                 description=description,
                 listing_type="auction",
+                item_type="auction_catalog",
+                auction_status=self._infer_auction_status(sale_starts_at, sale_ends_at),
                 pickup_only=False,
                 ships_nationally=True,
                 city=city,

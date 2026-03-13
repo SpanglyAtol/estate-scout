@@ -246,19 +246,23 @@ class MaxSoldScraper(BaseScraper):
             state = addr.get("regionCode", "").upper()
             external_url = f"{self.base_url}/auction/{auction_id}"
 
+            sale_starts_at = self._parse_iso(sale.get("openTime"))
+            sale_ends_at   = self._parse_iso(sale.get("closeTime"))
             listing = ScrapedListing(
                 platform_slug=self.platform_slug,
                 external_id=f"sale_{auction_id}",
                 external_url=external_url,
                 title=sale.get("title") or f"MaxSold Auction #{auction_id}",
                 listing_type="auction",
+                item_type="auction_catalog",
+                auction_status=self._infer_auction_status(sale_starts_at, sale_ends_at),
                 category=sale.get("saleCategory"),
                 pickup_only=True,
                 ships_nationally=sale.get("hasShipping", False),
                 city=addr.get("city", ""),
                 state=state,
-                sale_starts_at=self._parse_iso(sale.get("openTime")),
-                sale_ends_at=self._parse_iso(sale.get("closeTime")),
+                sale_starts_at=sale_starts_at,
+                sale_ends_at=sale_ends_at,
                 primary_image_url=primary_img,
                 image_urls=images,
                 raw_data={"sale": sale},

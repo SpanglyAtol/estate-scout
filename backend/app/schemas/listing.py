@@ -21,6 +21,9 @@ class ListingOut(BaseModel):
     description: str | None
     category: str | None
     condition: str | None
+    listing_type: str = "auction"
+    item_type: str = "individual_item"
+    auction_status: str = "upcoming"
     current_price: float | None
     final_price: float | None
     is_completed: bool

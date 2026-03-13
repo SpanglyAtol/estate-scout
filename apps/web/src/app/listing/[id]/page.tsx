@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { MapPin, Clock, Truck, Tag, AlertTriangle, Calendar, ChevronRight, ExternalLink } from "lucide-react";
 import { getSupabaseListing, isSupabaseConfigured } from "@/lib/supabase-search";
 import { getListings } from "@/lib/scraped-data";
-import type { Listing } from "@/types";
+import type { AuctionItem, Listing } from "@/types";
 import { formatPrice, timeUntil, formatDate, getAuctionStatus } from "@/lib/format";
 import { categoryToSlug } from "@/lib/category-meta";
 import { ContextualAffiliatePanel } from "@/components/ads/contextual-affiliate-panel";
@@ -81,6 +81,43 @@ async function fetchListingServer(id: number, srcUrl?: string): Promise<Listing 
   return (all.find((l) => l.id === id) as Listing | undefined) ?? null;
 }
 
+/**
+ * Fetch individual lots from the FastAPI backend for auction-catalog and
+ * estate-sale listings.  Returns an empty array when the backend is
+ * unavailable or the listing has no lots stored yet.
+ */
+async function fetchLotsServer(listingId: number): Promise<AuctionItem[]> {
+  const backendUrl = process.env.BACKEND_API_URL;
+  if (!backendUrl) return [];
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${backendUrl}/api/v1/listings/${listingId}/lots`, {
+      signal: controller.signal,
+      next: { revalidate: 0 },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any[] = await res.json();
+    return data.map((lot) => ({
+      title: lot.title,
+      lot_number: lot.lot_number ?? null,
+      description: lot.description ?? null,
+      current_price: lot.current_price ?? null,
+      estimate_low: lot.estimate_low ?? null,
+      estimate_high: lot.estimate_high ?? null,
+      primary_image_url: lot.primary_image_url ?? null,
+      image_urls: lot.image_urls ?? [],
+      category: lot.category ?? null,
+      condition: lot.condition ?? null,
+      external_url: lot.external_url ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 interface PageProps {
   params: { id: string };
   searchParams?: { src?: string };
@@ -139,6 +176,15 @@ export default async function ListingPage({ params, searchParams }: PageProps) {
   }
 
   const lt = listing.listing_type ?? "auction";
+  const it = listing.item_type ?? "individual_item";
+
+  // Fetch lots from the API for catalog/estate-sale listings.
+  // Falls back to listing.items (populated by local-bundle scrapers) when
+  // the backend is unavailable or returns an empty array.
+  const isContainer = it === "auction_catalog" || it === "estate_sale";
+  const apiLots = isContainer ? await fetchLotsServer(id) : [];
+  const lots: AuctionItem[] =
+    apiLots.length > 0 ? apiLots : (listing.items ?? []);
   const status = getAuctionStatus(listing);
   const countdown = timeUntil(listing.sale_ends_at);
   const platform = listing.platform?.display_name ?? "Auction Platform";
@@ -240,9 +286,9 @@ export default async function ListingPage({ params, searchParams }: PageProps) {
                 </span>
               </div>
             )}
-            {listing.items && listing.items.length > 0 && (
+            {lots.length > 0 && (
               <span className="ml-auto bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-sm font-semibold px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
-                {listing.items.length.toLocaleString()} items
+                {lots.length.toLocaleString()} items
               </span>
             )}
           </div>
@@ -487,9 +533,9 @@ export default async function ListingPage({ params, searchParams }: PageProps) {
       </div>
 
       {/* Items / lots grid — visible when scraper populated items */}
-      {listing.items && listing.items.length > 0 && (
+      {lots.length > 0 && (
         <ItemsGrid
-          items={listing.items}
+          items={lots}
           auctionUrl={listing.external_url}
           platform={platform}
           isEstateSale={lt === "estate_sale"}
@@ -497,7 +543,7 @@ export default async function ListingPage({ params, searchParams }: PageProps) {
       )}
 
       {/* Estate sales: "no items listed" fallback + direct platform link */}
-      {lt === "estate_sale" && (!listing.items || listing.items.length === 0) && (
+      {lt === "estate_sale" && lots.length === 0 && (
         <div className="mt-8 rounded-2xl border border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/10 p-8 text-center">
           <p className="text-antique-text-sec text-sm mb-4">
             Individual items for this estate sale are not listed here yet.<br />
