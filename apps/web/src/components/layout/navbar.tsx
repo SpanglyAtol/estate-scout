@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  Search, BookMarked, MessageSquare, MapPin,
-  LogIn, LogOut, Menu, X, BarChart3, User, BookOpen, TrendingUp, LayoutGrid, Library, LayoutList,
+  Search, BookMarked, MapPin,
+  LogIn, LogOut, Menu, X, BarChart3, User, BookOpen, TrendingUp, LayoutGrid, LayoutList,
 } from "lucide-react";
 import { isLoggedIn, logout } from "@/lib/auth";
 import { getConnectedAccounts } from "@/lib/connected-accounts";
@@ -32,14 +32,12 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
-    { href: "/search",       label: "Browse Listings", icon: <LayoutList    className="w-4 h-4" /> },
-    { href: "/categories",   label: "Categories",    icon: <LayoutGrid    className="w-4 h-4" /> },
-    { href: "/estate-sales", label: "Estate Sales",  icon: <MapPin        className="w-4 h-4" /> },
-    { href: "/library",      label: "Library",       icon: <Library       className="w-4 h-4" /> },
-    { href: "/valuation",    label: "Price Check",   icon: <MessageSquare className="w-4 h-4" /> },
-    { href: "/pricing-guide", label: "Market Data",   icon: <TrendingUp    className="w-4 h-4" /> },
-    { href: "/saved",          label: "Saved",          icon: <BookMarked className="w-4 h-4" /> },
-    ...(loggedIn ? [{ href: "/catalog", label: "My Catalog", icon: <BookOpen className="w-4 h-4" /> }] : []),
+    { href: "/search",       label: "Browse",        icon: <LayoutList  className="w-4 h-4" /> },
+    { href: "/categories",   label: "Categories",    icon: <LayoutGrid  className="w-4 h-4" /> },
+    { href: "/estate-sales", label: "Estate Sales",  icon: <MapPin      className="w-4 h-4" /> },
+    { href: "/market",       label: "Price Guide",   icon: <TrendingUp  className="w-4 h-4" /> },
+    { href: "/saved",        label: "Saved",         icon: <BookMarked  className="w-4 h-4" /> },
+    ...(loggedIn ? [{ href: "/catalog", label: "My Catalog", icon: <BookOpen  className="w-4 h-4" /> }] : []),
     ...(isAdmin  ? [{ href: "/admin",   label: "Admin",      icon: <BarChart3 className="w-4 h-4" /> }] : []),
   ];
 

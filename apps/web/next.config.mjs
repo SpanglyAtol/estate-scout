@@ -53,6 +53,14 @@ const nextConfig = {
     // FastAPI backend; leave unset to use the built-in Next.js API routes.
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
   },
+  async redirects() {
+    return [
+      // Redirect old separate pages → unified Market Intelligence page
+      { source: "/library",   destination: "/market?tab=library",     permanent: false },
+      { source: "/prices",    destination: "/market?tab=price-check", permanent: false },
+      { source: "/valuation", destination: "/market?tab=price-check", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

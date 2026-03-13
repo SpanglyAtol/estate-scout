@@ -8,8 +8,14 @@ interface SearchAffiliateAdProps {
   filters: SearchFilters;
 }
 
-function buildAmazonUrl(keywords: string, tag: string): string {
-  return `https://www.amazon.com/s?${new URLSearchParams({ k: keywords, tag, linkCode: "ure" })}`;
+// If no Associates tag yet, still build a working Amazon search URL (no commission tracking)
+function buildAmazonUrl(keywords: string, tag?: string): string {
+  const params: Record<string, string> = { k: keywords };
+  if (tag) {
+    params.tag = tag;
+    params.linkCode = "ure";
+  }
+  return `https://www.amazon.com/s?${new URLSearchParams(params)}`;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -28,8 +34,7 @@ const CATEGORY_ICONS: Record<string, string> = {
  * or filters are active. Stays slim so it doesn't overwhelm the results.
  */
 export function SearchAffiliateAd({ filters }: SearchAffiliateAdProps) {
-  const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
-  if (!tag) return null;
+  const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG || undefined;
 
   const links = buildSearchKeywords(filters);
   if (links.length === 0) return null;

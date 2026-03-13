@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search, Loader2, ArrowUpDown, LayoutGrid, LayoutList,
-  ChevronLeft, ChevronRight, Bookmark, MapPin,
+  Bookmark, MapPin, ChevronDown,
 } from "lucide-react";
 import { ListingGrid } from "@/components/listings/listing-grid";
 import { FilterSidebar } from "@/components/filters/filter-sidebar";
 import { SearchAffiliateAd } from "@/components/ads/search-affiliate-ad";
 import { searchListings } from "@/lib/api-client";
-import type { SearchFilters } from "@/types";
+import type { SearchFilters, Listing } from "@/types";
 import { cn } from "@/lib/cn";
 
 const PAGE_SIZE = 24;
@@ -94,9 +94,17 @@ function SearchPageInner() {
   const pathname  = usePathname();
   const rawParams = useSearchParams();
 
-  const [filters, setFilters] = useState<SearchFilters>(() => paramsToFilters(rawParams));
+  // Base filters (page is tracked separately for load-more)
+  const [filters, setFilters] = useState<SearchFilters>(() => ({
+    ...paramsToFilters(rawParams),
+    page: 1,
+  }));
   const [query, setQuery]     = useState(rawParams.get("q") ?? "");
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
+
+  // Accumulated listings for load-more UX
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [loadMorePage, setLoadMorePage] = useState(1);
 
   useEffect(() => {
     const saved = localStorage.getItem(VIEW_MODE_KEY);
@@ -108,59 +116,77 @@ function SearchPageInner() {
     localStorage.setItem(VIEW_MODE_KEY, mode);
   }
 
-  // Sync filters → URL
+  // Sync filters → URL (excluding page for cleaner URLs)
   useEffect(() => {
-    const params = filtersToParams(filters);
+    const params = filtersToParams({ ...filters, page: undefined });
     const search = params.toString();
     router.replace(`${pathname}${search ? "?" + search : ""}`, { scroll: false });
   }, [filters, pathname, router]);
 
+  const queryFilters = { ...filters, page: loadMorePage, page_size: PAGE_SIZE };
+
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["search", filters],
-    queryFn:  () => searchListings(filters),
+    queryKey: ["search", queryFilters],
+    queryFn:  () => searchListings(queryFilters),
     placeholderData: (prev) => prev,
   });
 
-  const listings    = data?.results ?? [];
-  const total       = data?.total ?? 0;
-  const totalPages  = data?.total_pages ?? 1;
-  const currentPage = filters.page ?? 1;
+  // When new data arrives, append or replace depending on page
+  useEffect(() => {
+    if (!data) return;
+    if (loadMorePage === 1) {
+      setAllListings(data.results ?? []);
+    } else {
+      setAllListings((prev) => [...prev, ...(data.results ?? [])]);
+    }
+  }, [data, loadMorePage]);
+
+  // Reset accumulated list when filters change
+  const resetAndSearch = useCallback((newFilters: SearchFilters) => {
+    setAllListings([]);
+    setLoadMorePage(1);
+    setFilters(newFilters);
+  }, []);
+
+  const total      = data?.total ?? 0;
+  const totalPages = data?.total_pages ?? 1;
+  const hasMore    = loadMorePage < totalPages;
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    setFilters((f) => ({ ...f, q: query || undefined, page: 1 }));
+    resetAndSearch({ ...filters, q: query || undefined, page: 1 });
   }
 
   function handleFiltersChange(newFilters: SearchFilters) {
-    setFilters({ ...newFilters, page: 1, page_size: PAGE_SIZE });
+    resetAndSearch({ ...newFilters, page: 1, page_size: PAGE_SIZE });
   }
 
   function handleSort(value: string) {
-    setFilters((f) => ({
-      ...f,
+    resetAndSearch({
+      ...filters,
       sort: (value as SearchFilters["sort"]) || undefined,
       page: 1,
-    }));
+    });
   }
 
-  function goToPage(p: number) {
-    setFilters((f) => ({ ...f, page: Math.max(1, Math.min(totalPages, p)) }));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  function loadMore() {
+    if (!hasMore || isFetching) return;
+    setLoadMorePage((p) => p + 1);
   }
 
   function applyQuickFilter(qf: Partial<SearchFilters>) {
-    setFilters((f) => ({ ...f, ...qf, page: 1 }));
+    resetAndSearch({ ...filters, ...qf, page: 1 });
   }
 
   function handleNearMe() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
-      setFilters((f) => ({
-        ...f,
+      resetAndSearch({
+        ...filters,
         lat: pos.coords.latitude,
         lon: pos.coords.longitude,
         page: 1,
-      }));
+      });
     });
   }
 
@@ -173,8 +199,7 @@ function SearchPageInner() {
     alert(`Search "${name}" saved! View your saved searches in the Catalog.`);
   }
 
-  const showingFrom = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const showingTo   = Math.min(currentPage * PAGE_SIZE, total);
+  const showingCount = allListings.length;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -260,14 +285,13 @@ function SearchPageInner() {
                     {total > 0
                       ? <>
                           <span className="font-semibold text-antique-text">
+                            {showingCount.toLocaleString()}
+                          </span>
+                          {" "}of{" "}
+                          <span className="font-semibold text-antique-text">
                             {total.toLocaleString()}
                           </span>{" "}
                           result{total !== 1 ? "s" : ""}
-                          {total > PAGE_SIZE && (
-                            <span className="text-antique-text-mute">
-                              {" "}— showing {showingFrom}–{showingTo}
-                            </span>
-                          )}
                         </>
                       : "No listings found — try broadening your filters"}
                   </p>
@@ -326,61 +350,43 @@ function SearchPageInner() {
                 </div>
               </div>
 
-              <ListingGrid listings={listings} viewMode={viewMode} />
+              <ListingGrid listings={allListings} viewMode={viewMode} />
 
-              {/* ── Pagination ── */}
-              {totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-center gap-2">
+              {/* ── Load More ── */}
+              {(hasMore || isFetching) && (
+                <div className="mt-10 flex flex-col items-center gap-2">
                   <button
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage <= 1}
-                    className="flex items-center gap-1 px-4 py-2 rounded-lg border border-antique-border bg-antique-surface text-antique-text-sec text-sm hover:border-antique-accent hover:text-antique-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={loadMore}
+                    disabled={isFetching || !hasMore}
+                    className={cn(
+                      "flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm transition-all border",
+                      isFetching
+                        ? "bg-antique-muted border-antique-border text-antique-text-mute cursor-wait"
+                        : "bg-antique-surface border-antique-accent text-antique-accent hover:bg-antique-accent hover:text-white shadow-sm hover:shadow-md"
+                    )}
                   >
-                    <ChevronLeft className="w-4 h-4" /> Prev
+                    {isFetching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading more…
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        Load More Listings
+                      </>
+                    )}
                   </button>
-
-                  {/* Page number pills */}
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                    // Show pages around current page
-                    let p: number;
-                    if (totalPages <= 7) {
-                      p = i + 1;
-                    } else if (currentPage <= 4) {
-                      p = i + 1;
-                    } else if (currentPage >= totalPages - 3) {
-                      p = totalPages - 6 + i;
-                    } else {
-                      p = currentPage - 3 + i;
-                    }
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => goToPage(p)}
-                        className={cn(
-                          "w-9 h-9 rounded-lg text-sm font-medium transition-colors border",
-                          p === currentPage
-                            ? "bg-antique-accent text-white border-antique-accent"
-                            : "bg-antique-surface text-antique-text-sec border-antique-border hover:border-antique-accent hover:text-antique-accent"
-                        )}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage >= totalPages}
-                    className="flex items-center gap-1 px-4 py-2 rounded-lg border border-antique-border bg-antique-surface text-antique-text-sec text-sm hover:border-antique-accent hover:text-antique-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Next <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <p className="text-xs text-antique-text-mute">
+                    Showing {showingCount.toLocaleString()} of {total.toLocaleString()} results
+                    {totalPages > 1 && ` · Page ${loadMorePage} of ${totalPages}`}
+                  </p>
                 </div>
               )}
 
-              {totalPages > 1 && (
-                <p className="text-center text-xs text-antique-text-mute mt-3">
-                  Page {currentPage} of {totalPages.toLocaleString()} ({total.toLocaleString()} total results)
+              {!hasMore && allListings.length > 0 && (
+                <p className="mt-8 text-center text-xs text-antique-text-mute">
+                  All {total.toLocaleString()} results shown
                 </p>
               )}
             </>

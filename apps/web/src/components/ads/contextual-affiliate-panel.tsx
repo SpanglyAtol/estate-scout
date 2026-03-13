@@ -8,8 +8,14 @@ interface ContextualAffiliatePanelProps {
   listing: Listing;
 }
 
-function buildAmazonUrl(keywords: string, tag: string): string {
-  return `https://www.amazon.com/s?${new URLSearchParams({ k: keywords, tag, linkCode: "ure" })}`;
+// If no Associates tag yet, still build a working Amazon search URL (no commission tracking)
+function buildAmazonUrl(keywords: string, tag?: string): string {
+  const params: Record<string, string> = { k: keywords };
+  if (tag) {
+    params.tag = tag;
+    params.linkCode = "ure";
+  }
+  return `https://www.amazon.com/s?${new URLSearchParams(params)}`;
 }
 
 const CURATE_CATEGORIES = new Set(["watches", "jewelry", "silver", "art", "ceramics"]);
@@ -36,8 +42,7 @@ const ESTATE_PREP_ICONS = ["📦", "🗄️", "✨"];
  * assembled from enriched fields (maker, brand, period, attributes, price tier).
  */
 export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelProps) {
-  const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG;
-  if (!tag) return null;
+  const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATES_TAG || undefined;
 
   const isEstateSale = listing.listing_type === "estate_sale";
   const isCommodity  = !isEstateSale && COMMODITY_CATEGORIES.has(listing.category ?? "");
@@ -79,7 +84,7 @@ export function ContextualAffiliatePanel({ listing }: ContextualAffiliatePanelPr
       {/* Product rows */}
       <ul className="divide-y divide-antique-border bg-antique-surface">
         {links.map((link, i) => {
-          const url = buildAmazonUrl(link.keywords, tag);
+          const url = buildAmazonUrl(link.keywords, tag ?? undefined);
           const rowIcon = isEstateSale
             ? ESTATE_PREP_ICONS[i] ?? "📦"
             : isCommodity
