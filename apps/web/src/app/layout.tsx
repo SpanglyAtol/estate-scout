@@ -39,12 +39,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${playfair.variable} ${inter.variable}`}>
       <head>
-        {/* Google AdSense — hardcoded so verification always works regardless of env var */}
-        <Script
+        {/* Google AdSense — static <script> tag so Google's crawler can always find it */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6153095944559521"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
         />
 
         {/* Google Analytics 4 */}
