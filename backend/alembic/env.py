@@ -24,6 +24,10 @@ if database_url:
     if not url_obj.drivername.endswith("+asyncpg"):
         if url_obj.drivername in {"postgresql", "postgres"}:
             url_obj = url_obj.set(drivername="postgresql+asyncpg")
+    # Alembic uses ConfigParser interpolation; percent-encoded credentials (e.g. %40)
+    # must be escaped as %% or set_main_option raises ValueError.
+    rendered_url = url_obj.render_as_string(hide_password=False).replace("%", "%%")
+    config.set_main_option("sqlalchemy.url", rendered_url)
     config.set_main_option("sqlalchemy.url", url_obj.render_as_string(hide_password=False))
 
 if config.config_file_name is not None:
