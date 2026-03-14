@@ -5,6 +5,7 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
@@ -15,6 +16,15 @@ import app.models  # noqa: F401 - registers all models on Base.metadata
 
 config = context.config
 
+# Normalize DATABASE_URL for async migrations without writing back via
+# Alembic's ConfigParser (which can choke on percent-encoded credentials).
+raw_database_url = os.environ.get("DATABASE_URL", "")
+normalized_database_url = ""
+if raw_database_url:
+    url_obj = make_url(raw_database_url)
+    if not url_obj.drivername.endswith("+asyncpg") and url_obj.drivername in {"postgresql", "postgres"}:
+        url_obj = url_obj.set(drivername="postgresql+asyncpg")
+    normalized_database_url = url_obj.render_as_string(hide_password=False)
 # Override sqlalchemy.url from environment variable.
 # Alembic runs with async_engine_from_config, so normalize plain postgres URLs
 # (e.g. postgresql://...) to asyncpg URLs expected by SQLAlchemy async engine.
@@ -56,6 +66,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     connect_args = {}
+    if "supabase.co" in raw_database_url:
     raw_db_url = os.environ.get("DATABASE_URL", "")
     if "supabase.co" in raw_db_url:
         # Support both direct Supabase URLs and pooled URLs.
