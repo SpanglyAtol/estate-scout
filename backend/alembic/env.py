@@ -37,7 +37,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = normalized_database_url or config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -61,9 +61,9 @@ async def run_async_migrations() -> None:
         # Support both direct Supabase URLs and pooled URLs.
         connect_args["ssl"] = "require"
 
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    engine_url = normalized_database_url or config.get_main_option("sqlalchemy.url")
+    connectable = create_async_engine(
+        engine_url,
         poolclass=pool.NullPool,
         connect_args=connect_args,
     )
