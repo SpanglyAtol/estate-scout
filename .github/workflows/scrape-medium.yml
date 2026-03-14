@@ -3,7 +3,7 @@ name: Scrape — Medium (EstateSales + MaxSold + Proxibid + AuctionZip)
 # HTML scrapers with rate limiting — typically 15-25 minutes at full depth.
 # EstateSales.NET covers 20 US states; MaxSold hits 13 metro geo-searches;
 # Proxibid scrapes the auction calendar; AuctionZip covers local auctioneers.
-# At 50 pages each, targets ~8,000 listings per run. Runs every 8 hours.
+# At 80 pages each, targets deeper estate-sale coverage. Runs every 8 hours.
 #
 # Output: apps/web/src/data/scraped-listings-estate.json
 # Vercel redeploys automatically on push via GitHub integration.
@@ -15,12 +15,15 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Pull latest branch updates
+        run: git pull --rebase origin ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
@@ -36,15 +39,15 @@ jobs:
           python backend/scrapers/hydrate.py \
             --targets es,ms,pb,az \
             --state "" \
-            --max-pages 50 \
+            --max-pages 80 \
             --out apps/web/src/data/scraped-listings-estate.json
 
       - name: Validate minimum listing count
         run: |
           COUNT=$(python -c "import json,sys; d=json.load(open('apps/web/src/data/scraped-listings-estate.json')); print(len(d) if isinstance(d, list) else len(d.get('listings', d.get('results', []))))")
           echo "Scraped $COUNT listings"
-          if [ "$COUNT" -lt 20 ]; then
-            echo "ERROR: Only $COUNT listings scraped (minimum: 20). Possible scraper failure."
+          if [ "$COUNT" -lt 60 ]; then
+            echo "ERROR: Only $COUNT listings scraped (minimum: 60). Possible scraper failure."
             exit 1
           fi
 
@@ -54,5 +57,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add apps/web/src/data/scraped-listings-estate.json
           git diff --staged --quiet || git commit -m "chore: refresh estate listings (es+ms+pb+az) [skip ci]"
-          git pull --rebase origin ${{ github.ref_name }}
           git push origin ${{ github.ref_name }}

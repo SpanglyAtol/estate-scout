@@ -4,7 +4,7 @@ name: Scrape — Fast (BidSpotter + HiBid + EBTH)
 # EBTH added for individual estate-sale item volume.
 # Invaluable removed: Cloudflare hard-blocks GitHub Actions IPs on all categories.
 # Runs every 2 hours for near-live data.
-# At 60 pages each, targets ~7,200 listings per run (3 scrapers × 60p × ~40 listings/page).
+# At 90 pages each, targets ~10,800 listings per run (3 scrapers × 90p × ~40 listings/page).
 #
 # Output: apps/web/src/data/scraped-listings-fast.json
 # Vercel redeploys automatically on push via GitHub integration.
@@ -16,12 +16,15 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Pull latest branch updates
+        run: git pull --rebase origin ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
@@ -30,22 +33,22 @@ jobs:
       - name: Install dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
-      - name: Scrape BidSpotter + HiBid + EBTH (all US, 60 pages each)
+      - name: Scrape BidSpotter + HiBid + EBTH (all US, 90 pages each)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python backend/scrapers/hydrate.py \
             --targets bs,hi,et \
             --state "" \
-            --max-pages 60 \
+            --max-pages 90 \
             --out apps/web/src/data/scraped-listings-fast.json
 
       - name: Validate minimum listing count
         run: |
           COUNT=$(python -c "import json,sys; d=json.load(open('apps/web/src/data/scraped-listings-fast.json')); print(len(d) if isinstance(d, list) else len(d.get('listings', d.get('results', []))))")
           echo "Scraped $COUNT listings"
-          if [ "$COUNT" -lt 50 ]; then
-            echo "ERROR: Only $COUNT listings scraped (minimum: 50). Possible scraper failure."
+          if [ "$COUNT" -lt 100 ]; then
+            echo "ERROR: Only $COUNT listings scraped (minimum: 100). Possible scraper failure."
             exit 1
           fi
 
@@ -55,5 +58,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add apps/web/src/data/scraped-listings-fast.json
           git diff --staged --quiet || git commit -m "chore: refresh fast listings (bs+hi+et) [skip ci]"
-          git pull --rebase origin ${{ github.ref_name }}
           git push origin ${{ github.ref_name }}

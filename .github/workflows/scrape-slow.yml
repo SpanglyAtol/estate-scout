@@ -1,6 +1,6 @@
 name: Scrape — Slow (eBay Sold Comps + 1stDibs)
 
-# eBay scrapes 5 antique categories × 5 pages of sold listings — the most
+# eBay scrapes 5 antique categories × deeper pagination of sold listings — the most
 # thorough source of real market-clearing prices for the AI valuation engine.
 # 1stDibs provides premium dealer asking prices across 6 search queries.
 # Both are rate-limited to be respectful; typically 15-20 minutes total.
@@ -18,10 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    timeout-minutes: 40     # eBay + 1stDibs can take up to 25 min at full depth
+    timeout-minutes: 55     # eBay + 1stDibs can take up to 25 min at full depth
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Pull latest branch updates
+        run: git pull --rebase origin ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
@@ -37,15 +40,15 @@ jobs:
           python backend/scrapers/hydrate.py \
             --targets eb,1d \
             --state "" \
-            --max-pages 20 \
+            --max-pages 35 \
             --out apps/web/src/data/scraped-listings-ebay.json
 
       - name: Validate minimum listing count
         run: |
           COUNT=$(python -c "import json,sys; d=json.load(open('apps/web/src/data/scraped-listings-ebay.json')); print(len(d) if isinstance(d, list) else len(d.get('listings', d.get('results', []))))")
           echo "Scraped $COUNT listings"
-          if [ "$COUNT" -lt 10 ]; then
-            echo "ERROR: Only $COUNT listings scraped (minimum: 10). Possible scraper failure."
+          if [ "$COUNT" -lt 20 ]; then
+            echo "ERROR: Only $COUNT listings scraped (minimum: 20). Possible scraper failure."
             exit 1
           fi
 
@@ -55,5 +58,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add apps/web/src/data/scraped-listings-ebay.json
           git diff --staged --quiet || git commit -m "chore: refresh eBay sold comps + 1stDibs [skip ci]"
-          git pull --rebase origin ${{ github.ref_name }}
           git push origin ${{ github.ref_name }}
