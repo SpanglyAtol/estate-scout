@@ -4,6 +4,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
@@ -14,10 +15,16 @@ import app.models  # noqa: F401 - registers all models on Base.metadata
 
 config = context.config
 
-# Override sqlalchemy.url from environment variable
+# Override sqlalchemy.url from environment variable.
+# Alembic runs with async_engine_from_config, so normalize plain postgres URLs
+# (e.g. postgresql://...) to asyncpg URLs expected by SQLAlchemy async engine.
 database_url = os.environ.get("DATABASE_URL", "")
 if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+    url_obj = make_url(database_url)
+    if not url_obj.drivername.endswith("+asyncpg"):
+        if url_obj.drivername in {"postgresql", "postgres"}:
+            url_obj = url_obj.set(drivername="postgresql+asyncpg")
+    config.set_main_option("sqlalchemy.url", url_obj.render_as_string(hide_password=False))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -45,7 +52,9 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     connect_args = {}
-    if "supabase.co" in (os.environ.get("DATABASE_URL", "")):
+    raw_db_url = os.environ.get("DATABASE_URL", "")
+    if "supabase.co" in raw_db_url:
+        # Support both direct Supabase URLs and pooled URLs.
         connect_args["ssl"] = "require"
 
     connectable = async_engine_from_config(

@@ -13,6 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Pull latest branch updates
+        run: git pull --rebase origin ${{ github.ref_name }}
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -20,9 +23,27 @@ jobs:
       - name: Install backend dependencies
         run: pip install -e ./backend
 
+      - name: Validate migration environment
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy.engine.url import make_url
+
+          db_url = os.environ.get("DATABASE_URL", "")
+          if not db_url:
+              raise SystemExit("DATABASE_URL secret is not set")
+
+          url = make_url(db_url)
+          print(f"DB host: {url.host}")
+          print(f"DB driver in secret: {url.drivername}")
+          PY
+
       - name: Run Alembic migrations
         working-directory: backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONPATH: .
-        run: alembic upgrade head
+        run: python -m alembic upgrade head
