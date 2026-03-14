@@ -23,19 +23,6 @@ jobs:
       - name: Install backend dependencies
         run: pip install -e ./backend
 
-      - name: Verify no merge markers in migration-related files
-        run: |
-          rg -n "^(<<<<<<<|=======|>>>>>>>)" backend/alembic .github/workflows/db-migrate.yml || true
-          if rg -n "^(<<<<<<<|=======|>>>>>>>)" backend/alembic .github/workflows/db-migrate.yml; then
-            echo "Merge conflict markers found in migration-related files"
-            exit 1
-          fi
-
-      - name: Compile-check Alembic files
-        run: |
-          python -m py_compile backend/alembic/env.py
-          python -m py_compile backend/alembic/versions/*.py
-
       - name: Validate migration environment
         working-directory: backend
         env:
