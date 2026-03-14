@@ -14,6 +14,7 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       contents: write
 
@@ -33,7 +34,7 @@ jobs:
       - name: Run national hydration (BidSpotter + HiBid + EstateSales + MaxSold + Proxibid)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python backend/scrapers/hydrate.py --national --max-pages 30
+        run: python backend/scrapers/hydrate.py --national --max-pages 40
 
       - name: Commit if changed
         run: |
