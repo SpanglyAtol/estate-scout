@@ -2,11 +2,11 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext.asyncio import create_async_engine
 
 # Load all models so Alembic can detect changes
 from app.database import Base
@@ -14,10 +14,18 @@ import app.models  # noqa: F401 - registers all models on Base.metadata
 
 config = context.config
 
-# Override sqlalchemy.url from environment variable
-database_url = os.environ.get("DATABASE_URL", "")
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+# Normalize DATABASE_URL for async migrations without writing back via
+# Alembic's ConfigParser (which can choke on percent-encoded credentials).
+raw_database_url = os.environ.get("DATABASE_URL", "")
+normalized_database_url = ""
+if raw_database_url:
+    url_obj = make_url(raw_database_url)
+    if (
+        not url_obj.drivername.endswith("+asyncpg")
+        and url_obj.drivername in {"postgresql", "postgres"}
+    ):
+        url_obj = url_obj.set(drivername="postgresql+asyncpg")
+    normalized_database_url = url_obj.render_as_string(hide_password=False)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -26,7 +34,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = normalized_database_url or config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -45,12 +53,13 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     connect_args = {}
-    if "supabase.co" in (os.environ.get("DATABASE_URL", "")):
+    if "supabase.co" in raw_database_url:
+        # Support both direct Supabase URLs and pooled URLs.
         connect_args["ssl"] = "require"
 
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    engine_url = normalized_database_url or config.get_main_option("sqlalchemy.url")
+    connectable = create_async_engine(
+        engine_url,
         poolclass=pool.NullPool,
         connect_args=connect_args,
     )

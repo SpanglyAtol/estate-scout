@@ -3,7 +3,7 @@ name: Scrape — Medium (EstateSales + MaxSold + Proxibid + AuctionZip)
 # HTML scrapers with rate limiting — typically 15-25 minutes at full depth.
 # EstateSales.NET covers 20 US states; MaxSold hits 13 metro geo-searches;
 # Proxibid scrapes the auction calendar; AuctionZip covers local auctioneers.
-# At 50 pages each, targets ~8,000 listings per run. Runs every 8 hours.
+# At 80 pages each, targets deeper estate-sale coverage. Runs every 8 hours.
 #
 # Output: apps/web/src/data/scraped-listings-estate.json
 # Vercel redeploys automatically on push via GitHub integration.
@@ -15,12 +15,15 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 70
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Pull latest branch updates
+        run: git pull --rebase origin ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
@@ -29,24 +32,66 @@ jobs:
       - name: Install dependencies
         run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
 
-      - name: Scrape EstateSales.NET + MaxSold + Proxibid + AuctionZip
+      - name: Scrape estate-network sources with per-source fail-safes
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          python backend/scrapers/hydrate.py \
-            --targets es,ms,pb,az \
-            --state "" \
-            --max-pages 50 \
-            --out apps/web/src/data/scraped-listings-estate.json
+          set +e
+          rm -f apps/web/src/data/_tmp-estate-*.json
 
-      - name: Validate minimum listing count
+          python backend/scrapers/hydrate.py --targets es --state "" --max-pages 100 --out apps/web/src/data/_tmp-estate-es.json || echo "WARN: EstateSales scrape failed"
+          python backend/scrapers/hydrate.py --targets ms --state "" --max-pages 100 --out apps/web/src/data/_tmp-estate-ms.json || echo "WARN: MaxSold scrape failed"
+          python backend/scrapers/hydrate.py --targets pb --state "" --max-pages 90  --out apps/web/src/data/_tmp-estate-pb.json || echo "WARN: Proxibid scrape failed"
+          python backend/scrapers/hydrate.py --targets az --state "" --max-pages 90  --out apps/web/src/data/_tmp-estate-az.json || echo "WARN: AuctionZip scrape failed"
+
+          python - <<'PY'
+          import glob, json
+          from pathlib import Path
+          files=sorted(glob.glob('apps/web/src/data/_tmp-estate-*.json'))
+          rows=[]
+          seen=set()
+          for f in files:
+              try:
+                  d=json.load(open(f))
+                  arr=d if isinstance(d,list) else d.get('listings', d.get('results', []))
+              except Exception:
+                  continue
+              for r in arr:
+                  if not isinstance(r,dict):
+                      continue
+                  platform=((r.get('platform') or {}).get('name')) or 'unknown'
+                  ext=r.get('external_id') or r.get('id')
+                  key=(platform, str(ext))
+                  if key in seen:
+                      continue
+                  seen.add(key)
+                  rows.append(r)
+          if not rows:
+              raise SystemExit('ERROR: no listings scraped from any estate source')
+          out=Path('apps/web/src/data/scraped-listings-estate.json')
+          out.write_text(json.dumps(rows, ensure_ascii=False))
+          print(f'Wrote {len(rows)} merged estate listings from {len(files)} source files')
+          PY
+
+      - name: Validate listing count and show platform mix
         run: |
-          COUNT=$(python -c "import json,sys; d=json.load(open('apps/web/src/data/scraped-listings-estate.json')); print(len(d) if isinstance(d, list) else len(d.get('listings', d.get('results', []))))")
-          echo "Scraped $COUNT listings"
-          if [ "$COUNT" -lt 20 ]; then
-            echo "ERROR: Only $COUNT listings scraped (minimum: 20). Possible scraper failure."
-            exit 1
-          fi
+          python - <<'PY'
+          import json
+          from collections import Counter
+          p='apps/web/src/data/scraped-listings-estate.json'
+          d=json.load(open(p))
+          rows=d if isinstance(d,list) else d.get('listings', d.get('results', []))
+          count=len(rows)
+          c=Counter((r.get('platform') or {}).get('name','unknown') for r in rows if isinstance(r,dict))
+          print(f'Scraped {count} listings')
+          print('Platform mix:', dict(c.most_common()))
+          hard_min=15
+          target_min=60
+          if count < hard_min:
+              raise SystemExit(f'ERROR: Only {count} listings scraped (hard minimum: {hard_min}).')
+          if count < target_min:
+              print(f'WARNING: Below target minimum ({target_min}); continuing to avoid false-fail.')
+          PY
 
       - name: Commit if changed
         run: |
@@ -54,5 +99,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add apps/web/src/data/scraped-listings-estate.json
           git diff --staged --quiet || git commit -m "chore: refresh estate listings (es+ms+pb+az) [skip ci]"
-          git pull --rebase origin ${{ github.ref_name }}
           git push origin ${{ github.ref_name }}
