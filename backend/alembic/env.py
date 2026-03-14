@@ -28,6 +28,7 @@ if database_url:
     # must be escaped as %% or set_main_option raises ValueError.
     rendered_url = url_obj.render_as_string(hide_password=False).replace("%", "%%")
     config.set_main_option("sqlalchemy.url", rendered_url)
+    config.set_main_option("sqlalchemy.url", url_obj.render_as_string(hide_password=False))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
