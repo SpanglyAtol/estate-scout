@@ -43,41 +43,66 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _column_exists(table_name: str, column_name: str, schema: str | None = None) -> bool:
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    return any(c["name"] == column_name for c in insp.get_columns(table_name, schema=schema))
+
+
+def _index_exists(index_name: str, table_name: str, schema: str | None = None) -> bool:
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    return any(ix["name"] == index_name for ix in insp.get_indexes(table_name, schema=schema))
+
+
 def upgrade() -> None:
     # ── 1. New columns on public.listings ──────────────────────────────────────
 
-    op.add_column("listings", sa.Column(
-        "listing_type", sa.String(50), server_default="auction", nullable=False,
-    ))
-    op.add_column("listings", sa.Column(
-        "item_type", sa.String(50), server_default="individual_item", nullable=False,
-    ))
-    op.add_column("listings", sa.Column(
-        "auction_status", sa.String(50), server_default="upcoming", nullable=False,
-    ))
+    if not _column_exists("listings", "listing_type"):
+        op.add_column("listings", sa.Column(
+            "listing_type", sa.String(50), server_default="auction", nullable=False,
+        ))
+    if not _column_exists("listings", "item_type"):
+        op.add_column("listings", sa.Column(
+            "item_type", sa.String(50), server_default="individual_item", nullable=False,
+        ))
+    if not _column_exists("listings", "auction_status"):
+        op.add_column("listings", sa.Column(
+            "auction_status", sa.String(50), server_default="upcoming", nullable=False,
+        ))
     # auction_status includes listing_type in the enricher fields that were added in 0001.
     # Also add the enriched structured fields that are written by the scraper but
     # were not in the original schema.
-    op.add_column("listings", sa.Column("maker", sa.String(200), nullable=True))
-    op.add_column("listings", sa.Column("brand", sa.String(200), nullable=True))
-    op.add_column("listings", sa.Column(
-        "collaboration_brands", postgresql.ARRAY(sa.Text), server_default="{}"
-    ))
-    op.add_column("listings", sa.Column("period", sa.String(100), nullable=True))
-    op.add_column("listings", sa.Column("country_of_origin", sa.String(100), nullable=True))
-    op.add_column("listings", sa.Column(
-        "attributes", postgresql.JSONB, server_default="{}"
-    ))
+    if not _column_exists("listings", "maker"):
+        op.add_column("listings", sa.Column("maker", sa.String(200), nullable=True))
+    if not _column_exists("listings", "brand"):
+        op.add_column("listings", sa.Column("brand", sa.String(200), nullable=True))
+    if not _column_exists("listings", "collaboration_brands"):
+        op.add_column("listings", sa.Column(
+            "collaboration_brands", postgresql.ARRAY(sa.Text), server_default="{}"
+        ))
+    if not _column_exists("listings", "period"):
+        op.add_column("listings", sa.Column("period", sa.String(100), nullable=True))
+    if not _column_exists("listings", "country_of_origin"):
+        op.add_column("listings", sa.Column("country_of_origin", sa.String(100), nullable=True))
+    if not _column_exists("listings", "attributes"):
+        op.add_column("listings", sa.Column(
+            "attributes", postgresql.JSONB, server_default="{}"
+        ))
     # auction_status: also add final_price + estimate columns that storage.py writes
     # but were missing from migration 0001.
-    op.add_column("listings", sa.Column("estimate_low", sa.Numeric(12, 2), nullable=True))
-    op.add_column("listings", sa.Column("estimate_high", sa.Numeric(12, 2), nullable=True))
-    op.add_column("listings", sa.Column("auction_status_type", sa.String(50), nullable=True))
+    if not _column_exists("listings", "estimate_low"):
+        op.add_column("listings", sa.Column("estimate_low", sa.Numeric(12, 2), nullable=True))
+    if not _column_exists("listings", "estimate_high"):
+        op.add_column("listings", sa.Column("estimate_high", sa.Numeric(12, 2), nullable=True))
+    if not _column_exists("listings", "auction_status_type"):
+        op.add_column("listings", sa.Column("auction_status_type", sa.String(50), nullable=True))
 
     # archived_at: NULL = live row; non-NULL = moved to archive, excluded from website
-    op.add_column("listings", sa.Column(
-        "archived_at", sa.DateTime(timezone=True), nullable=True,
-    ))
+    if not _column_exists("listings", "archived_at"):
+        op.add_column("listings", sa.Column(
+            "archived_at", sa.DateTime(timezone=True), nullable=True,
+        ))
 
     # Backfill auction_status for existing rows using date/completion logic
     op.execute("""
@@ -94,16 +119,19 @@ def upgrade() -> None:
     # Note: no NOW() in the predicate — partial index predicates must be immutable.
     # The date cutoff is applied at query time in batch_archive_ended().
     op.execute("""
-        CREATE INDEX idx_listings_needs_archive
+        CREATE INDEX IF NOT EXISTS idx_listings_needs_archive
         ON listings (sale_ends_at, is_completed)
         WHERE archived_at IS NULL
     """)
 
     # Indexes for new columns
-    op.create_index("idx_listings_auction_status", "listings", ["auction_status"])
-    op.create_index("idx_listings_listing_type",   "listings", ["listing_type"])
-    op.create_index("idx_listings_maker",           "listings", ["maker"],
-                    postgresql_where=sa.text("maker IS NOT NULL"))
+    if not _index_exists("idx_listings_auction_status", "listings"):
+        op.create_index("idx_listings_auction_status", "listings", ["auction_status"])
+    if not _index_exists("idx_listings_listing_type", "listings"):
+        op.create_index("idx_listings_listing_type", "listings", ["listing_type"])
+    if not _index_exists("idx_listings_maker", "listings"):
+        op.create_index("idx_listings_maker", "listings", ["maker"],
+                        postgresql_where=sa.text("maker IS NOT NULL"))
 
     # ── 2. Seed new platforms ──────────────────────────────────────────────────
     op.execute("""
@@ -120,7 +148,7 @@ def upgrade() -> None:
 
     # archive.listings — denormalized, self-contained, no FKs to public
     op.execute("""
-        CREATE TABLE archive.listings (
+        CREATE TABLE IF NOT EXISTS archive.listings (
             id                  BIGSERIAL PRIMARY KEY,
 
             -- Back-reference to public.listings (informational only, no FK constraint
@@ -187,35 +215,35 @@ def upgrade() -> None:
 
     # Indexes for AI valuation, market charts, and geographic queries
     op.execute("""
-        CREATE INDEX idx_archive_category_maker
+        CREATE INDEX IF NOT EXISTS idx_archive_category_maker
             ON archive.listings (category, maker)
             WHERE final_price IS NOT NULL
     """)
     op.execute("""
-        CREATE INDEX idx_archive_sale_ends
+        CREATE INDEX IF NOT EXISTS idx_archive_sale_ends
             ON archive.listings (sale_ends_at DESC)
             WHERE final_price IS NOT NULL
     """)
     op.execute("""
-        CREATE INDEX idx_archive_maker_price
+        CREATE INDEX IF NOT EXISTS idx_archive_maker_price
             ON archive.listings (maker, final_price)
             WHERE final_price IS NOT NULL AND maker IS NOT NULL
     """)
     op.execute("""
-        CREATE INDEX idx_archive_state_category
+        CREATE INDEX IF NOT EXISTS idx_archive_state_category
             ON archive.listings (state, category)
             WHERE final_price IS NOT NULL
     """)
     op.execute("""
-        CREATE INDEX idx_archive_platform
+        CREATE INDEX IF NOT EXISTS idx_archive_platform
             ON archive.listings (platform_slug, archived_at DESC)
     """)
     op.execute("""
-        CREATE INDEX idx_archive_search
+        CREATE INDEX IF NOT EXISTS idx_archive_search
             ON archive.listings USING GIN (search_vector)
     """)
     op.execute("""
-        CREATE INDEX idx_archive_source_id
+        CREATE INDEX IF NOT EXISTS idx_archive_source_id
             ON archive.listings (source_listing_id)
             WHERE source_listing_id IS NOT NULL
     """)
@@ -239,9 +267,19 @@ def upgrade() -> None:
         $$ LANGUAGE plpgsql
     """)
     op.execute("""
-        CREATE TRIGGER archive_listings_search_vector_trigger
-        BEFORE INSERT OR UPDATE ON archive.listings
-        FOR EACH ROW EXECUTE FUNCTION archive_listings_search_vector_update()
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_trigger
+                WHERE tgname = 'archive_listings_search_vector_trigger'
+            ) THEN
+                CREATE TRIGGER archive_listings_search_vector_trigger
+                BEFORE INSERT OR UPDATE ON archive.listings
+                FOR EACH ROW EXECUTE FUNCTION archive_listings_search_vector_update();
+            END IF;
+        END
+        $$;
     """)
 
 
