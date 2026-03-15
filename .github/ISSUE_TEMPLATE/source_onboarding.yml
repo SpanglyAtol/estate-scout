@@ -1,0 +1,51 @@
+name: "New source onboarding"
+description: Plan and track onboarding for a new estate-sale or auction source.
+title: "[source-onboarding] <source>: initial integration"
+labels: ["type:feature", "area:scraper"]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source name
+      placeholder: "example-auction"
+    validations:
+      required: true
+
+  - type: input
+    id: website
+    attributes:
+      label: Source website
+      placeholder: "https://example.com"
+    validations:
+      required: true
+
+  - type: textarea
+    id: coverage
+    attributes:
+      label: Expected coverage
+      description: Geography, category depth, and estimated listing volume.
+      placeholder: "US national, antiques + estate auctions, ~20k active listings"
+
+  - type: textarea
+    id: access_notes
+    attributes:
+      label: Access constraints
+      description: Auth requirement, anti-bot behavior, robots/TOS notes, API docs links.
+
+  - type: checkboxes
+    id: implementation_checklist
+    attributes:
+      label: Implementation checklist
+      options:
+        - label: Adapter skeleton created under backend/scrapers/sources
+        - label: Canonical field mapping documented
+        - label: Parser fixture tests added
+        - label: Dry-run command verified locally
+        - label: Scheduled workflow target added or planned
+
+  - type: textarea
+    id: done_criteria
+    attributes:
+      label: Done criteria
+      description: Define minimum acceptable success-rate and listing count for launch.
+      placeholder: ">=90% successful runs for 7 days and >=2,000 listings/day"
