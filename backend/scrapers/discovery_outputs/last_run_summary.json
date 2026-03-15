@@ -1,9 +1,9 @@
 {
-  "run_at": null,
-  "total_listings_scraped": 0,
-  "candidate_domains": 0,
-  "new_domains": 0,
-  "known_domains": 0,
+  "run_at": "2026-03-15T04:28:26.062848+00:00",
+  "total_listings_scraped": 358,
+  "candidate_domains": 4,
+  "new_domains": 4,
+  "known_domains": 4,
   "output_files": {
     "listings": "apps/web/src/data/scraped-listings-discovery.json",
     "seen_sites": "backend/scrapers/discovery_outputs/seen_sites.json",

@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "domain": "freemansauction.com",
+    "sample_url": "https://freemansauction.com/auctions/322-fine-books-and-manuscripts/lot/38",
+    "listing_count": 315,
+    "recommendation": "build_new_adapter",
+    "target_scraper": null,
+    "task_title": "Create new scraper adapter for freemansauction.com",
+    "task_description": "Discovered 315 listings from freemansauction.com. Recommendation: build_new_adapter."
+  },
+  {
+    "domain": "handbid.com",
+    "sample_url": "https://www.handbid.com/auction-in-a-box-terms-conditions",
+    "listing_count": 18,
+    "recommendation": "build_new_adapter",
+    "target_scraper": null,
+    "task_title": "Create new scraper adapter for handbid.com",
+    "task_description": "Discovered 18 listings from handbid.com. Recommendation: build_new_adapter."
+  },
+  {
+    "domain": "mainauctionservices.com",
+    "sample_url": "https://mainauctionservices.com/",
+    "listing_count": 16,
+    "recommendation": "build_new_adapter",
+    "target_scraper": null,
+    "task_title": "Create new scraper adapter for mainauctionservices.com",
+    "task_description": "Discovered 16 listings from mainauctionservices.com. Recommendation: build_new_adapter."
+  },
+  {
+    "domain": "biddingowl.com",
+    "sample_url": "https://www.biddingowl.com/en-us/learning-center/auction-items-to-avoid",
+    "listing_count": 9,
+    "recommendation": "build_new_adapter",
+    "target_scraper": null,
+    "task_title": "Create new scraper adapter for biddingowl.com",
+    "task_description": "Discovered 9 listings from biddingowl.com. Recommendation: build_new_adapter."
+  }
+]
