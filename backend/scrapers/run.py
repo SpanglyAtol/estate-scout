@@ -30,6 +30,33 @@ SCRAPERS = {
     "ebay":            "scrapers.sources.ebay.EbaySoldListingsScraper",
     "proxibid":        "scrapers.sources.proxibid.ProxibidScraper",
     "1stdibs":         "scrapers.sources.onedibs.OneDibsScraper",
+    "ebth":            "scrapers.sources.ebth.EbthScraper",
+    "invaluable":      "scrapers.sources.invaluable.InvaluableScraper",
+    "auctionzip":      "scrapers.sources.auctionzip.AuctionZipScraper",
+    "discovery":       "scrapers.sources.discovery.DiscoveryScraper",
+}
+
+# Curated "national" run: all broadly-available public sources.
+NATIONAL_TARGETS = [
+    "bidspotter",
+    "hibid",
+    "estatesales_net",
+    "maxsold",
+    "ebay",
+    "proxibid",
+    "ebth",
+    "invaluable",
+    "auctionzip",
+    "discovery",
+]
+
+# Per-target kwargs used for national runs.
+NATIONAL_KWARGS = {
+    "bidspotter": {"state": None},
+    "hibid": {"state": "", "country": "USA"},
+    "estatesales_net": {"state": ""},
+    "maxsold": {"state": ""},
+    "proxibid": {"state": ""},
 }
 
 logging.basicConfig(
@@ -51,11 +78,12 @@ async def run(args):
         print("Available scrapers:")
         for name in SCRAPERS:
             print(f"  {name}")
+        print("  national")
         return
 
-    if args.target not in SCRAPERS:
+    if args.target != "national" and args.target not in SCRAPERS:
         logger.error(f"Unknown scraper target: {args.target}")
-        logger.error(f"Available: {', '.join(SCRAPERS.keys())}")
+        logger.error(f"Available: {', '.join(list(SCRAPERS.keys()) + ['national'])}")
         sys.exit(1)
 
     # Set up infrastructure
@@ -83,11 +111,37 @@ async def run(args):
             session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
             async with session_factory() as session:
                 storage = ScraperStorage(db_session=session)
-                await _run_scraper(args, rate_limiter, proxy_pool, storage)
+                if args.target == "national":
+                    await _run_national(args, rate_limiter, proxy_pool, storage)
+                else:
+                    await _run_scraper(args, rate_limiter, proxy_pool, storage)
             await engine.dispose()
             return
 
+    if args.target == "national":
+        await _run_national(args, rate_limiter, proxy_pool, storage)
+        return
+
     await _run_scraper(args, rate_limiter, proxy_pool, storage)
+
+
+async def _run_national(args, rate_limiter, proxy_pool, storage):
+    total = 0
+    logger.info(f"Starting national scrape across {len(NATIONAL_TARGETS)} sources")
+
+    for target in NATIONAL_TARGETS:
+        scraper_cls = load_scraper_class(SCRAPERS[target])
+        scraper = scraper_cls(rate_limiter=rate_limiter, proxy_pool=proxy_pool, storage=storage)
+        kwargs = {
+            "max_pages": args.max_pages,
+            **NATIONAL_KWARGS.get(target, {}),
+        }
+        logger.info(f"Starting {target} scraper {'(dry run)' if args.dry_run else ''}")
+        count = await scraper.run(**kwargs)
+        total += count
+        logger.info(f"Done {target}: {count} listings")
+
+    logger.info(f"National scrape complete. Processed {total} listings across all sources.")
 
 
 async def _run_scraper(args, rate_limiter, proxy_pool, storage):
@@ -115,7 +169,7 @@ async def _run_scraper(args, rate_limiter, proxy_pool, storage):
 
 def main():
     parser = argparse.ArgumentParser(description="Estate Scout scraper CLI")
-    parser.add_argument("--target", help="Scraper to run (e.g. liveauctioneers)")
+    parser.add_argument("--target", help="Scraper to run (e.g. liveauctioneers, national)")
     parser.add_argument("--list", action="store_true", help="List available scrapers")
     parser.add_argument("--dry-run", action="store_true", help="Print listings without saving")
     parser.add_argument("--query", default="", help="Search query")
