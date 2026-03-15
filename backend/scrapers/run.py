@@ -127,21 +127,31 @@ async def run(args):
 
 async def _run_national(args, rate_limiter, proxy_pool, storage):
     total = 0
+    failures: list[str] = []
     logger.info(f"Starting national scrape across {len(NATIONAL_TARGETS)} sources")
 
     for target in NATIONAL_TARGETS:
-        scraper_cls = load_scraper_class(SCRAPERS[target])
-        scraper = scraper_cls(rate_limiter=rate_limiter, proxy_pool=proxy_pool, storage=storage)
-        kwargs = {
-            "max_pages": args.max_pages,
-            **NATIONAL_KWARGS.get(target, {}),
-        }
-        logger.info(f"Starting {target} scraper {'(dry run)' if args.dry_run else ''}")
-        count = await scraper.run(**kwargs)
-        total += count
-        logger.info(f"Done {target}: {count} listings")
+        try:
+            scraper_cls = load_scraper_class(SCRAPERS[target])
+            scraper = scraper_cls(rate_limiter=rate_limiter, proxy_pool=proxy_pool, storage=storage)
+            kwargs = {
+                "max_pages": args.max_pages,
+                **NATIONAL_KWARGS.get(target, {}),
+            }
+            logger.info(f"Starting {target} scraper {'(dry run)' if args.dry_run else ''}")
+            count = await scraper.run(**kwargs)
+            total += count
+            logger.info(f"Done {target}: {count} listings")
+        except Exception as exc:
+            failures.append(target)
+            logger.exception(f"{target} scraper failed during national run: {exc}")
 
     logger.info(f"National scrape complete. Processed {total} listings across all sources.")
+    if failures:
+        logger.warning(
+            "National run finished with scraper failures: %s",
+            ", ".join(failures),
+        )
 
 
 async def _run_scraper(args, rate_limiter, proxy_pool, storage):
