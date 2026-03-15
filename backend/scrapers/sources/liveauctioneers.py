@@ -48,6 +48,10 @@ class LiveAuctioneersScraper(BaseScraper):
     _SRCH_URL = "https://www.liveauctioneers.com/search/"
     # 3. Sitemap index (last resort — IDs + URLs only, no price/date data)
     _SITEMAP  = "https://www.liveauctioneers.com/sitemap-auctions.xml"
+    _SITEMAP_FALLBACKS = (
+        "https://www.liveauctioneers.com/sitemap-auctions.xml",
+        "https://www.liveauctioneers.com/sitemap.xml",
+    )
 
     # ── Full Chrome-107+ headers ──────────────────────────────────────────────
     def _la_api_headers(self) -> dict:
@@ -147,7 +151,10 @@ class LiveAuctioneersScraper(BaseScraper):
             if not lots:
                 break
             for lot in lots:
-                yield self._normalize_item(lot)
+                if isinstance(lot, dict):
+                    listing = self._normalize_item(lot)
+                    if listing:
+                        yield listing
 
     # ── Layer 2: HTML + __NEXT_DATA__ ─────────────────────────────────────────
 
@@ -194,7 +201,10 @@ class LiveAuctioneersScraper(BaseScraper):
                 if not items:
                     break
                 for item in items:
-                    yield self._normalize_item(item)
+                    if isinstance(item, dict):
+                        listing = self._normalize_item(item)
+                        if listing:
+                            yield listing
 
     # ── Layer 3: Sitemap ──────────────────────────────────────────────────────
 
@@ -207,19 +217,12 @@ class LiveAuctioneersScraper(BaseScraper):
         that fail the detail fetch are skipped rather than stored as empty shells.
         """
         try:
-            resp = await self._fetch(
-                self._SITEMAP,
-                headers=self._browser_headers(referer=self.base_url + "/"),
-            )
-            root = ET.fromstring(resp.text)
-            ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            urls = root.findall(".//sm:url/sm:loc", ns)
-            if not urls:
-                urls = root.findall(".//{*}loc")
+            url_candidates = await self._collect_sitemap_listing_urls()
+            if not url_candidates:
+                return
 
             seen: set[str] = set()
-            for loc_el in urls[:200]:
-                url = loc_el.text or ""
+            for url in url_candidates[:200]:
                 id_match = re.search(r"/sale/(\d+)", url)
                 if not id_match:
                     id_match = re.search(r"/(\d{5,10})/?$", url)
@@ -238,6 +241,79 @@ class LiveAuctioneersScraper(BaseScraper):
 
         except Exception as exc:
             self.logger.error(f"LA sitemap parse error: {exc}")
+
+    async def _collect_sitemap_listing_urls(self) -> list[str]:
+        """Return auction/detail URLs from the root sitemap or child sitemap indexes."""
+        headers = self._browser_headers(referer=self.base_url + "/")
+        all_urls: list[str] = []
+        queued: list[str] = list(self._SITEMAP_FALLBACKS)
+        visited: set[str] = set()
+
+        while queued and len(visited) < 10:
+            sitemap_url = queued.pop(0)
+            if sitemap_url in visited:
+                continue
+            visited.add(sitemap_url)
+
+            try:
+                resp = await self._fetch(sitemap_url, headers=headers)
+            except Exception as exc:
+                self.logger.debug(f"LA sitemap fetch error ({sitemap_url}): {exc}")
+                continue
+
+            if resp.status_code != 200:
+                self.logger.debug(
+                    f"LA sitemap unavailable ({sitemap_url}): HTTP {resp.status_code}"
+                )
+                continue
+
+            try:
+                root = ET.fromstring(resp.text)
+            except Exception as exc:
+                self.logger.debug(f"LA sitemap XML parse error ({sitemap_url}): {exc}")
+                continue
+
+            urls, child_sitemaps = self._parse_sitemap_xml(root)
+            all_urls.extend(urls)
+            for child in child_sitemaps:
+                if child not in visited:
+                    queued.append(child)
+
+            if all_urls:
+                break
+
+        return all_urls
+
+    def _parse_sitemap_xml(self, root: ET.Element) -> tuple[list[str], list[str]]:
+        """Parse either `<urlset>` or `<sitemapindex>` XML into URLs and child sitemap links."""
+        ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+        listing_urls = [
+            (el.text or "").strip()
+            for el in root.findall(".//sm:url/sm:loc", ns)
+            if (el.text or "").strip()
+        ]
+        child_sitemaps = [
+            (el.text or "").strip()
+            for el in root.findall(".//sm:sitemap/sm:loc", ns)
+            if (el.text or "").strip()
+        ]
+
+        # Fallback when namespace declarations are absent.
+        if not listing_urls:
+            listing_urls = [
+                (el.text or "").strip()
+                for el in root.findall(".//{*}url/{*}loc")
+                if (el.text or "").strip()
+            ]
+        if not child_sitemaps:
+            child_sitemaps = [
+                (el.text or "").strip()
+                for el in root.findall(".//{*}sitemap/{*}loc")
+                if (el.text or "").strip()
+            ]
+
+        return listing_urls, child_sitemaps
 
     # ── normalisers ───────────────────────────────────────────────────────────
 
@@ -261,9 +337,11 @@ class LiveAuctioneersScraper(BaseScraper):
                 pass
         return None
 
-    def _normalize_item(self, item: dict) -> ScrapedListing:
+    def _normalize_item(self, item: dict) -> ScrapedListing | None:
         lot_id    = str(item.get("lotId", item.get("id", item.get("_id", ""))))
         auction_id = str(item.get("auctionId", item.get("saleId", "")))
+        if not lot_id:
+            return None
         # Prefix with auction_id to prevent lot-number collisions across auctions
         external_id = f"{auction_id}_{lot_id}" if auction_id else lot_id
 
