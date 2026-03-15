@@ -42,6 +42,7 @@ from scrapers.base import BaseScraper, ScrapedListing
 
 # ── Persistent cache ──────────────────────────────────────────────────────────
 CACHE_FILE = Path(__file__).resolve().parent.parent / "discovered_sites.json"
+SEEN_SITES_FILE = Path(__file__).resolve().parent.parent / "discovery_outputs" / "seen_sites.json"
 
 # How many days before we re-validate a known site (30 days)
 _REVALIDATE_DAYS = 30
@@ -300,6 +301,24 @@ def _save_cache(cache: dict) -> None:
         pass
 
 
+def _load_seen_domains() -> set[str]:
+    """Load previously-seen discovery domains from workflow output registry."""
+    if not SEEN_SITES_FILE.exists():
+        return set()
+    try:
+        payload = json.loads(SEEN_SITES_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+
+    sites = payload.get("sites", {})
+    out: set[str] = set()
+    for domain in sites.keys():
+        d = str(domain).lower().lstrip("www.").strip()
+        if d:
+            out.add(d)
+    return out
+
+
 # ── Known small auction platforms with browsable listing pages ────────────────
 # These sites aggregate listings from small/regional auctioneers.
 # Each entry is (display_name, listing_browse_url, url_pattern_hint)
@@ -476,6 +495,7 @@ class DiscoveryScraper(BaseScraper):
         super().__init__(*args, **kwargs)
         self.cache_only = cache_only
         self._cache = _load_cache()
+        self._seen_domains = _load_seen_domains()
 
     async def scrape_listings(
         self,
@@ -494,6 +514,8 @@ class DiscoveryScraper(BaseScraper):
         # Phase 1: Re-scrape known good sites from cache (fast, no discovery)
         known_sites = self._get_fresh_cache_sites()
         self.logger.info(f"Discovery: {len(known_sites)} known good sites in cache")
+        if self._seen_domains:
+            self.logger.info("Discovery: loaded %s previously-seen domains for suppression", len(self._seen_domains))
         scraped_count = 0
 
         for site_url, site_meta in known_sites.items():
@@ -541,6 +563,7 @@ class DiscoveryScraper(BaseScraper):
                     if u not in cached_urls
                     and u not in blacklist
                     and not self._is_excluded_domain(u)
+                    and not self._is_previously_seen_domain(u)
                 ],
                 key=self._score_candidate_url,
                 reverse=True,
@@ -1699,6 +1722,11 @@ class DiscoveryScraper(BaseScraper):
         if any(bad in url_l for bad in ("/privacy", "/terms", "/contact", "/about")):
             score -= 3
         return score
+
+    def _is_previously_seen_domain(self, url: str) -> bool:
+        """Return True if URL domain already exists in the discovery seen-domain registry."""
+        domain = urlparse(url).netloc.lower().lstrip("www.")
+        return domain in self._seen_domains
 
     @staticmethod
     def _is_excluded_domain(url: str) -> bool:
