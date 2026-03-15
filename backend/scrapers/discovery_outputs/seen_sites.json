@@ -1,5 +1,41 @@
 {
-  "last_run_at": null,
-  "total_known_sites": 0,
-  "sites": {}
+  "last_run_at": "2026-03-15T21:02:11.070169+00:00",
+  "total_known_sites": 5,
+  "sites": {
+    "auctioneersfoundation.org": {
+      "domain": "auctioneersfoundation.org",
+      "first_seen_at": "2026-03-15T21:02:11.070169+00:00",
+      "sample_url": "https://auctioneersfoundation.org/2021/01/27/foundation-supports-youth-in-the-auction-industry/",
+      "recommendation": "build_new_adapter",
+      "target_scraper": null
+    },
+    "biddingowl.com": {
+      "domain": "biddingowl.com",
+      "first_seen_at": "2026-03-15T21:02:11.070169+00:00",
+      "sample_url": "https://www.biddingowl.com/en-us/learning-center/auction-items-to-avoid",
+      "recommendation": "build_new_adapter",
+      "target_scraper": null
+    },
+    "caseantiques.com": {
+      "domain": "caseantiques.com",
+      "first_seen_at": "2026-03-15T21:02:11.070169+00:00",
+      "sample_url": "https://caseantiques.com/2019/11/asian-highlights/",
+      "recommendation": "build_new_adapter",
+      "target_scraper": null
+    },
+    "freemansauction.com": {
+      "domain": "freemansauction.com",
+      "first_seen_at": "2026-03-15T21:02:11.070169+00:00",
+      "sample_url": "https://freemansauction.com/auctions/322-fine-books-and-manuscripts/lot/38",
+      "recommendation": "build_new_adapter",
+      "target_scraper": null
+    },
+    "handbid.com": {
+      "domain": "handbid.com",
+      "first_seen_at": "2026-03-15T21:02:11.070169+00:00",
+      "sample_url": "https://www.handbid.com/auction-in-a-box-terms-conditions",
+      "recommendation": "build_new_adapter",
+      "target_scraper": null
+    }
+  }
 }
