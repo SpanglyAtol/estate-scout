@@ -1,0 +1,75 @@
+name: "Scraper failure report"
+description: Report a failing source scrape with enough detail for fast triage.
+title: "[scraper-failure] <source>: <short symptom>"
+labels: ["type:bug", "area:scraper"]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source name
+      description: Example: hibid, proxibid, estatesales
+      placeholder: hibid
+    validations:
+      required: true
+
+  - type: input
+    id: run_id
+    attributes:
+      label: Workflow run ID / job link
+      placeholder: https://github.com/.../actions/runs/123456
+
+  - type: dropdown
+    id: failure_type
+    attributes:
+      label: Failure class
+      options:
+        - network/timeout
+        - access denied (403/captcha)
+        - response format changed
+        - parser logic error
+        - persistence/db error
+        - unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: failing_target
+    attributes:
+      label: Failing URL or endpoint
+      placeholder: Include one representative URL/endpoint and request context.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include status code, snippet, stack trace, and relevant logs.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Estimate listing loss, affected geography, and user-facing impact.
+      placeholder: "~4,500 listings/day missing for west coast searches"
+
+  - type: textarea
+    id: proposed_fix
+    attributes:
+      label: Proposed fix / next step
+      placeholder: Selector update, proxy route change, parser fallback, etc.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Triage checklist
+      options:
+        - label: I attached logs or stack traces.
+          required: true
+        - label: I included at least one failing URL/endpoint.
+          required: true
+        - label: I estimated impact.
+          required: false

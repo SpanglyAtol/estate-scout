@@ -42,6 +42,7 @@ from scrapers.base import BaseScraper, ScrapedListing
 
 # ── Persistent cache ──────────────────────────────────────────────────────────
 CACHE_FILE = Path(__file__).resolve().parent.parent / "discovered_sites.json"
+SEEN_SITES_FILE = Path(__file__).resolve().parent.parent / "discovery_outputs" / "seen_sites.json"
 
 # How many days before we re-validate a known site (30 days)
 _REVALIDATE_DAYS = 30
@@ -300,6 +301,24 @@ def _save_cache(cache: dict) -> None:
         pass
 
 
+def _load_seen_domains() -> set[str]:
+    """Load previously-seen discovery domains from workflow output registry."""
+    if not SEEN_SITES_FILE.exists():
+        return set()
+    try:
+        payload = json.loads(SEEN_SITES_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+
+    sites = payload.get("sites", {})
+    out: set[str] = set()
+    for domain in sites.keys():
+        d = str(domain).lower().lstrip("www.").strip()
+        if d:
+            out.add(d)
+    return out
+
+
 # ── Known small auction platforms with browsable listing pages ────────────────
 # These sites aggregate listings from small/regional auctioneers.
 # Each entry is (display_name, listing_browse_url, url_pattern_hint)
@@ -381,6 +400,25 @@ _DIRECTORY_SEEDS: list[tuple[str, str]] = [
     ("proxibid_dir",  "https://www.proxibid.com/asp/auctioneerlist.asp"),
 ]
 
+# State / regional auctioneer association directories often surface smaller
+# auction houses not present on major platforms.
+_STATE_ASSOCIATION_SEEDS: list[tuple[str, str]] = [
+    ("california_auctioneers", "https://calauctioneers.org/member-directory/"),
+    ("texas_auctioneers", "https://www.texasauctioneers.org/find-an-auctioneer/"),
+    ("florida_auctioneers", "https://www.flaa.org/membership-directory/"),
+    ("pennsylvania_auctioneers", "https://paauctioneers.org/find-an-auctioneer/"),
+    ("ohio_auctioneers", "https://ohioauctioneers.org/find-an-auctioneer/"),
+    ("new_york_auctioneers", "https://www.nyaa.org/members/"),
+]
+
+# Niche estate-sale directories and company lists that often link to first-party
+# sale websites with proprietary inventory pages.
+_NICHE_ESTATE_SALE_SEEDS: list[tuple[str, str]] = [
+    ("estatesale_finder", "https://www.estatesale-finder.com/estate-sale-companies/"),
+    ("gsalr_companies", "https://www.gsalr.com/companies"),
+    ("estatesales_org_services", "https://www.estatesales.org/services/estate-sale-companies"),
+]
+
 # ── DuckDuckGo search query templates ────────────────────────────────────────
 # Filled with US state abbreviations and major city names at runtime.
 # Intentionally avoids major platforms to surface unknowns.
@@ -389,6 +427,8 @@ _DDG_QUERY_TEMPLATES = [
     '"estate sale" "online auction" "{region}" "lot" "preview" -site:craigslist.org',
     '"{region}" "auction house" "antiques" "upcoming auctions" "register to bid"',
     '"{region}" "estate liquidation" "online bidding" "pickup" lot',
+    '"{region}" "estate sale company" "upcoming sales" "view details"',
+    '"{region}" "auction gallery" "catalog" "register" "bid"',
 ]
 
 _DISCOVERY_REGIONS = [
@@ -400,6 +440,8 @@ _DISCOVERY_REGIONS = [
     "Memphis", "Richmond VA", "Providence RI", "Albany NY",
     "Portland OR", "Salt Lake City", "Boise ID", "Tulsa OK",
     "Chattanooga", "Lexington KY", "Savannah GA", "Frederick MD",
+    # State-level queries catch smaller local company sites.
+    "Texas", "Florida", "California", "Pennsylvania", "Ohio", "Michigan",
 ]
 
 # ── Validation signals ────────────────────────────────────────────────────────
@@ -453,6 +495,7 @@ class DiscoveryScraper(BaseScraper):
         super().__init__(*args, **kwargs)
         self.cache_only = cache_only
         self._cache = _load_cache()
+        self._seen_domains = _load_seen_domains()
 
     async def scrape_listings(
         self,
@@ -471,6 +514,8 @@ class DiscoveryScraper(BaseScraper):
         # Phase 1: Re-scrape known good sites from cache (fast, no discovery)
         known_sites = self._get_fresh_cache_sites()
         self.logger.info(f"Discovery: {len(known_sites)} known good sites in cache")
+        if self._seen_domains:
+            self.logger.info("Discovery: loaded %s previously-seen domains for suppression", len(self._seen_domains))
         scraped_count = 0
 
         for site_url, site_meta in known_sites.items():
@@ -497,19 +542,32 @@ class DiscoveryScraper(BaseScraper):
             async for url in self._discover_from_directories():
                 new_urls.add(url)
 
-            # 2c: DuckDuckGo search
+            # 2c: Niche estate-sale directories
+            async for url in self._discover_from_niche_directories():
+                new_urls.add(url)
+
+            # 2d: State auctioneer associations
+            async for url in self._discover_from_state_associations():
+                new_urls.add(url)
+
+            # 2e: DuckDuckGo search
             async for url in self._discover_via_search():
                 new_urls.add(url)
 
             # Filter out already-known and excluded domains
             cached_urls = set(self._cache.get("sites", {}).keys())
             blacklist = set(self._cache.get("blacklist", []))
-            candidate_urls = [
-                u for u in new_urls
-                if u not in cached_urls
-                and u not in blacklist
-                and not self._is_excluded_domain(u)
-            ]
+            candidate_urls = sorted(
+                [
+                    u for u in new_urls
+                    if u not in cached_urls
+                    and u not in blacklist
+                    and not self._is_excluded_domain(u)
+                    and not self._is_previously_seen_domain(u)
+                ],
+                key=self._score_candidate_url,
+                reverse=True,
+            )
             self.logger.info(
                 f"Discovery: {len(candidate_urls)} new candidate URLs to validate"
             )
@@ -585,11 +643,9 @@ class DiscoveryScraper(BaseScraper):
                         continue
                     if self._is_excluded_domain(href):
                         continue
-                    # Accept if link text or surrounding context suggests it's an auctioneer site
                     link_text = (link.get_text() or "").lower()
-                    parent_text = (link.parent.get_text() if link.parent else "").lower()
-                    context = link_text + " " + parent_text
-                    if any(kw in context for kw in ("website", "visit", "catalog", "auction", "bid")):
+                    parent_text = (link.parent.get_text(" ", strip=True) if link.parent else "").lower()
+                    if self._candidate_link_is_relevant(href, link_text, parent_text):
                         yield self._normalize_url(href)
                     elif "website" in link.get("title", "").lower():
                         yield self._normalize_url(href)
@@ -640,6 +696,55 @@ class DiscoveryScraper(BaseScraper):
                 break
             except Exception:
                 continue
+
+    async def _discover_from_niche_directories(self) -> AsyncIterator[str]:
+        """Scrape niche estate-sale directory pages for independent websites."""
+        for seed_name, seed_url in _NICHE_ESTATE_SALE_SEEDS:
+            try:
+                response = await self._fetch(
+                    seed_url,
+                    headers=self._browser_headers(referer="https://duckduckgo.com/"),
+                )
+                soup = BeautifulSoup(response.text, "lxml")
+                for link in soup.find_all("a", href=True):
+                    href = link["href"]
+                    if not href.startswith("http"):
+                        continue
+                    if self._is_excluded_domain(href):
+                        continue
+                    link_text = (link.get_text() or "").lower()
+                    context_text = (link.parent.get_text(" ", strip=True) if link.parent else "").lower()
+                    if self._candidate_link_is_relevant(href, link_text, context_text):
+                        yield self._normalize_url(href)
+                self.logger.info("Niche directory %s: scraped", seed_name)
+            except Exception as exc:
+                self.logger.debug("Niche directory %s failed: %s", seed_name, exc)
+
+    async def _discover_from_state_associations(self) -> AsyncIterator[str]:
+        """Scrape state auctioneer association member directories."""
+        for assoc_name, assoc_url in _STATE_ASSOCIATION_SEEDS:
+            try:
+                response = await self._fetch(
+                    assoc_url,
+                    headers=self._browser_headers(referer="https://www.google.com/"),
+                )
+                soup = BeautifulSoup(response.text, "lxml")
+                for link in soup.find_all("a", href=True):
+                    href = link["href"]
+                    if not href.startswith("http"):
+                        continue
+                    if self._is_excluded_domain(href):
+                        continue
+                    parsed = urlparse(href)
+                    if parsed.netloc == urlparse(assoc_url).netloc:
+                        continue
+                    link_text = (link.get_text() or "").lower()
+                    parent_text = (link.parent.get_text(" ", strip=True) if link.parent else "").lower()
+                    if self._candidate_link_is_relevant(href, link_text, parent_text):
+                        yield self._normalize_url(href)
+                self.logger.info("State association %s: scraped", assoc_name)
+            except Exception as exc:
+                self.logger.debug("State association %s failed: %s", assoc_name, exc)
 
     # ── Phase 2c: DuckDuckGo search discovery ────────────────────────────────
 
@@ -1579,6 +1684,49 @@ class DiscoveryScraper(BaseScraper):
         return fresh
 
     # ── Utilities ─────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _candidate_link_is_relevant(href: str, link_text: str, context_text: str) -> bool:
+        """Heuristic filter for directory links likely to be auction/estate-sale sites."""
+        haystack = f"{link_text} {context_text} {href.lower()}"
+        positive = (
+            "auction", "estate sale", "estate", "bid", "catalog", "lots",
+            "liquidation", "consignment", "auctioneer", "online bidding",
+        )
+        negative = (
+            "facebook", "instagram", "linkedin", "youtube", "map", "directions",
+            "privacy", "terms", "contact us", "mailto:", "tel:",
+        )
+        return any(token in haystack for token in positive) and not any(
+            token in haystack for token in negative
+        )
+
+    @staticmethod
+    def _score_candidate_url(url: str) -> int:
+        """Prioritize validation for URLs that look like listing pages."""
+        url_l = url.lower()
+        score = 0
+        for token, weight in {
+            "auctions": 4,
+            "auction": 3,
+            "estate-sale": 3,
+            "estate": 2,
+            "catalog": 3,
+            "lots": 2,
+            "bid": 2,
+            "upcoming": 1,
+            "online": 1,
+        }.items():
+            if token in url_l:
+                score += weight
+        if any(bad in url_l for bad in ("/privacy", "/terms", "/contact", "/about")):
+            score -= 3
+        return score
+
+    def _is_previously_seen_domain(self, url: str) -> bool:
+        """Return True if URL domain already exists in the discovery seen-domain registry."""
+        domain = urlparse(url).netloc.lower().lstrip("www.")
+        return domain in self._seen_domains
 
     @staticmethod
     def _is_excluded_domain(url: str) -> bool:

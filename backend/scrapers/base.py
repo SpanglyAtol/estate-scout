@@ -8,6 +8,8 @@ from typing import AsyncIterator
 
 import httpx
 
+from scrapers.normalization.canonical import CanonicalValidationError, normalize_listing
+
 
 @dataclass
 class ScrapedItem:
@@ -319,6 +321,12 @@ class BaseScraper(ABC):
         count = 0
         async with self:
             async for listing in self.scrape_listings(**kwargs):
+                try:
+                    listing = normalize_listing(listing)
+                except CanonicalValidationError as exc:
+                    self.logger.warning("Skipping invalid listing: %s", exc)
+                    continue
+
                 if self.storage:
                     await self.storage.upsert(listing)
                 else:

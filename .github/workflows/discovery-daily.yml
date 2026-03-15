@@ -1,0 +1,51 @@
+name: Discovery — Daily New Site Intake
+
+# Runs the discovery scraper daily, dedupes discovered domains against a
+# persistent seen-site registry, and generates a task queue for scraper
+# development planning.
+on:
+  schedule:
+    - cron: "30 4 * * *"   # 4:30 AM UTC daily
+  workflow_dispatch:
+
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull latest branch updates
+        run: git pull --rebase origin ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install httpx beautifulsoup4 lxml python-dateutil brotli asyncpg "sqlalchemy[asyncio]"
+
+      - name: Run discovery pipeline + task queue generation
+        run: python backend/workers/discovery_daily.py
+
+      - name: Show discovery summary
+        run: |
+          cat backend/scrapers/discovery_outputs/last_run_summary.json
+          echo "\n--- Task Queue Preview ---"
+          sed -n '1,120p' backend/scrapers/discovery_outputs/new_sites_task_queue.md
+
+      - name: Commit discovery artifacts if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/data/scraped-listings-discovery.json \
+            backend/scrapers/discovery_outputs/seen_sites.json \
+            backend/scrapers/discovery_outputs/new_sites_task_queue.json \
+            backend/scrapers/discovery_outputs/new_sites_task_queue.md \
+            backend/scrapers/discovery_outputs/last_run_summary.json
+          git diff --staged --quiet || git commit -m "chore: refresh discovery site intake + task queue [skip ci]"
+          git push origin ${{ github.ref_name }}

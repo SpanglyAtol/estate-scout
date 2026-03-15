@@ -17,47 +17,11 @@ from pathlib import Path
 # Add backend/ to path so imports work when run from project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scrapers.rate_limiter import TokenBucketRateLimiter
+from scrapers.orchestration.executor import run_targets
+from scrapers.orchestration.registry import NATIONAL_TARGETS, SCRAPER_REGISTRY, load_scraper_class
 from scrapers.proxy_pool import ProxyPool
+from scrapers.rate_limiter import TokenBucketRateLimiter
 from scrapers.storage import ScraperStorage
-
-SCRAPERS = {
-    "liveauctioneers": "scrapers.sources.liveauctioneers.LiveAuctioneersScraper",
-    "estatesales_net": "scrapers.sources.estatesales_net.EstateSalesNetScraper",
-    "hibid":           "scrapers.sources.hibid.HibidScraper",
-    "maxsold":         "scrapers.sources.maxsold.MaxSoldScraper",
-    "bidspotter":      "scrapers.sources.bidspotter.BidSpotterScraper",
-    "ebay":            "scrapers.sources.ebay.EbaySoldListingsScraper",
-    "proxibid":        "scrapers.sources.proxibid.ProxibidScraper",
-    "1stdibs":         "scrapers.sources.onedibs.OneDibsScraper",
-    "ebth":            "scrapers.sources.ebth.EbthScraper",
-    "invaluable":      "scrapers.sources.invaluable.InvaluableScraper",
-    "auctionzip":      "scrapers.sources.auctionzip.AuctionZipScraper",
-    "discovery":       "scrapers.sources.discovery.DiscoveryScraper",
-}
-
-# Curated "national" run: all broadly-available public sources.
-NATIONAL_TARGETS = [
-    "bidspotter",
-    "hibid",
-    "estatesales_net",
-    "maxsold",
-    "ebay",
-    "proxibid",
-    "ebth",
-    "invaluable",
-    "auctionzip",
-    "discovery",
-]
-
-# Per-target kwargs used for national runs.
-NATIONAL_KWARGS = {
-    "bidspotter": {"state": None},
-    "hibid": {"state": "", "country": "USA"},
-    "estatesales_net": {"state": ""},
-    "maxsold": {"state": ""},
-    "proxibid": {"state": ""},
-}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,24 +30,18 @@ logging.basicConfig(
 logger = logging.getLogger("scrapers.run")
 
 
-def load_scraper_class(dotpath: str):
-    module_path, class_name = dotpath.rsplit(".", 1)
-    import importlib
-    module = importlib.import_module(module_path)
-    return getattr(module, class_name)
-
 
 async def run(args):
     if args.list:
         print("Available scrapers:")
-        for name in SCRAPERS:
+        for name in SCRAPER_REGISTRY:
             print(f"  {name}")
         print("  national")
         return
 
-    if args.target != "national" and args.target not in SCRAPERS:
+    if args.target != "national" and args.target not in SCRAPER_REGISTRY:
         logger.error(f"Unknown scraper target: {args.target}")
-        logger.error(f"Available: {', '.join(list(SCRAPERS.keys()) + ['national'])}")
+        logger.error(f"Available: {', '.join(list(SCRAPER_REGISTRY.keys()) + ['national'])}")
         sys.exit(1)
 
     # Set up infrastructure
@@ -126,36 +84,22 @@ async def run(args):
 
 
 async def _run_national(args, rate_limiter, proxy_pool, storage):
-    total = 0
-    failures: list[str] = []
     logger.info(f"Starting national scrape across {len(NATIONAL_TARGETS)} sources")
-
-    for target in NATIONAL_TARGETS:
-        try:
-            scraper_cls = load_scraper_class(SCRAPERS[target])
-            scraper = scraper_cls(rate_limiter=rate_limiter, proxy_pool=proxy_pool, storage=storage)
-            kwargs = {
-                "max_pages": args.max_pages,
-                **NATIONAL_KWARGS.get(target, {}),
-            }
-            logger.info(f"Starting {target} scraper {'(dry run)' if args.dry_run else ''}")
-            count = await scraper.run(**kwargs)
-            total += count
-            logger.info(f"Done {target}: {count} listings")
-        except Exception as exc:
-            failures.append(target)
-            logger.exception(f"{target} scraper failed during national run: {exc}")
-
-    logger.info(f"National scrape complete. Processed {total} listings across all sources.")
-    if failures:
-        logger.warning(
-            "National run finished with scraper failures: %s",
-            ", ".join(failures),
-        )
+    summary = await run_targets(
+        targets=NATIONAL_TARGETS,
+        base_kwargs={"max_pages": args.max_pages},
+        rate_limiter=rate_limiter,
+        proxy_pool=proxy_pool,
+        storage=storage,
+        run_mode="national",
+    )
+    logger.info("National scrape complete. Processed %s listings.", summary.total_listings)
+    if summary.failed_targets:
+        logger.warning("National run finished with scraper failures: %s", ", ".join(summary.failed_targets))
 
 
 async def _run_scraper(args, rate_limiter, proxy_pool, storage):
-    scraper_cls = load_scraper_class(SCRAPERS[args.target])
+    scraper_cls = load_scraper_class(args.target)
     scraper = scraper_cls(
         rate_limiter=rate_limiter,
         proxy_pool=proxy_pool,
