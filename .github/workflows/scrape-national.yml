@@ -43,8 +43,8 @@ jobs:
           python backend/scrapers/hydrate.py --targets dc --state "" --max-pages 60  --out apps/web/src/data/_tmp-national-dc.json || echo "WARN: Discovery scrape failed"
           python backend/scrapers/hydrate.py --targets es --state "" --max-pages 50  --out apps/web/src/data/_tmp-national-es.json || echo "WARN: EstateSales scrape failed"
           python backend/scrapers/hydrate.py --targets ms --state "" --max-pages 50  --out apps/web/src/data/_tmp-national-ms.json || echo "WARN: MaxSold scrape failed"
-          python backend/scrapers/hydrate.py --targets pb --state "" --max-pages 45  --out apps/web/src/data/_tmp-national-pb.json || echo "WARN: Proxibid scrape failed"
-          python backend/scrapers/hydrate.py --targets az --state "" --max-pages 45  --out apps/web/src/data/_tmp-national-az.json || echo "WARN: AuctionZip scrape failed"
+          python backend/scrapers/hydrate.py --targets pb --state "" --max-pages 20  --out apps/web/src/data/_tmp-national-pb.json || echo "WARN: Proxibid scrape failed"
+          python backend/scrapers/hydrate.py --targets az --state "" --max-pages 15  --out apps/web/src/data/_tmp-national-az.json || echo "WARN: AuctionZip scrape failed"
 
           python - <<'PY'
           import glob, json

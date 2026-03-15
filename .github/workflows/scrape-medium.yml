@@ -39,10 +39,10 @@ jobs:
           set +e
           rm -f apps/web/src/data/_tmp-estate-*.json
 
-          python backend/scrapers/hydrate.py --targets es --state "" --max-pages 100 --out apps/web/src/data/_tmp-estate-es.json || echo "WARN: EstateSales scrape failed"
-          python backend/scrapers/hydrate.py --targets ms --state "" --max-pages 100 --out apps/web/src/data/_tmp-estate-ms.json || echo "WARN: MaxSold scrape failed"
-          python backend/scrapers/hydrate.py --targets pb --state "" --max-pages 90  --out apps/web/src/data/_tmp-estate-pb.json || echo "WARN: Proxibid scrape failed"
-          python backend/scrapers/hydrate.py --targets az --state "" --max-pages 90  --out apps/web/src/data/_tmp-estate-az.json || echo "WARN: AuctionZip scrape failed"
+          python backend/scrapers/hydrate.py --targets es --state "" --max-pages 120 --out apps/web/src/data/_tmp-estate-es.json || echo "WARN: EstateSales scrape failed"
+          python backend/scrapers/hydrate.py --targets ms --state "" --max-pages 120 --out apps/web/src/data/_tmp-estate-ms.json || echo "WARN: MaxSold scrape failed"
+          python backend/scrapers/hydrate.py --targets pb --state "" --max-pages 25  --out apps/web/src/data/_tmp-estate-pb.json || echo "WARN: Proxibid scrape failed"
+          python backend/scrapers/hydrate.py --targets az --state "" --max-pages 20  --out apps/web/src/data/_tmp-estate-az.json || echo "WARN: AuctionZip scrape failed"
 
           python - <<'PY'
           import glob, json
@@ -50,12 +50,15 @@ jobs:
           files=sorted(glob.glob('apps/web/src/data/_tmp-estate-*.json'))
           rows=[]
           seen=set()
+          source_counts={}
           for f in files:
               try:
                   d=json.load(open(f))
                   arr=d if isinstance(d,list) else d.get('listings', d.get('results', []))
               except Exception:
                   continue
+              source=f.split('_tmp-estate-')[-1].split('.json')[0]
+              source_counts[source]=len(arr)
               for r in arr:
                   if not isinstance(r,dict):
                       continue
@@ -66,6 +69,10 @@ jobs:
                       continue
                   seen.add(key)
                   rows.append(r)
+          print('Per-source counts:', source_counts)
+          # Core estate coverage requires at least one of EstateSales/MaxSold to work.
+          if source_counts.get('es', 0) + source_counts.get('ms', 0) == 0:
+              raise SystemExit('ERROR: both EstateSales and MaxSold returned 0; aborting run')
           if not rows:
               raise SystemExit('ERROR: no listings scraped from any estate source')
           out=Path('apps/web/src/data/scraped-listings-estate.json')
