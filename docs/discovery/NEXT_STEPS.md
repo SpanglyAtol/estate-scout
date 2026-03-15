@@ -4,7 +4,7 @@ Use this workflow after each daily discovery run.
 
 ## 1) Review new domain intake
 
-Primary outputs:
+Primary outputs (available in the workflow artifact `discovery-task-queue` and in local runs):
 
 - `backend/scrapers/discovery_outputs/new_sites_task_queue.md`
 - `backend/scrapers/discovery_outputs/new_sites_task_queue.json`

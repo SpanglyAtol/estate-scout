@@ -18,9 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pull latest branch updates
-        run: git pull --rebase origin ${{ github.ref_name }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -37,15 +34,19 @@ jobs:
           echo "\n--- Task Queue Preview ---"
           sed -n '1,120p' backend/scrapers/discovery_outputs/new_sites_task_queue.md
 
-      - name: Commit discovery artifacts if changed
+      - name: Upload discovery planning artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovery-task-queue
+          path: |
+            backend/scrapers/discovery_outputs/new_sites_task_queue.json
+            backend/scrapers/discovery_outputs/new_sites_task_queue.md
+            backend/scrapers/discovery_outputs/last_run_summary.json
+
+      - name: Commit seen-sites registry if changed
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add \
-            apps/web/src/data/scraped-listings-discovery.json \
-            backend/scrapers/discovery_outputs/seen_sites.json \
-            backend/scrapers/discovery_outputs/new_sites_task_queue.json \
-            backend/scrapers/discovery_outputs/new_sites_task_queue.md \
-            backend/scrapers/discovery_outputs/last_run_summary.json
-          git diff --staged --quiet || git commit -m "chore: refresh discovery site intake + task queue [skip ci]"
+          git add backend/scrapers/discovery_outputs/seen_sites.json
+          git diff --staged --quiet || git commit -m "chore: refresh discovery seen-site registry [skip ci]"
           git push origin ${{ github.ref_name }}
