@@ -25,6 +25,7 @@ import re
 from typing import AsyncIterator
 
 from scrapers.base import BaseScraper, ScrapedItem, ScrapedListing
+from scrapers.sources.adapters.hibid_adapter import HibidAuctionAdapter
 
 
 # Full GQL query, matching what the HiBid catalog-search page uses
@@ -155,61 +156,28 @@ class HibidScraper(BaseScraper):
             async with lot_semaphore:
                 return await self._fetch_lots(catalog_id)
 
-        for page_number in range(1, max_pages + 1):
-            variables = {
-                "pageNumber": page_number,
-                "pageLength": page_length,
-            }
-            if state:
-                variables["state"] = state
-            if country:
-                variables["countryName"] = country
+        adapter = HibidAuctionAdapter(
+            scraper=self,
+            state=state,
+            country=country,
+            max_pages=max_pages,
+            page_length=page_length,
+        )
 
-            payload = {
-                "operationName": "CatalogSearch",
-                "query": _AUCTION_SEARCH_QUERY,
-                "variables": variables,
-            }
-
-            try:
-                data = await self._post_gql(
-                    payload, referer=f"{HIBID_BASE_URL}/catalog-search"
-                )
-                if "errors" in data:
-                    self.logger.warning(
-                        f"HiBid GraphQL errors on page {page_number}: "
-                        f"{data['errors'][:2]}"
-                    )
-                    break
-
-                paged = (
-                    data.get("data", {})
-                    .get("auctionSearch", {})
-                    .get("pagedResults", {})
-                )
-                results = paged.get("results", [])
-                total_count = paged.get("totalCount", 0)
-
+        try:
+            async for payload in adapter.fetch():
+                results = adapter.parse(payload)
                 if not results:
-                    self.logger.info(
-                        f"HiBid: no more results at page {page_number}"
-                    )
-                    break
+                    continue
 
-                self.logger.info(
-                    f"HiBid page {page_number}: {len(results)} auctions "
-                    f"(total reported: {total_count})"
-                )
+                self.logger.info("HiBid adapter page: %s auctions", len(results))
 
                 # Normalize all auctions on this page first
                 page_listings: list[tuple] = []  # (listing, auction_id_int)
                 for match in results:
-                    auction = match.get("auction")
-                    if not auction:
-                        continue
-                    listing = self._normalize(auction)
+                    listing = adapter.normalize(match)
                     if listing:
-                        auction_id_int = self._to_int(auction.get("id"))
+                        auction_id_int = self._to_int((match.get("auction") or {}).get("id"))
                         page_listings.append((listing, auction_id_int))
 
                 # Fetch lots for all auctions on this page concurrently (rate-limited)
@@ -229,16 +197,10 @@ class HibidScraper(BaseScraper):
                                 f"HiBid auction {auction_id_int}: {len(lots)} lots fetched"
                             )
                         yield listing
+        except Exception as exc:
+            self.logger.error("HiBid adapter execution failed: %s", exc)
 
-                # Stop if we've retrieved everything
-                if page_number * page_length >= total_count:
-                    break
-
-            except Exception as exc:
-                self.logger.error(
-                    f"HiBid error on page {page_number}: {exc}"
-                )
-                break
+        self.logger.info("HiBid adapter stats: %s", adapter.emit_stats())
 
     async def _post_gql(self, payload: dict, referer: str = "") -> dict:
         """Rate-limited GraphQL POST with exponential backoff on 429/503.

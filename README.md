@@ -98,6 +98,17 @@ estate-scout/
         └── sources/          # LiveAuctioneers, EstateSales.NET, etc.
 ```
 
+
+## Scaling the Scraper Program
+
+If your goal is thousands to hundreds of thousands of listings, use the repo scaling plan in [`docs/scraper-scale-roadmap.md`](docs/scraper-scale-roadmap.md).
+
+It covers:
+- GitHub operating model (issue/PR templates, milestones, source ownership)
+- CI hardening for scraper reliability
+- Data model strategy for high-volume ingestion
+- Phased execution plan from stabilization to national scale
+
 ## Revenue Model
 
 - **Free tier**: Basic search, 5 saved searches, 5 AI price checks/month, Google/Amazon ads
